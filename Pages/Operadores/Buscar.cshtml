@@ -1,0 +1,696 @@
+﻿@page
+@model ProyectoRH2025.Pages.Operadores.BuscarModel
+@{
+    ViewData["Title"] = "Buscar Personal";
+}
+
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        --hover-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        --border-radius: 15px;
+    }
+
+    body {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+    }
+
+    .main-container {
+        padding: 2rem 0;
+    }
+
+    .header-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: var(--border-radius);
+        box-shadow: var(--card-shadow);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        margin-bottom: 2rem;
+        overflow: hidden;
+    }
+
+    .header-content {
+        background: var(--primary-gradient);
+        color: white;
+        padding: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .header-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            transform: translate(50%, -50%);
+        }
+
+        .header-content h4 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header-content p {
+            margin: 0.5rem 0 0 0;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+    .search-section {
+        padding: 2rem;
+    }
+
+    .company-selector {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .form-check {
+        position: relative;
+        cursor: pointer;
+        margin: 0;
+    }
+
+    .form-check-input {
+        opacity: 0;
+        position: absolute;
+    }
+
+    .form-check-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        background: rgba(255, 255, 255, 0.7);
+        border: 2px solid transparent;
+        border-radius: 50px;
+        transition: all 0.3s ease;
+        font-weight: 500;
+        cursor: pointer;
+        margin: 0;
+    }
+
+    .form-check-input:checked + .form-check-label {
+        background: var(--primary-gradient);
+        color: white;
+        border-color: rgba(255, 255, 255, 0.3);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .form-check-label:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .form-control {
+        border: none;
+        border-radius: 50px 0 0 50px;
+        padding: 1rem 1.5rem;
+        font-size: 1.1rem;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+
+        .form-control:focus {
+            outline: none;
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.3);
+            transform: translateY(-2px);
+            border-color: transparent;
+        }
+
+        /* Indicador de búsqueda pendiente */
+        .form-control.searching {
+            border-color: #ffc107 !important;
+            box-shadow: 0 8px 30px rgba(255, 193, 7, 0.3) !important;
+        }
+
+    .btn-primary {
+        background: var(--primary-gradient);
+        border: none;
+        border-radius: 0 50px 50px 0;
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            background: var(--primary-gradient);
+            border-color: transparent;
+        }
+
+    .results-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: var(--border-radius);
+        box-shadow: var(--card-shadow);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        overflow: hidden;
+    }
+
+    .results-header {
+        background: var(--primary-gradient);
+        color: white;
+        padding: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .results-count {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 0.5rem 1rem;
+        border-radius: 25px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .table-responsive {
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+
+    .table {
+        margin: 0;
+        background: transparent;
+    }
+
+        .table thead th {
+            background: rgba(102, 126, 234, 0.1);
+            border: none;
+            padding: 1rem;
+            font-weight: 600;
+            color: #4a5568;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .table tbody tr {
+            border: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+            .table tbody tr:hover {
+                background: rgba(102, 126, 234, 0.08);
+                transform: translateX(5px);
+            }
+
+        .table tbody td {
+            padding: 1rem;
+            border: none;
+            vertical-align: middle;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+    .employee-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--primary-gradient);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-right: 0.5rem;
+    }
+
+    .employee-info {
+        display: flex;
+        align-items: center;
+    }
+
+    .employee-details h6 {
+        margin: 0;
+        font-weight: 600;
+        color: #2d3748;
+        font-size: 0.95rem;
+    }
+
+    .employee-details small {
+        color: #718096;
+    }
+
+    .alert {
+        border: none;
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--card-shadow);
+        border-left: 4px solid;
+    }
+
+    .alert-success {
+        background: rgba(72, 187, 120, 0.1);
+        color: #2f855a;
+        border-left-color: #48bb78;
+    }
+
+    .alert-info {
+        background: rgba(66, 153, 225, 0.1);
+        color: #2c5282;
+        border-left-color: #4299e1;
+    }
+
+    .alert-warning {
+        background: rgba(237, 137, 54, 0.1);
+        color: #c05621;
+        border-left-color: #ed8936;
+    }
+
+    .alert-danger {
+        background: rgba(245, 101, 101, 0.1);
+        color: #c53030;
+        border-left-color: #f56565;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #718096;
+    }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+    .floating-add-btn {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: var(--secondary-gradient);
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s ease;
+        z-index: 1000;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .floating-add-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+            color: white;
+            text-decoration: none;
+        }
+
+    .badge {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+    }
+
+    .fade-in {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.6s ease;
+    }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+</style>
+
+<div class="main-container">
+    <div class="container-fluid">
+        <!-- Header Card -->
+        <div class="header-card fade-in">
+            <div class="header-content">
+                <h4>
+                    <i class="fas fa-users me-3"></i>
+                    Personal
+                </h4>
+                <p>Encuentra y gestiona información de empleados de manera eficiente</p>
+            </div>
+
+            <div class="search-section">
+                <form method="get" class="mb-4" id="searchForm">
+                    <div class="row align-items-end">
+                        <div class="col-md-6">
+                            <!-- Company Selector -->
+                            <div class="company-selector">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" asp-for="SelectedCompany" value="1" id="stilCheck">
+                                    <label class="form-check-label" for="stilCheck">
+                                        <i class="fas fa-building"></i>
+                                        Stil
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" asp-for="SelectedCompany" value="2" id="aknaCheck">
+                                    <label class="form-check-label" for="aknaCheck">
+                                        <i class="fas fa-industry"></i>
+                                        Akna
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" asp-for="SelectedCompany" value="0" id="allCheck">
+                                    <label class="form-check-label" for="allCheck">
+                                        <i class="fas fa-globe"></i>
+                                        Todos
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <!-- Search Bar -->
+                            <div class="input-group">
+                                <input type="text" class="form-control" asp-for="SearchTerm"
+                                       placeholder="Buscar por nombre, apellido, número de reloj..."
+                                       id="searchInput">
+                                <button class="btn btn-primary" type="submit" id="searchButton">
+                                    <i class="fas fa-search"></i> Buscar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                @if (!string.IsNullOrEmpty(Model.SearchMessage))
+                {
+                    <div class="alert alert-@Model.SearchType alert-dismissible fade show mb-3" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>
+                        @Model.SearchMessage
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Results Card -->
+        <div class="results-card fade-in">
+            <div class="results-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>
+                    Resultados de Búsqueda
+                </h5>
+                <div class="results-count">
+                    @if (Model.Empleados != null && Model.Empleados.Any())
+                    {
+                        var count = Model.Empleados.Count();
+                        <i class="fas fa-user-check me-2"></i>
+                        @count @(count == 1 ? "empleado encontrado" : "empleados encontrados")
+                    }
+                    else
+                    {
+                        <i class="fas fa-search me-2"></i>
+                        <text>Sin resultados</text>
+                    }
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Empleado</th>
+                            <th>Num.Reloj</th>
+                            <th>Contacto</th>
+                            <th>Fecha De Ingreso</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Empleados != null && Model.Empleados.Any())
+                        {
+                            @foreach (var empleado in Model.Empleados)
+                            {
+                                <tr data-id="@empleado.Id" class="empleado-row">
+                                    <td data-label="Empleado">
+                                        <div class="employee-info">
+                                            <div class="employee-avatar">
+                                                @{
+                                                    var initials = "";
+                                                    if (!string.IsNullOrEmpty(empleado.Names))
+                                                        initials += empleado.Names.Substring(0, 1);
+                                                    if (!string.IsNullOrEmpty(empleado.Apellido))
+                                                        initials += empleado.Apellido.Substring(0, 1);
+                                                }
+                                                @initials.ToUpper()
+                                            </div>
+                                            <div class="employee-details">
+                                                <h6>@empleado.Names @empleado.Apellido</h6>
+                                                <small>@empleado.Apellido2</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td data-label="Num.Reloj">
+                                        <span class="badge bg-light text-dark">@empleado.Reloj</span>
+                                    </td>
+                                    <td data-label="Contacto">
+                                        <div>
+                                            <i class="fas fa-envelope me-1 text-muted"></i>
+                                            <small>@empleado.Email</small>
+                                        </div>
+                                    </td>
+                                    <td data-label="Fecha De Ingreso">
+                                        <span class="text-muted">@empleado.Fingreso?.ToShortDateString()</span>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="4">
+                                    <div class="empty-state">
+                                        <i class="fas fa-search"></i>
+                                        <h5>No se encontraron empleados</h5>
+                                        @if (!string.IsNullOrEmpty(Model.SearchTerm))
+                                        {
+                                            <p class="text-muted mb-0">
+                                                <small>
+                                                    <strong>Sugerencias:</strong><br>
+                                                    <text>• Verifique que la ortografía sea correcta</text><br>
+                                                    <text>• Intente con términos más generales</text><br>
+                                                    <text>• Asegúrese de haber seleccionado la compañía correcta</text>
+                                                </small>
+                                            </p>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Add Button -->
+<a href="/Operadores/AltaEmpleado" class="floating-add-btn" title="Agregar empleado">
+    <i class="fas fa-plus"></i>
+</a>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Animate cards on load
+            setTimeout(function() {
+                $('.fade-in').addClass('visible');
+            }, 100);
+
+            // Agregar cursor pointer a las filas
+            $('.empleado-row').css('cursor', 'pointer');
+
+            // Manejar doble clic
+            $('.empleado-row').dblclick(function () {
+                var empleadoId = $(this).data('id');
+                window.location.href = '/Operadores/Detalles/' + empleadoId;
+            });
+
+            // Efecto hover mejorado
+            $('.empleado-row').hover(
+                function () {
+                    $(this).addClass('table-active');
+                },
+                function () {
+                    $(this).removeClass('table-active');
+                }
+            );
+
+            // BÚSQUEDA AUTOMÁTICA OPTIMIZADA
+            var searchTimer;
+            var lastSearchTerm = '';
+
+            $('#searchInput').on('input', function() {
+                var currentTerm = $(this).val().trim();
+                var $input = $(this);
+                var $button = $('#searchButton');
+                var form = $('#searchForm');
+
+                // Limpiar timer anterior
+                clearTimeout(searchTimer);
+
+                // Solo buscar si:
+                // 1. El término cambió
+                // 2. Tiene al menos 3 caracteres O está vacío (para limpiar)
+                // 3. Hay una compañía seleccionada
+                if (currentTerm !== lastSearchTerm &&
+                    (currentTerm.length >= 3 || currentTerm.length === 0) &&
+                    ($('input[name="SelectedCompany"]:checked').length > 0)) {
+
+                    // Indicador visual de búsqueda pendiente
+                    $input.addClass('searching');
+                    $button.html('<i class="fas fa-clock me-2"></i>Buscando...');
+
+                    searchTimer = setTimeout(function() {
+                        lastSearchTerm = currentTerm;
+                        $input.removeClass('searching');
+                        $button.html('<i class="fas fa-search"></i> Buscar');
+                        form.submit();
+                    }, 1500); // 1.5 segundos de delay
+                } else if (currentTerm === lastSearchTerm) {
+                    // Si es el mismo término, quitar indicadores
+                    $input.removeClass('searching');
+                    $button.html('<i class="fas fa-search"></i> Buscar');
+                }
+            });
+
+            // Búsqueda inmediata con Enter (sin delay)
+            $('#searchInput').on('keypress', function(e) {
+                if (e.which === 13) { // Enter key
+                    e.preventDefault();
+                    clearTimeout(searchTimer); // Cancelar búsqueda automática
+                    $(this).removeClass('searching');
+                    $('#searchButton').html('<i class="fas fa-search"></i> Buscar');
+                    $('#searchForm').submit();
+                }
+            });
+
+            // Efecto de click en filas
+            $('.empleado-row').on('click', function(e) {
+                $(this).css('transform', 'translateX(10px)');
+                var that = this;
+                setTimeout(function() {
+                    $(that).css('transform', 'translateX(0)');
+                }, 200);
+            });
+
+            // Manejar cambios en el selector de compañía con efecto visual
+            $('input[name="SelectedCompany"]').change(function() {
+                $('.header-card').css('opacity', '0.7');
+                clearTimeout(searchTimer); // Cancelar búsqueda pendiente
+                $('#searchInput').removeClass('searching');
+                $('#searchButton').html('<i class="fas fa-search"></i> Buscar');
+
+                var form = $('#searchForm');
+                setTimeout(function() {
+                    form.submit();
+                }, 200);
+            });
+
+            // Efecto en botón flotante
+            $('.floating-add-btn').hover(
+                function() {
+                    $(this).css('transform', 'scale(1.1)');
+                },
+                function() {
+                    $(this).css('transform', 'scale(1)');
+                }
+            );
+
+            // Limpiar indicadores al cargar la página
+            $('#searchInput').removeClass('searching');
+            $('#searchButton').html('<i class="fas fa-search"></i> Buscar');
+
+            // Responsive: hacer que la tabla sea responsive en móviles
+            function makeTableResponsive() {
+                if ($(window).width() <= 768) {
+                    $('.table thead').hide();
+                    $('.table tbody tr').each(function() {
+                        $(this).css({
+                            'display': 'block',
+                            'margin-bottom': '1rem',
+                            'background': 'white',
+                            'border-radius': '10px',
+                            'box-shadow': '0 5px 15px rgba(0, 0, 0, 0.1)',
+                            'padding': '1rem'
+                        });
+                    });
+                    $('.table tbody td').each(function() {
+                        var label = $(this).attr('data-label');
+                        if (label && $(this).find('.data-label').length === 0) {
+                            $(this).prepend('<div class="data-label"><strong>' + label + ':</strong></div>');
+                        }
+                        $(this).css({
+                            'display': 'block',
+                            'padding': '0.5rem 0',
+                            'border': 'none'
+                        });
+                    });
+                } else {
+                    $('.table thead').show();
+                    $('.table tbody tr').css({
+                        'display': 'table-row',
+                        'margin-bottom': '0',
+                        'background': 'transparent',
+                        'border-radius': '0',
+                        'box-shadow': 'none',
+                        'padding': '0'
+                    });
+                    $('.table tbody td').each(function() {
+                        $(this).find('.data-label').remove();
+                        $(this).css({
+                            'display': 'table-cell',
+                            'padding': '1rem',
+                            'border-bottom': '1px solid rgba(0, 0, 0, 0.05)'
+                        });
+                    });
+                }
+            }
+
+            // Aplicar responsive al cargar y al cambiar tamaño
+            makeTableResponsive();
+            $(window).resize(makeTableResponsive);
+
+            // Prevenir múltiples envíos del formulario
+            var isSubmitting = false;
+            $('#searchForm').on('submit', function(e) {
+                if (isSubmitting) {
+                    e.preventDefault();
+                    return false;
+                }
+                isSubmitting = true;
+
+                // Restablecer después de 2 segundos
+                setTimeout(function() {
+                    isSubmitting = false;
+                }, 2000);
+            });
+        });
+    </script>
+}

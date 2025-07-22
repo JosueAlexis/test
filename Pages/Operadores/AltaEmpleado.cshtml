@@ -1,0 +1,782 @@
+﻿@page
+@model ProyectoRH2025.Pages.Operadores.AltaEmpleadoModel
+@{
+    ViewData["Title"] = "Alta de Empleado";
+}
+
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        --border-radius: 15px;
+    }
+
+    .form-header {
+        background: var(--primary-gradient);
+        color: white;
+        border-radius: var(--border-radius);
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--card-shadow);
+        position: relative;
+        overflow: hidden;
+    }
+
+        .form-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 150px;
+            height: 150px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            transform: translate(30%, -30%);
+        }
+
+        .form-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .form-header p {
+            margin: 0.5rem 0 0 0;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+    .back-btn {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border: none;
+        border-radius: 50px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        color: #667eea;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+        .back-btn:hover {
+            transform: translateX(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            color: #667eea;
+            text-decoration: none;
+        }
+
+    .progress-container {
+        margin-bottom: 2rem;
+    }
+
+    .progress-bar {
+        height: 6px;
+        background: #e2e8f0;
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: var(--primary-gradient);
+        width: 0%;
+        transition: width 0.5s ease;
+    }
+
+    .form-steps {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .step-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .step {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        color: #718096;
+        transition: all 0.3s ease;
+    }
+
+        .step.active {
+            background: var(--primary-gradient);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .step.completed {
+            background: var(--success-gradient);
+            color: white;
+        }
+
+    .step-label {
+        font-size: 0.8rem;
+        color: #718096;
+        font-weight: 500;
+    }
+
+    .card {
+        border: none;
+        border-radius: var(--border-radius);
+        box-shadow: var(--card-shadow);
+        background: white;
+    }
+
+    .card-header {
+        background: rgba(102, 126, 234, 0.05);
+        border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+        border-radius: var(--border-radius) var(--border-radius) 0 0;
+    }
+
+    .nav-tabs {
+        border: none;
+        padding: 1rem;
+    }
+
+    .nav-link {
+        border: none;
+        color: #6c757d;
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        background: transparent;
+    }
+
+        .nav-link.active {
+            background: var(--primary-gradient);
+            color: white;
+        }
+
+        .nav-link:hover:not(.active) {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+        }
+
+    .form-label {
+        font-weight: 600;
+        color: #4a5568;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .required-indicator {
+        color: #f56565;
+        font-weight: 700;
+    }
+
+    .form-control {
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: rgba(255, 255, 255, 0.8);
+    }
+
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            background: white;
+            transform: translateY(-1px);
+            outline: none;
+        }
+
+        .form-control.is-valid {
+            border-color: #48bb78;
+        }
+
+        .form-control.is-invalid {
+            border-color: #f56565;
+        }
+
+    .photo-upload {
+        background: rgba(102, 126, 234, 0.05);
+        border: 2px dashed #667eea;
+        border-radius: 15px;
+        padding: 2rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        min-height: 200px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .photo-upload:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+    .upload-icon {
+        font-size: 3rem;
+        color: #667eea;
+        margin-bottom: 1rem;
+    }
+
+    .photo-preview {
+        max-width: 100%;
+        max-height: 300px;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-primary {
+        background: var(--primary-gradient);
+        border: none;
+        border-radius: 50px;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        color: white;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            color: white;
+            background: var(--primary-gradient);
+        }
+
+    .btn-secondary {
+        background: rgba(108, 117, 125, 0.1);
+        border: 2px solid #6c757d;
+        border-radius: 50px;
+        color: #6c757d;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+        .btn-secondary:hover {
+            background: #6c757d;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+    .alert {
+        border: none;
+        border-radius: 15px;
+        border-left: 4px solid;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    }
+
+    .alert-success {
+        background: rgba(72, 187, 120, 0.1);
+        color: #2f855a;
+        border-left-color: #48bb78;
+    }
+
+    .field-help {
+        font-size: 0.8rem;
+        color: #718096;
+        margin-top: 0.25rem;
+    }
+
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.9);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid #e2e8f0;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    .fade-in {
+        opacity: 0;
+        animation: fadeIn 0.6s ease forwards;
+    }
+
+    /* Responsive */
+    .mobile-responsive .col-md-3,
+    .mobile-responsive .col-md-4,
+    .mobile-responsive .col-md-6 {
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+</style>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <p>Guardando empleado...</p>
+</div>
+
+<div class="container-fluid">
+    <!-- Back Button -->
+    <a class="back-btn" asp-page="./Buscar">
+        <i class="fas fa-arrow-left me-2"></i>
+        Regresar a la lista
+    </a>
+
+    <!-- Form Header -->
+    <div class="form-header fade-in">
+        <h1>
+            <i class="fas fa-user-plus me-3"></i>
+            Nuevo Empleado
+        </h1>
+        <p>Complete todos los campos requeridos para registrar un nuevo empleado</p>
+    </div>
+
+    <!-- Progress Section -->
+    <div class="progress-container">
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="form-steps">
+            <div class="step-container">
+                <div class="step active" id="step1">1</div>
+                <div class="step-label">Personal</div>
+            </div>
+            <div class="step-container">
+                <div class="step" id="step2">2</div>
+                <div class="step-label">Contacto</div>
+            </div>
+            <div class="step-container">
+                <div class="step" id="step3">3</div>
+                <div class="step-label">Documentos</div>
+            </div>
+            <div class="step-container">
+                <div class="step" id="step4">4</div>
+                <div class="step-label">Laboral</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Card -->
+    <div class="card fade-in">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs">
+                <li class="nav-item">
+                    <a class="nav-link active" data-bs-toggle="tab" href="#general">
+                        <i class="fas fa-user me-2"></i>
+                        General
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data" id="employeeForm" novalidate>
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="general">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <!-- Información Personal -->
+                                <h5 class="mb-3">
+                                    <i class="fas fa-user me-2"></i>
+                                    Información Personal
+                                </h5>
+                                <div class="row mb-3">
+                                    <div class="col-md-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-id-badge"></i>
+                                            Número de Reloj <span class="required-indicator">*</span>
+                                        </label>
+                                        <input asp-for="Empleado.Reloj" class="form-control" required placeholder="1024" />
+                                        <div class="field-help">Número único del empleado</div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-user"></i>
+                                            Nombres <span class="required-indicator">*</span>
+                                        </label>
+                                        <input asp-for="Empleado.Names" class="form-control" required placeholder="Juan Carlos" />
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-user-tag"></i>
+                                            Apellido <span class="required-indicator">*</span>
+                                        </label>
+                                        <input asp-for="Empleado.Apellido" class="form-control" required placeholder="García" />
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-user-tag"></i>
+                                            Segundo Apellido <span class="required-indicator">*</span>
+                                        </label>
+                                        <input asp-for="Empleado.Apellido2" class="form-control" required placeholder="López" />
+                                    </div>
+                                </div>
+
+                                <!-- Información de Contacto -->
+                                <h5 class="mb-3 mt-4">
+                                    <i class="fas fa-address-book me-2"></i>
+                                    Información de Contacto
+                                </h5>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">
+                                            <i class="fas fa-envelope"></i>
+                                            Correo <span class="required-indicator">*</span>
+                                        </label>
+                                        <input asp-for="Empleado.Email" class="form-control" type="email" required placeholder="juan.garcia@empresa.com" />
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-phone"></i>
+                                            Teléfono <span class="required-indicator">*</span>
+                                        </label>
+                                        <input asp-for="Empleado.Telefono" class="form-control" required placeholder="+52 867 123 4567" />
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-phone-alt"></i>
+                                            Tel. Emergencia <span class="required-indicator">*</span>
+                                        </label>
+                                        <input asp-for="Empleado.TelEmergencia" class="form-control" required placeholder="+52 867 987 6543" />
+                                    </div>
+                                </div>
+
+                                <!-- Documentos Oficiales -->
+                                <h5 class="mb-3 mt-4">
+                                    <i class="fas fa-id-card me-2"></i>
+                                    Documentos Oficiales
+                                </h5>
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">
+                                            <i class="fas fa-file-alt"></i>
+                                            RFC <span class="required-indicator">*</span>
+                                        </label>
+                                        <input asp-for="Empleado.Rfc" class="form-control" required placeholder="GALO801225ABC" />
+                                        <div class="field-help">Registro Federal de Contribuyentes</div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">
+                                            <i class="fas fa-fingerprint"></i>
+                                            CURP <span class="required-indicator">*</span>
+                                        </label>
+                                        <input asp-for="Empleado.Curp" class="form-control" required placeholder="GALO801225HTCRPN09" />
+                                        <div class="field-help">Clave Única de Registro de Población</div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">
+                                            <i class="fas fa-shield-alt"></i>
+                                            NSS <span class="required-indicator">*</span>
+                                        </label>
+                                        <input asp-for="Empleado.NumSSocial" class="form-control" required placeholder="12345678901" />
+                                        <div class="field-help">Número de Seguridad Social</div>
+                                    </div>
+                                </div>
+
+                                <!-- Información Laboral -->
+                                <h5 class="mb-3 mt-4">
+                                    <i class="fas fa-briefcase me-2"></i>
+                                    Información Laboral
+                                </h5>
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">
+                                            <i class="fas fa-calendar"></i>
+                                            Fecha de Ingreso <span class="required-indicator">*</span>
+                                        </label>
+                                        <input asp-for="Empleado.Fingreso" class="form-control" type="date" required />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">
+                                            <i class="fas fa-user-tie"></i>
+                                            Puesto <span class="required-indicator">*</span>
+                                        </label>
+                                        <input list="puestos" name="PuestoNombre" id="PuestoNombre" class="form-control" required placeholder="Operador" />
+                                        <datalist id="puestos">
+                                            @foreach (var puesto in Model.Puestos)
+                                            {
+                                                <option value="@puesto.Puesto" data-id="@puesto.Puesto"></option>
+                                            }
+                                        </datalist>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">
+                                            <i class="fas fa-toggle-on"></i>
+                                            Status <span class="required-indicator">*</span>
+                                        </label>
+                                        <select asp-for="Empleado.Status" class="form-control" required>
+                                            <option value="">Seleccionar estado...</option>
+                                            <option value="1">Activo</option>
+                                            <option value="0">Inactivo</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-camera me-2"></i>
+                                    Fotografía <span class="required-indicator">*</span>
+                                </h5>
+                                <div class="photo-upload" id="photoUpload">
+                                    <input type="file" name="FotoArchivo" id="photoInput" accept="image/*" style="display: none;" required />
+                                    <div id="uploadPlaceholder">
+                                        <i class="fas fa-camera upload-icon"></i>
+                                        <h5>Subir Fotografía</h5>
+                                        <p class="text-muted">Haz clic para seleccionar</p>
+                                        <small class="text-muted">JPG, PNG máx. 5MB</small>
+                                    </div>
+                                    <img id="fotoPreview" class="photo-preview" style="display: none;" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                                <i class="fas fa-save me-2"></i>
+                                Guardar Empleado
+                            </button>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(Model.Mensaje))
+                        {
+                            <div class="alert alert-success mt-3">
+                                <i class="fas fa-check-circle me-2"></i>
+                                @Model.Mensaje
+                            </div>
+                        }
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('employeeForm');
+            const progressFill = document.getElementById('progressFill');
+            const photoUpload = document.getElementById('photoUpload');
+            const photoInput = document.getElementById('photoInput');
+            const photoPreview = document.getElementById('fotoPreview');
+            const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+
+            // Initialize
+            updateProgress();
+            checkMobile();
+
+            // Animate elements on load
+            setTimeout(function() {
+                const elements = document.querySelectorAll('.fade-in');
+                elements.forEach(el => {
+                    el.style.opacity = '1';
+                });
+            }, 100);
+
+            // Photo upload functionality
+            photoUpload.addEventListener('click', function() {
+                photoInput.click();
+            });
+
+            photoInput.addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    handlePhotoUpload(e.target.files[0]);
+                }
+            });
+
+            function handlePhotoUpload(file) {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        photoPreview.src = e.target.result;
+                        photoPreview.style.display = 'block';
+                        uploadPlaceholder.style.display = 'none';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+
+            // Form validation and progress
+            const inputs = form.querySelectorAll('input[required], select[required]');
+            inputs.forEach(input => {
+                input.addEventListener('input', function() {
+                    validateField(this);
+                    updateProgress();
+                });
+                input.addEventListener('change', function() {
+                    validateField(this);
+                    updateProgress();
+                });
+            });
+
+            function validateField(field) {
+                const isValid = field.checkValidity();
+                field.classList.remove('is-valid', 'is-invalid');
+                field.classList.add(isValid ? 'is-valid' : 'is-invalid');
+                return isValid;
+            }
+
+            function updateProgress() {
+                const totalFields = inputs.length;
+                let validFields = 0;
+                inputs.forEach(input => {
+                    if (input.checkValidity()) {
+                        validFields++;
+                    }
+                });
+                const progress = (validFields / totalFields) * 100;
+                progressFill.style.width = progress + '%';
+
+                // Update steps
+                updateSteps(progress);
+            }
+
+            function updateSteps(progress) {
+                const steps = document.querySelectorAll('.step');
+                steps.forEach(step => {
+                    step.classList.remove('active', 'completed');
+                });
+
+                if (progress >= 25) {
+                    document.getElementById('step1').classList.add('completed');
+                    document.getElementById('step2').classList.add('active');
+                } else {
+                    document.getElementById('step1').classList.add('active');
+                }
+
+                if (progress >= 50) {
+                    document.getElementById('step2').classList.add('completed');
+                    document.getElementById('step3').classList.add('active');
+                }
+
+                if (progress >= 75) {
+                    document.getElementById('step3').classList.add('completed');
+                    document.getElementById('step4').classList.add('active');
+                }
+
+                if (progress === 100) {
+                    document.getElementById('step4').classList.add('completed');
+                }
+            }
+
+            // Form submission
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                let isValid = true;
+                inputs.forEach(input => {
+                    if (!validateField(input)) {
+                        isValid = false;
+                    }
+                });
+
+                if (isValid) {
+                    // Show loading
+                    loadingOverlay.style.display = 'flex';
+                    document.getElementById('submitBtn').disabled = true;
+                    document.getElementById('submitBtn').innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+
+                    // Submit form
+                    setTimeout(() => {
+                        form.submit();
+                    }, 1000);
+                } else {
+                    alert('Por favor complete todos los campos requeridos');
+                    // Scroll to first invalid field
+                    const firstInvalid = form.querySelector('.is-invalid');
+                    if (firstInvalid) {
+                        firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            });
+
+            // Auto-format RFC and CURP
+            const rfcInput = form.querySelector('input[asp-for="Empleado.Rfc"]');
+            const curpInput = form.querySelector('input[asp-for="Empleado.Curp"]');
+
+            if (rfcInput) {
+                rfcInput.addEventListener('input', function() {
+                    this.value = this.value.toUpperCase();
+                });
+            }
+
+            if (curpInput) {
+                curpInput.addEventListener('input', function() {
+                    this.value = this.value.toUpperCase();
+                });
+            }
+
+            // Responsive check
+            function checkMobile() {
+                if (window.innerWidth <= 768) {
+                    document.body.classList.add('mobile-responsive');
+                } else {
+                    document.body.classList.remove('mobile-responsive');
+                }
+            }
+
+            window.addEventListener('resize', checkMobile);
+
+            // Set default values
+            const fechaInput = form.querySelector('input[asp-for="Empleado.Fingreso"]');
+            const statusSelect = form.querySelector('select[asp-for="Empleado.Status"]');
+
+            if (fechaInput) {
+                fechaInput.value = new Date().toISOString().split('T')[0];
+            }
+            if (statusSelect) {
+                statusSelect.value = '1';
+            }
+        });
+
+        // Global function for photo preview (maintaining compatibility)
+        function previewFoto(event) {
+            const input = event.target;
+            const preview = document.getElementById("fotoPreview");
+            const placeholder = document.getElementById("uploadPlaceholder");
+
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    preview.src = e.target.result;
+                    preview.style.display = "block";
+                    placeholder.style.display = "none";
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+    </script>
+}

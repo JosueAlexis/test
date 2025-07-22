@@ -1,0 +1,645 @@
+﻿@page
+@model ProyectoRH2025.Pages.Liquidaciones.IndexModel
+@{
+    ViewData["Title"] = "Liquidaciones";
+}
+
+<style>
+    /* Estilos existentes... */
+    .table-responsive {
+        margin-top: 20px;
+    }
+
+    .table th, .table td {
+        vertical-align: middle;
+        padding: 0.75rem;
+    }
+
+    .thead-light th {
+        background-color: #e9ecef;
+        color: #495057;
+        border-color: #dee2e6;
+    }
+
+    .search-form {
+        margin-bottom: 20px;
+    }
+
+    /* NUEVO: Estilos para selección masiva */
+    .selection-toolbar {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+        display: none;
+    }
+
+        .selection-toolbar.show {
+            display: block;
+        }
+
+    .checkbox-column {
+        width: 40px;
+        text-align: center;
+    }
+
+    .img-thumbnail-evidence {
+        max-width: 100px;
+        max-height: 75px;
+        margin-right: 5px;
+        border: 1px solid #ddd;
+        padding: 2px;
+    }
+
+    .no-records td {
+        text-align: center;
+        font-style: italic;
+        color: #6c757d;
+        padding: 20px;
+    }
+
+    .badge-success-custom {
+        color: #155724;
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+    }
+
+    .badge-warning-custom {
+        color: #856404;
+        background-color: #fff3cd;
+        border: 1px solid #ffeeba;
+    }
+
+    .badge-secondary-custom {
+        color: #383d41;
+        background-color: #e2e3e5;
+        border: 1px solid #d6d8db;
+    }
+
+    .filter-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+        .filter-card .card-body {
+            padding: 1.5rem;
+        }
+
+        .filter-card .form-control {
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+            .filter-card .form-control::placeholder {
+                color: rgba(255, 255, 255, 0.7);
+            }
+
+            .filter-card .form-control:focus {
+                border-color: rgba(255, 255, 255, 0.5);
+                background-color: rgba(255, 255, 255, 0.2);
+                box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
+                color: white;
+            }
+
+    .performance-info {
+        background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+    }
+
+    .stats-badge {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(10px);
+    }
+
+    /* ESTILOS PARA DATATABLES */
+    .dataTables_wrapper .dataTables_length select {
+        border-radius: 0.375rem;
+        border: 1px solid #ced4da;
+        padding: 0.375rem 0.75rem;
+        background-color: white;
+    }
+
+    .dataTables_wrapper .dataTables_filter input {
+        border-radius: 0.375rem;
+        border: 1px solid #ced4da;
+        padding: 0.375rem 0.75rem;
+        margin-left: 0.5rem;
+    }
+
+    .dataTables_wrapper .dataTables_info {
+        padding-top: 0.85rem;
+        color: #6c757d;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        padding: 0.375rem 0.75rem;
+        margin: 0 2px;
+        border-radius: 0.375rem;
+        border: 1px solid #dee2e6;
+        background: white;
+    }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background: #007bff;
+            border-color: #007bff;
+            color: white !important;
+        }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- ENCABEZADO CON INFORMACIÓN DE RENDIMIENTO -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="mb-0">@ViewData["Title"]</h1>
+                @if (Model.MostrandoSoloEstaSemana)
+                {
+                    <div class="alert performance-info mb-0 py-2 px-3">
+                        <i class="fas fa-rocket"></i>
+                        <strong>Modo Rápido:</strong> Mostrando solo esta semana
+                        <span class="badge stats-badge ms-2">@Model.RegistrosMostrados de @Model.TotalRegistros registros</span>
+                    </div>
+                }
+            </div>
+
+            <!-- CARD DE FILTROS MEJORADO -->
+            <div class="card filter-card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12">
+                            <h5 class="mb-3">
+                                <i class="fas fa-search me-2"></i>Filtros de Búsqueda
+                                <small class="opacity-75 ms-2">(@Model.RegistrosMostrados resultados)</small>
+                            </h5>
+                        </div>
+                    </div>
+
+                    <form method="get" class="row g-3">
+                        <!-- BÚSQUEDA POR TEXTO -->
+                        <div class="col-lg-3">
+                            <label class="form-label">
+                                <i class="fas fa-keyboard me-1"></i>Búsqueda General
+                            </label>
+                            <input type="text"
+                                   asp-for="SearchString"
+                                   class="form-control"
+                                   placeholder="Folio, cliente, tractor, conductor..."
+                                   value="@Model.SearchString">
+                        </div>
+
+                        <!-- FILTRO ESPECÍFICO PARA REMOLQUE -->
+                        <div class="col-lg-2">
+                            <label class="form-label">
+                                <i class="fas fa-trailer me-1"></i>Remolque
+                            </label>
+                            <input type="text"
+                                   name="Remolque"
+                                   class="form-control"
+                                   placeholder="Ej: S631, R123..."
+                                   value="@Model.Remolque">
+                        </div>
+
+                        <!-- FECHA INICIO -->
+                        <div class="col-lg-2">
+                            <label class="form-label">
+                                <i class="fas fa-calendar-alt me-1"></i>Fecha Inicio
+                            </label>
+                            <input type="date"
+                                   class="form-control"
+                                   name="FechaInicio"
+                                   value="@(Model.FechaInicio?.ToString("yyyy-MM-dd") ?? "")"
+                                   min="@Model.FechaMinimaDisponible.ToString("yyyy-MM-dd")"
+                                   max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                        </div>
+
+                        <!-- FECHA FIN -->
+                        <div class="col-lg-2">
+                            <label class="form-label">
+                                <i class="fas fa-calendar-check me-1"></i>Fecha Fin
+                            </label>
+                            <input type="date"
+                                   class="form-control"
+                                   name="FechaFin"
+                                   value="@(Model.FechaFin?.ToString("yyyy-MM-dd") ?? "")"
+                                   min="@Model.FechaMinimaDisponible.ToString("yyyy-MM-dd")"
+                                   max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                        </div>
+
+                        <!-- BOTONES DE ACCIÓN -->
+                        <div class="col-lg-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-light flex-fill">
+                                    <i class="fas fa-search me-1"></i>Filtrar
+                                </button>
+                                <a asp-page="./Index" class="btn btn-outline-light">
+                                    <i class="fas fa-eraser me-1"></i>Limpiar
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- RANGOS RÁPIDOS -->
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="d-flex flex-wrap gap-2">
+                                <small class="text-light me-3 align-self-center">
+                                    <i class="fas fa-bolt"></i> Rangos rápidos:
+                                </small>
+
+                                @* BOTONES CON FECHAS DINÁMICAS EN TIEMPO REAL *@
+                                @{
+                                    var hoy = DateTime.Today;
+                                    var ultimaSemana = hoy.AddDays(-7);
+                                    var ultimoMes = hoy.AddDays(-30);
+                                }
+
+                                <a href="?FechaInicio=@hoy.ToString("yyyy-MM-dd")&FechaFin=@hoy.ToString("yyyy-MM-dd")" class="btn btn-outline-light btn-sm">Hoy</a>
+                                <a href="?FechaInicio=@ultimaSemana.ToString("yyyy-MM-dd")&FechaFin=@hoy.ToString("yyyy-MM-dd")" class="btn btn-outline-light btn-sm">Última semana</a>
+                                <a href="?FechaInicio=@ultimoMes.ToString("yyyy-MM-dd")&FechaFin=@hoy.ToString("yyyy-MM-dd")" class="btn btn-outline-light btn-sm">Último mes</a>
+
+                                @* BOTÓN "TODOS LOS REGISTROS" - Solo visible para rol 5 (Administrativo) *@
+                                @{
+                                    var rolActual = HttpContext.Session.GetInt32("idRol");
+                                }
+                                @if (rolActual == 5)
+                                {
+                                    <a href="?TodosLosRegistros=true" class="btn btn-warning btn-sm">
+                                        <i class="fas fa-database"></i> Todos los registros
+                                    </a>
+                                }
+                            </div>
+
+                            <div class="mt-2">
+                                <small class="opacity-75">
+                                    <i class="fas fa-info-circle"></i>
+                                    Datos disponibles desde <strong>@Model.FechaMinimaDisponible.ToString("dd/MM/yyyy")</strong>
+                                    hasta <strong>@Model.FechaMaximaDisponible.ToString("dd/MM/yyyy")</strong>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABLA DE RESULTADOS -->
+            @if (Model.Liquidaciones.Any())
+            {
+                <!-- OPCIÓN 3: Formulario para selección masiva -->
+                <form method="post" asp-page-handler="GenerarPDFsMasivos" id="formSeleccionMasiva">
+
+                    <!-- TOOLBAR DE SELECCIÓN -->
+                    <div class="selection-toolbar" id="selectionToolbar">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-check-circle me-2"></i>
+                                <span id="selectedCount">0</span> registros seleccionados
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-outline-light btn-sm me-2" onclick="seleccionarTodos()">
+                                    <i class="fas fa-check-square"></i> Seleccionar Todos (Página)
+                                </button>
+                                <button type="button" class="btn btn-outline-light btn-sm me-2" onclick="deseleccionarTodos()">
+                                    <i class="fas fa-square"></i> Deseleccionar Todos
+                                </button>
+                                <button type="submit" class="btn btn-warning">
+                                    <i class="fas fa-file-pdf"></i> Generar PDFs Seleccionados
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-list"></i> Resultados de Liquidaciones
+                                <span class="badge bg-light text-dark ms-2">@Model.RegistrosMostrados</span>
+                            </h5>
+                        </div>
+                        <div class="table-responsive">
+                            <table id="tablaLiquidaciones" class="table table-striped table-bordered table-hover mb-0">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <!-- NUEVA COLUMNA PARA CHECKBOXES -->
+                                        <th class="checkbox-column">
+                                            <input type="checkbox" id="selectAll" onchange="toggleTodos()">
+                                        </th>
+                                        <th><i class="fas fa-hashtag"></i> Folio</th>
+                                        <th><i class="fas fa-building"></i> Cliente</th>
+                                        <th><i class="fas fa-truck"></i> Tractor</th>
+                                        <th><i class="fas fa-trailer"></i> Remolque</th>
+                                        <th><i class="fas fa-calendar"></i> Fecha Salida</th>
+                                        <th><i class="fas fa-route"></i> Origen</th>
+                                        <th><i class="fas fa-map-marker-alt"></i> Destino</th>
+                                        <th><i class="fas fa-user"></i> Conductor</th>
+                                        <th><i class="fas fa-traffic-light"></i> Status</th>
+                                        <th><i class="fas fa-images"></i> Evidencias</th>
+                                        <th><i class="fas fa-cogs"></i> Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in Model.Liquidaciones)
+                                    {
+                                        <tr>
+                                            <!-- CHECKBOX PARA SELECCIÓN -->
+                                            <td class="checkbox-column">
+                                                <input type="checkbox" name="selectedIds" value="@item.PodId" class="liquidacion-checkbox" onchange="actualizarContadorSeleccionados()">
+                                            </td>
+                                            <td><strong>@Html.DisplayFor(modelItem => item.Folio)</strong></td>
+                                            <td>@Html.DisplayFor(modelItem => item.Cliente)</td>
+                                            <td>@Html.DisplayFor(modelItem => item.Tractor)</td>
+                                            <td>@Html.DisplayFor(modelItem => item.Remolque)</td>
+                                            <td>
+                                                @if (item.FechaSalida.HasValue)
+                                                {
+                                                    <span>@item.FechaSalida.Value.ToString("dd/MM/yyyy")</span>
+                                                    <br>
+                                                    <small class="text-muted">@item.FechaSalida.Value.ToString("HH:mm")</small>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">No especificada</span>
+                                                }
+                                            </td>
+                                            <td>@Html.DisplayFor(modelItem => item.Origen)</td>
+                                            <td>@Html.DisplayFor(modelItem => item.Destino)</td>
+                                            <td>@Html.DisplayFor(modelItem => item.DriverName)</td>
+                                            <td>
+                                                @{
+                                                    string badgeClass = "badge-secondary-custom";
+                                                    if (item.Status == "Entregado") { badgeClass = "badge-success-custom"; }
+                                                    else if (item.Status == "En Tránsito") { badgeClass = "badge-warning-custom"; }
+                                                }
+                                                <span class="badge @badgeClass">
+                                                    @Html.DisplayFor(modelItem => item.Status)
+                                                </span>
+                                                @if (item.PodRecordCaptureDate.HasValue)
+                                                {
+                                                    <br>
+                                                    <small class="text-muted">@item.PodRecordCaptureDate.Value.ToString("dd/MM HH:mm")</small>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (item.Evidencias.Any())
+                                                {
+                                                    var totalEvidencias = item.Evidencias.Count;
+                                                    var evidenciasConImagen = item.Evidencias.Count(e => e.HasImageData);
+
+                                                    <span class="badge bg-info text-dark">
+                                                        <i class="fas fa-file"></i> @totalEvidencias evidencias
+                                                    </span>
+                                                    @if (evidenciasConImagen > 0)
+                                                    {
+                                                        <br>
+                                                        <small class="text-success">
+                                                            <i class="fas fa-camera"></i> @evidenciasConImagen con imagen
+                                                        </small>
+                                                    }
+                                                    @if (totalEvidencias > evidenciasConImagen)
+                                                    {
+                                                        <br>
+                                                        <small class="text-muted">
+                                                            <i class="fas fa-file-alt"></i> @(totalEvidencias - evidenciasConImagen) sin imagen
+                                                        </small>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">
+                                                        <i class="fas fa-times-circle"></i> Sin evidencias
+                                                    </span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <!-- OPCIÓN 1: Botón PDF individual en la tabla -->
+                                                <a asp-page="./GenerarPDF" asp-route-id="@item.PodId" class="btn btn-sm btn-outline-danger me-1" target="_blank" title="Generar PDF">
+                                                    <i class="fas fa-file-pdf"></i> PDF
+                                                </a>
+                                                <a asp-page="./Detalles" asp-route-id="@item.PodId" class="btn btn-sm btn-outline-primary" title="Ver Detalles">
+                                                    <i class="fas fa-eye"></i> Ver
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- INFORMACIÓN DE PAGINACIÓN -->
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Paginación activada:</strong> Los registros se muestran en páginas para mejor rendimiento.
+                    Use la búsqueda de la tabla para encontrar registros específicos.
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info">
+                    <h4 class="alert-heading">
+                        <i class="fas fa-search"></i> No se encontraron registros
+                    </h4>
+                    <p>No hay liquidaciones que coincidan con los filtros seleccionados.</p>
+                    <hr>
+                    <p class="mb-0">
+                        <a href="?FechaInicio=@Model.FechaMinimaDisponible.ToString("yyyy-MM-dd")&FechaFin=@Model.FechaMaximaDisponible.ToString("yyyy-MM-dd")"
+                           class="btn btn-primary">
+                            <i class="fas fa-database"></i> Ver todos los registros
+                        </a>
+                        <a asp-page="./Index" class="btn btn-outline-secondary ms-2">
+                            <i class="fas fa-home"></i> Volver a esta semana
+                        </a>
+                    </p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- DataTables CSS y JS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Configurar DataTable con paginación
+            $('#tablaLiquidaciones').DataTable({
+                // CONFIGURACIÓN DE PAGINACIÓN
+                "pageLength": 25,           // 25 registros por página
+                "lengthMenu": [10, 25, 50, 100], // Opciones de registros por página
+                "pagingType": "full_numbers", // Botones completos de paginación
+
+                // CONFIGURACIÓN DE BÚSQUEDA
+                "searching": true,          // Habilitar búsqueda
+                "search": {
+                    "regex": false,         // Búsqueda simple, no regex
+                    "smart": true           // Búsqueda inteligente
+                },
+
+                // CONFIGURACIÓN DE ORDENAMIENTO
+                "ordering": true,           // Habilitar ordenamiento por columnas
+                "order": [[5, "desc"]],     // Ordenar por fecha salida (columna 5) descendente
+
+                // CONFIGURACIÓN DE INTERFAZ
+                "processing": false,        // No mostrar "Procesando..."
+                "responsive": true,         // Tabla responsive
+                "autoWidth": false,         // No ajuste automático de ancho
+
+                // CONFIGURACIÓN DE INFORMACIÓN
+                "info": true,              // Mostrar "Mostrando X de Y registros"
+
+                // CONFIGURACIÓN DE IDIOMA
+                "language": {
+                    "decimal": "",
+                    "emptyTable": "No hay datos disponibles en la tabla",
+                    "info": "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                    "infoEmpty": "Mostrando 0 a 0 de 0 registros",
+                    "infoFiltered": "(filtrado de _MAX_ registros totales)",
+                    "lengthMenu": "Mostrar _MENU_ por página",
+                    "loadingRecords": "Cargando...",
+                    "processing": "Procesando...",
+                    "search": "Buscar en tabla:",
+                    "searchPlaceholder": "Buscar...",
+                    "zeroRecords": "No se encontraron registros coincidentes",
+                    "paginate": {
+                        "first": "Primero",
+                        "last": "Último",
+                        "next": "Siguiente",
+                        "previous": "Anterior"
+                    }
+                },
+
+                // CONFIGURACIÓN DE COLUMNAS
+                "columnDefs": [
+                    {
+                        "targets": [0],        // Columna de checkbox
+                        "orderable": false,    // No se puede ordenar
+                        "searchable": false    // No se incluye en búsqueda
+                    },
+                    {
+                        "targets": [-1],       // Última columna (Acciones)
+                        "orderable": false,    // No se puede ordenar
+                        "searchable": false    // No se incluye en búsqueda
+                    }
+                ],
+
+                // CALLBACK DESPUÉS DE DIBUJAR LA TABLA
+                "drawCallback": function(settings) {
+                    // Actualizar contador de seleccionados después de paginar
+                    actualizarContadorSeleccionados();
+                }
+            });
+
+            // Resto de JavaScript para checkboxes
+            window.toggleTodos = function() {
+                const selectAll = document.getElementById('selectAll');
+                const checkboxes = document.querySelectorAll('.liquidacion-checkbox:visible');
+
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = selectAll.checked;
+                });
+
+                actualizarContadorSeleccionados();
+            }
+
+            window.seleccionarTodos = function() {
+                const checkboxes = document.querySelectorAll('.liquidacion-checkbox:visible');
+                const selectAll = document.getElementById('selectAll');
+
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = true;
+                });
+                selectAll.checked = true;
+
+                actualizarContadorSeleccionados();
+            }
+
+            window.deseleccionarTodos = function() {
+                const checkboxes = document.querySelectorAll('.liquidacion-checkbox');
+                const selectAll = document.getElementById('selectAll');
+
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                selectAll.checked = false;
+
+                actualizarContadorSeleccionados();
+            }
+
+            window.actualizarContadorSeleccionados = function() {
+                const checkboxes = document.querySelectorAll('.liquidacion-checkbox:checked');
+                const count = checkboxes.length;
+                const toolbar = document.getElementById('selectionToolbar');
+                const counter = document.getElementById('selectedCount');
+
+                if (counter) counter.textContent = count;
+
+                if (toolbar) {
+                    if (count > 0) {
+                        toolbar.classList.add('show');
+                    } else {
+                        toolbar.classList.remove('show');
+                    }
+                }
+
+                // Actualizar el estado del checkbox principal
+                const allVisibleCheckboxes = document.querySelectorAll('.liquidacion-checkbox:visible');
+                const selectAll = document.getElementById('selectAll');
+
+                if (selectAll && allVisibleCheckboxes.length > 0) {
+                    const checkedVisible = Array.from(allVisibleCheckboxes).filter(cb => cb.checked).length;
+
+                    if (checkedVisible === 0) {
+                        selectAll.checked = false;
+                        selectAll.indeterminate = false;
+                    } else if (checkedVisible === allVisibleCheckboxes.length) {
+                        selectAll.checked = true;
+                        selectAll.indeterminate = false;
+                    } else {
+                        selectAll.checked = false;
+                        selectAll.indeterminate = true;
+                    }
+                }
+            }
+
+            // Validación antes de enviar el formulario
+            $('#formSeleccionMasiva').on('submit', function(e) {
+                const checkboxes = document.querySelectorAll('.liquidacion-checkbox:checked');
+
+                if (checkboxes.length === 0) {
+                    e.preventDefault();
+                    alert('Debe seleccionar al menos un registro para generar PDFs.');
+                    return false;
+                }
+
+                if (checkboxes.length > 50) {
+                    if (!confirm(`Ha seleccionado ${checkboxes.length} registros. Esto puede tardar varios minutos. ¿Desea continuar?`)) {
+                        e.preventDefault();
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            // Inicializar contador al cargar la página
+            actualizarContadorSeleccionados();
+        });
+    </script>
+}

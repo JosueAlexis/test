@@ -1,0 +1,797 @@
+﻿@page "{id:int}"
+@model ProyectoRH2025.Pages.Operadores.DetallesModel
+@{
+    ViewData["Title"] = "Detalles del Empleado";
+}
+
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        --border-radius: 20px;
+    }
+
+    body {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+        padding: 2rem 0;
+    }
+
+    .employee-header {
+        background: var(--primary-gradient);
+        color: white;
+        border-radius: var(--border-radius);
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--card-shadow);
+        position: relative;
+        overflow: hidden;
+    }
+
+        .employee-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            transform: translate(50%, -50%);
+        }
+
+    .employee-info {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .employee-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        font-weight: 600;
+        backdrop-filter: blur(10px);
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        overflow: hidden;
+    }
+
+        .employee-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+    .employee-details h1 {
+        margin: 0;
+        font-size: 2.5rem;
+        font-weight: 700;
+    }
+
+    .employee-meta {
+        display: flex;
+        gap: 2rem;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 0.5rem 1rem;
+        border-radius: 25px;
+        backdrop-filter: blur(10px);
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .action-btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 50px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        color: white;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-edit {
+        background: var(--secondary-gradient);
+    }
+
+    .btn-back {
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+    }
+
+    .btn-print {
+        background: var(--warning-gradient);
+    }
+
+    .action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        color: white;
+        text-decoration: none;
+    }
+
+    .back-btn {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border: none;
+        border-radius: 50px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        color: #667eea;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+        .back-btn:hover {
+            transform: translateX(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            color: #667eea;
+            text-decoration: none;
+        }
+
+    .tab-container {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+    }
+
+    .nav-tabs {
+        background: rgba(102, 126, 234, 0.05);
+        border: none;
+        padding: 1rem;
+        display: flex;
+        gap: 0.5rem;
+        margin: 0;
+        flex-wrap: wrap;
+    }
+
+        .nav-tabs .nav-link {
+            background: transparent;
+            border: none;
+            color: #6c757d;
+            padding: 1rem 1.5rem;
+            border-radius: 15px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+            white-space: nowrap;
+        }
+
+            .nav-tabs .nav-link.active {
+                background: var(--primary-gradient);
+                color: white;
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+            }
+
+            .nav-tabs .nav-link:hover:not(.active) {
+                background: rgba(102, 126, 234, 0.1);
+                transform: translateY(-1px);
+                color: #6c757d;
+            }
+
+    .tab-content {
+        padding: 2rem;
+    }
+
+    .info-card {
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+        .info-card h5 {
+            color: #2d3748;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+
+    .info-item {
+        background: rgba(102, 126, 234, 0.05);
+        border-radius: 10px;
+        padding: 1rem;
+        border-left: 4px solid #667eea;
+    }
+
+        .info-item label {
+            font-size: 0.85rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .info-item .value {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #2d3748;
+            word-break: break-word;
+        }
+
+    .photo-container {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        height: fit-content;
+    }
+
+        .photo-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 25px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .status-active {
+        background: rgba(72, 187, 120, 0.1);
+        color: #2f855a;
+    }
+
+    .status-inactive {
+        background: rgba(245, 101, 101, 0.1);
+        color: #c53030;
+    }
+
+    .empty-content {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #718096;
+    }
+
+        .empty-content i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+    .fade-in {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.6s ease;
+    }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+    .pulse-icon {
+        animation: pulse 2s infinite;
+    }
+
+    /* Responsive - Manejado via JavaScript para evitar conflictos con Razor */
+    .mobile-layout .employee-info {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+
+    .mobile-layout .employee-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .mobile-layout .action-buttons {
+        justify-content: center;
+        flex-direction: column;
+    }
+
+    .mobile-layout .info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .mobile-layout .nav-tabs {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+        .mobile-layout .nav-tabs .nav-link {
+            text-align: center;
+        }
+
+    .mobile-layout .back-btn {
+        margin-bottom: 1rem;
+        display: inline-flex;
+    }
+
+    .mobile-layout .employee-header {
+        margin-top: 0;
+    }
+
+    .mobile-layout body {
+        padding: 1rem 0;
+    }
+</style>
+
+<!-- Back Button -->
+<div class="container-fluid">
+    <a href="/Operadores/Buscar" class="back-btn">
+        <i class="fas fa-arrow-left me-2"></i>
+        Regresar
+    </a>
+</div>
+
+<div class="container-fluid">
+    <!-- Employee Header -->
+    <div class="employee-header fade-in">
+        <div class="employee-info">
+            <div class="employee-avatar">
+                @if (!string.IsNullOrEmpty(Model.ImagenBase64))
+                {
+                    <img src="data:image/jpeg;base64,@Model.ImagenBase64" alt="Foto del empleado" />
+                }
+                else
+                {
+                    @if (!string.IsNullOrEmpty(Model.Empleado?.Names) && !string.IsNullOrEmpty(Model.Empleado?.Apellido))
+                    {
+                        var initials = Model.Empleado.Names.Substring(0, 1) + Model.Empleado.Apellido.Substring(0, 1);
+                        @initials.ToUpper()
+                    }
+                    else
+                    {
+                        <i class="fas fa-user"></i>
+                    }
+                }
+            </div>
+            <div class="employee-details">
+                <h1>@Model.Empleado?.Names @Model.Empleado?.Apellido @Model.Empleado?.Apellido2</h1>
+                <div class="employee-meta">
+                    <div class="meta-item">
+                        <i class="fas fa-id-badge"></i>
+                        <span>Reloj: @Model.Empleado?.Reloj</span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-calendar"></i>
+                        <span>Ingreso: @Model.Empleado?.Fingreso?.ToShortDateString()</span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-briefcase"></i>
+                        <span>@Model.NombrePuesto</span>
+                    </div>
+                    <div class="meta-item">
+                        @if (Model.Empleado?.Status == 1)
+                        {
+                            <i class="fas fa-circle text-success"></i>
+                            <span>Activo</span>
+                        }
+                        else
+                        {
+                            <i class="fas fa-circle text-danger"></i>
+                            <span>Inactivo</span>
+                        }
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <a href="#" class="action-btn btn-edit">
+                        <i class="fas fa-edit"></i>
+                        Editar
+                    </a>
+                    <a href="#" class="action-btn btn-print">
+                        <i class="fas fa-print"></i>
+                        Imprimir
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Container -->
+    <div class="tab-container fade-in">
+        <ul class="nav nav-tabs">
+            <li class="nav-item">
+                <a class="nav-link active" data-bs-toggle="tab" href="#general">
+                    <i class="fas fa-user me-2"></i>
+                    General
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#vivienda">
+                    <i class="fas fa-home me-2"></i>
+                    Vivienda
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#documentos">
+                    <i class="fas fa-file-alt me-2"></i>
+                    Documentos
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#vacaciones">
+                    <i class="fas fa-umbrella-beach me-2"></i>
+                    Vacaciones
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#uniforme">
+                    <i class="fas fa-tshirt me-2"></i>
+                    Uniforme
+                </a>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <!-- General Tab -->
+            <div class="tab-pane fade show active" id="general">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="info-card">
+                            <h5>
+                                <i class="fas fa-user-circle"></i>
+                                Información Personal
+                            </h5>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Nombres</label>
+                                    <div class="value">@Model.Empleado?.Names</div>
+                                </div>
+                                <div class="info-item">
+                                    <label>Apellido Paterno</label>
+                                    <div class="value">@Model.Empleado?.Apellido</div>
+                                </div>
+                                <div class="info-item">
+                                    <label>Apellido Materno</label>
+                                    <div class="value">@Model.Empleado?.Apellido2</div>
+                                </div>
+                                <div class="info-item">
+                                    <label>Estado</label>
+                                    <div class="value">
+                                        @if (Model.Empleado?.Status == 1)
+                                        {
+                                            <span class="status-badge status-active">
+                                                <i class="fas fa-circle"></i>
+                                                Activo
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="status-badge status-inactive">
+                                                <i class="fas fa-circle"></i>
+                                                Inactivo
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="info-card">
+                            <h5>
+                                <i class="fas fa-address-book"></i>
+                                Información de Contacto
+                            </h5>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Correo Electrónico</label>
+                                    <div class="value">@Model.Empleado?.Email</div>
+                                </div>
+                                <div class="info-item">
+                                    <label>Teléfono</label>
+                                    <div class="value">@Model.Empleado?.Telefono</div>
+                                </div>
+                                <div class="info-item">
+                                    <label>Teléfono de Emergencia</label>
+                                    <div class="value">@Model.Empleado?.TelEmergencia</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="info-card">
+                            <h5>
+                                <i class="fas fa-id-card"></i>
+                                Documentos Oficiales
+                            </h5>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>RFC</label>
+                                    <div class="value">@Model.Empleado?.Rfc</div>
+                                </div>
+                                <div class="info-item">
+                                    <label>CURP</label>
+                                    <div class="value">@Model.Empleado?.Curp</div>
+                                </div>
+                                <div class="info-item">
+                                    <label>NSS</label>
+                                    <div class="value">@Model.Empleado?.NumSSocial</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="info-card">
+                            <h5>
+                                <i class="fas fa-briefcase"></i>
+                                Información Laboral
+                            </h5>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Fecha de Ingreso</label>
+                                    <div class="value">
+                                        @if (Model.FechaIngresoFormateada != null)
+                                        {
+                                            @Model.FechaIngresoFormateada
+                                        }
+                                        else
+                                        {
+                                            <text>No disponible</text>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="info-item">
+                                    <label>Puesto</label>
+                                    <div class="value">@Model.NombrePuesto</div>
+                                </div>
+                                <div class="info-item">
+                                    <label>Número de Reloj</label>
+                                    <div class="value">@Model.Empleado?.Reloj</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="photo-container">
+                            <h5 class="mb-3">
+                                <i class="fas fa-camera me-2"></i>
+                                Fotografía
+                            </h5>
+                            @if (!string.IsNullOrEmpty(Model.ImagenBase64))
+                            {
+                                <img src="data:image/jpeg;base64,@Model.ImagenBase64"
+                                     alt="Foto del empleado"
+                                     style="max-height: 400px; width: auto;" />
+                            }
+                            else
+                            {
+                                <div class="empty-content">
+                                    <i class="fas fa-user pulse-icon"></i>
+                                    <p>Foto no disponible</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vivienda Tab -->
+            <div class="tab-pane fade" id="vivienda">
+                <div class="empty-content">
+                    <i class="fas fa-home"></i>
+                    <h5>Información de Vivienda</h5>
+                    <p>Esta sección está en desarrollo</p>
+                </div>
+            </div>
+
+            <!-- Documentos Tab -->
+            <div class="tab-pane fade" id="documentos">
+                <div class="empty-content">
+                    <i class="fas fa-file-alt"></i>
+                    <h5>Documentos del Empleado</h5>
+                    <p>Esta sección está en desarrollo</p>
+                </div>
+            </div>
+
+            <!-- Vacaciones Tab -->
+            <div class="tab-pane fade" id="vacaciones">
+                <div class="empty-content">
+                    <i class="fas fa-umbrella-beach"></i>
+                    <h5>Gestión de Vacaciones</h5>
+                    <p>Esta sección está en desarrollo</p>
+                </div>
+            </div>
+
+            <!-- Uniforme Tab -->
+            <div class="tab-pane fade" id="uniforme">
+                <div class="empty-content">
+                    <i class="fas fa-tshirt"></i>
+                    <h5>Asignación de Uniforme</h5>
+                    <p>Esta sección está en desarrollo</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Animate elements on load
+            setTimeout(function() {
+                $('.fade-in').addClass('visible');
+            }, 100);
+
+            // Tab switching animation
+            $('.nav-link').on('click', function() {
+                var targetTab = $($(this).attr('href'));
+                if (targetTab.length) {
+                    targetTab.css('opacity', '0');
+                    setTimeout(function() {
+                        targetTab.css({
+                            'transition': 'opacity 0.3s ease',
+                            'opacity': '1'
+                        });
+                    }, 100);
+                }
+            });
+
+            // Smooth scroll to sections
+            $('.nav-link').on('click', function(e) {
+                var target = $(this).attr('href');
+                if (target.startsWith('#')) {
+                    $('html, body').animate({
+                        scrollTop: $(target).offset().top - 100
+                    }, 500);
+                }
+            });
+
+            // Add pulse animation to icons
+            function addPulse() {
+                $('.pulse-icon').css({
+                    'animation': 'pulse 2s infinite'
+                });
+            }
+
+            // CSS animation for pulse (usando jQuery animate como alternativa)
+            function pulse() {
+                $('.pulse-icon').animate({
+                    'opacity': 0.6
+                }, 1000).animate({
+                    'opacity': 1
+                }, 1000, pulse);
+            }
+
+            // Iniciar pulse
+            pulse();
+
+            // Efecto hover en botones de acción
+            $('.action-btn').hover(
+                function() {
+                    $(this).css('transform', 'translateY(-2px)');
+                },
+                function() {
+                    $(this).css('transform', 'translateY(0)');
+                }
+            );
+
+            // Efecto hover en pestañas
+            $('.nav-link:not(.active)').hover(
+                function() {
+                    $(this).css('transform', 'translateY(-1px)');
+                },
+                function() {
+                    $(this).css('transform', 'translateY(0)');
+                }
+            );
+
+            // Responsive: ajustar layout en móviles
+            function adjustMobileLayout() {
+                if ($(window).width() <= 768) {
+                    // Agregar clase mobile-layout
+                    $('body').addClass('mobile-layout');
+
+                    // Ajustes específicos
+                    $('.info-grid').css('grid-template-columns', '1fr');
+                    $('.nav-tabs').css({
+                        'flex-direction': 'column',
+                        'gap': '0.5rem'
+                    });
+                    $('.employee-info').css({
+                        'flex-direction': 'column',
+                        'text-align': 'center',
+                        'gap': '1rem'
+                    });
+                    $('.employee-meta').css({
+                        'flex-direction': 'column',
+                        'gap': '0.5rem'
+                    });
+                    $('.action-buttons').css({
+                        'justify-content': 'center',
+                        'flex-direction': 'column'
+                    });
+                    $('body').css('padding', '1rem 0');
+                } else {
+                    // Remover clase mobile-layout
+                    $('body').removeClass('mobile-layout');
+
+                    // Restaurar estilos desktop
+                    $('.info-grid').css('grid-template-columns', 'repeat(auto-fit, minmax(250px, 1fr))');
+                    $('.nav-tabs').css({
+                        'flex-direction': 'row',
+                        'gap': '0.5rem'
+                    });
+                    $('.employee-info').css({
+                        'flex-direction': 'row',
+                        'text-align': 'left',
+                        'gap': '2rem'
+                    });
+                    $('.employee-meta').css({
+                        'flex-direction': 'row',
+                        'gap': '2rem'
+                    });
+                    $('.action-buttons').css({
+                        'justify-content': 'flex-start',
+                        'flex-direction': 'row'
+                    });
+                    $('body').css('padding', '2rem 0');
+                }
+            }
+
+            // Aplicar al cargar y al cambiar tamaño
+            adjustMobileLayout();
+            $(window).resize(adjustMobileLayout);
+
+            // Mejorar experiencia del usuario
+            $('.info-item').hover(
+                function() {
+                    $(this).css({
+                        'transform': 'translateY(-2px)',
+                        'box-shadow': '0 8px 20px rgba(0, 0, 0, 0.1)'
+                    });
+                },
+                function() {
+                    $(this).css({
+                        'transform': 'translateY(0)',
+                        'box-shadow': 'none'
+                    });
+                }
+            );
+        });
+    </script>
+}
