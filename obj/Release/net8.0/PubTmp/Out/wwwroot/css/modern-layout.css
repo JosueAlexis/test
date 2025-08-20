@@ -1,0 +1,136 @@
+﻿/* modern-layout.css - Animaciones y responsive design */
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        max-height: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        max-height: 500px;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Aplicar animaciones */
+.slide-down {
+    animation: slideDown 0.3s ease;
+}
+
+.fade-in-animated {
+    animation: fadeIn 0.6s ease forwards;
+}
+
+.loading::after {
+    animation: spin 1s linear infinite;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%) !important;
+        width: 100% !important;
+        max-width: 300px !important;
+    }
+
+        .sidebar.mobile-open {
+            transform: translateX(0) !important;
+        }
+
+    .content {
+        margin-left: 0 !important;
+    }
+
+    .mobile-toggle {
+        display: block !important;
+    }
+
+    .content-header {
+        padding-left: 4rem !important;
+    }
+
+    main {
+        padding: 1rem !important;
+    }
+
+    .form-row-2,
+    .form-row-3,
+    .form-row-4 {
+        grid-template-columns: 1fr !important;
+    }
+
+    .form-header h1 {
+        font-size: 1.8rem !important;
+    }
+
+    .submit-section {
+        padding: 1.5rem !important;
+    }
+
+    .btn-submit {
+        width: 100% !important;
+        margin-top: 1rem !important;
+    }
+
+    .btn-cancel {
+        width: 100% !important;
+        margin-right: 0 !important;
+    }
+
+    .form-steps {
+        gap: 0.5rem !important;
+    }
+
+    .employee-info {
+        flex-direction: column !important;
+        text-align: center !important;
+        gap: 1rem !important;
+    }
+
+    .employee-meta {
+        flex-direction: column !important;
+        gap: 0.5rem !important;
+    }
+
+    .action-buttons {
+        justify-content: center !important;
+        flex-direction: column !important;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .nav-tabs {
+        flex-direction: column !important;
+        gap: 0.5rem !important;
+    }
+
+        .nav-tabs .nav-link {
+            text-align: center !important;
+        }
+}

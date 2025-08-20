@@ -51,6 +51,7 @@ namespace ProyectoRH2025.MODELS
         public string? ImageUrl { get; set; }
 
         public int? ImageSequence { get; set; }
+        public string? Plant { get; set; }
 
         public virtual ICollection<PodEvidenciaImagen> PodEvidenciasImagenes { get; set; } = new List<PodEvidenciaImagen>();
     }
@@ -91,6 +92,7 @@ namespace ProyectoRH2025.MODELS
         public DateTime? FechaSalida { get; set; }
         public string? Origen { get; set; }
         public string? Destino { get; set; }
+        public string? Plant { get; set; }
         public string? DriverName { get; set; }
         public string? Status { get; set; }
         public DateTime? PodRecordCaptureDate { get; set; }

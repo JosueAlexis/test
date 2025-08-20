@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "GrsYF97l8PUrDl5AbjqQr0QxZKZPA6z+UNwCDT4GWLY=",
+  "Hash": "F3qBDiTcYhsvIB7eVrR3YXV7rCrjV+vsbSW5m6E4HLA=",
   "Source": "ProyectoRH2025",
   "BasePath": "_content/ProyectoRH2025",
   "Mode": "Default",
@@ -57,6 +57,27 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "C:\\Users\\jdelarosa\\Desktop\\Desarrollos Local\\ProyectoRH2025\\ProyectoRH2025\\obj\\Release\\net8.0\\scopedcss\\projectbundle\\ProyectoRH2025.bundle.scp.css"
+    },
+    {
+      "Identity": "C:\\Users\\jdelarosa\\Desktop\\Desarrollos Local\\ProyectoRH2025\\ProyectoRH2025\\wwwroot\\css\\modern-layout.css",
+      "SourceId": "ProyectoRH2025",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\jdelarosa\\Desktop\\Desarrollos Local\\ProyectoRH2025\\ProyectoRH2025\\wwwroot\\",
+      "BasePath": "_content/ProyectoRH2025",
+      "RelativePath": "css/modern-layout#[.{fingerprint}]?.css",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "zdv1zcki69",
+      "Integrity": "2Tf2DTJNK46MI0QTBwtIkadWE+Q8IdGNIkE7EgP8DAc=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\css\\modern-layout.css"
     },
     {
       "Identity": "C:\\Users\\jdelarosa\\Desktop\\Desarrollos Local\\ProyectoRH2025\\ProyectoRH2025\\wwwroot\\css\\site.css",
@@ -1383,6 +1404,88 @@
     }
   ],
   "Endpoints": [
+    {
+      "Route": "css/modern-layout.css",
+      "AssetFile": "C:\\Users\\jdelarosa\\Desktop\\Desarrollos Local\\ProyectoRH2025\\ProyectoRH2025\\wwwroot\\css\\modern-layout.css",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "2531"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/css"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"2Tf2DTJNK46MI0QTBwtIkadWE+Q8IdGNIkE7EgP8DAc=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Mon, 07 Jul 2025 20:14:14 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-2Tf2DTJNK46MI0QTBwtIkadWE+Q8IdGNIkE7EgP8DAc="
+        }
+      ]
+    },
+    {
+      "Route": "css/modern-layout.zdv1zcki69.css",
+      "AssetFile": "C:\\Users\\jdelarosa\\Desktop\\Desarrollos Local\\ProyectoRH2025\\ProyectoRH2025\\wwwroot\\css\\modern-layout.css",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "2531"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/css"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"2Tf2DTJNK46MI0QTBwtIkadWE+Q8IdGNIkE7EgP8DAc=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Mon, 07 Jul 2025 20:14:14 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "zdv1zcki69"
+        },
+        {
+          "Name": "label",
+          "Value": "css/modern-layout.css"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-2Tf2DTJNK46MI0QTBwtIkadWE+Q8IdGNIkE7EgP8DAc="
+        }
+      ]
+    },
     {
       "Route": "css/site.css",
       "AssetFile": "C:\\Users\\jdelarosa\\Desktop\\Desarrollos Local\\ProyectoRH2025\\ProyectoRH2025\\wwwroot\\css\\site.css",

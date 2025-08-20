@@ -91,7 +91,7 @@ namespace ProyectoRH2025.Pages.Liquidaciones
             using (var ms = new MemoryStream())
             {
                 var document = new Document(PageSize.A4, 50, 50, 50, 50);
-                var writer = PdfWriter.GetInstance(document, ms); // <-- Guardar la referencia
+                var writer = PdfWriter.GetInstance(document, ms);
                 document.Open();
 
                 try
@@ -136,6 +136,7 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                     AgregarFila("Conductor:", podRecord.DriverName);
                     AgregarFila("Origen:", podRecord.Origen);
                     AgregarFila("Destino:", podRecord.Destino);
+                    AgregarFila("Planta:", podRecord.Plant); // <-- CAMPO PLANT AGREGADO
                     AgregarFila("Fecha de Salida:", podRecord.FechaSalida?.ToString("dd/MM/yyyy HH:mm"));
                     AgregarFila("Fecha de Entrega:", podRecord.CaptureDate?.ToString("dd/MM/yyyy HH:mm"));
                     AgregarFila("Status:", GetStatusText(podRecord.Status));
@@ -231,7 +232,6 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                 return ms.ToArray();
             }
         }
-
         private async Task<IActionResult> GenerarZipConPDFs(List<PodRecord> podRecords)
         {
             using (var zipStream = new MemoryStream())
@@ -265,9 +265,9 @@ namespace ProyectoRH2025.Pages.Liquidaciones
         {
             return status switch
             {
-                1 => "En Tránsito",
-                2 => "Entregado",
-                3 => "Cancelado",
+                0 => "En Tránsito",      // Corregido: 0 en lugar de 1
+                1 => "Entregado",       // Corregido: 1 en lugar de 2
+                2 => "Pendiente",       // Corregido: 2 en lugar de 3
                 _ => "Desconocido"
             };
         }

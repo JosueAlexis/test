@@ -185,3 +185,15 @@ C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\bin\R
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\bin\Release\net8.0\runtimes\win-arm64\native\libSkiaSharp.dll
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\bin\Release\net8.0\runtimes\win-x64\native\libSkiaSharp.dll
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\bin\Release\net8.0\runtimes\win-x86\native\libSkiaSharp.dll
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\bin\Release\net8.0\Microsoft.Bcl.Memory.dll
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\bin\Release\net8.0\Microsoft.Graph.dll
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\bin\Release\net8.0\Microsoft.Graph.Core.dll
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\bin\Release\net8.0\Microsoft.IdentityModel.Validators.dll
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\bin\Release\net8.0\Microsoft.Kiota.Abstractions.dll
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\bin\Release\net8.0\Microsoft.Kiota.Authentication.Azure.dll
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\bin\Release\net8.0\Microsoft.Kiota.Http.HttpClientLibrary.dll
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\bin\Release\net8.0\Microsoft.Kiota.Serialization.Form.dll
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\bin\Release\net8.0\Microsoft.Kiota.Serialization.Json.dll
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\bin\Release\net8.0\Microsoft.Kiota.Serialization.Multipart.dll
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\bin\Release\net8.0\Microsoft.Kiota.Serialization.Text.dll
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\bin\Release\net8.0\Std.UriTemplate.dll

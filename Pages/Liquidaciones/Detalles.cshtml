@@ -4,6 +4,7 @@
     ViewData["Title"] = "Detalles de Liquidación";
 }
 
+<!-- OPCIÓN 1: Escapar las reglas CSS problemáticas -->
 <style>
     .details-container {
         padding: 20px;
@@ -47,7 +48,14 @@
         overflow: hidden;
         aspect-ratio: 4/3;
         background-color: #f8f9fa;
+        transition: all 0.3s ease;
     }
+
+        .image-container:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            border-color: #007bff;
+        }
 
     .lazy-image {
         width: 100%;
@@ -90,7 +98,6 @@
         animation: spin 1s linear infinite;
     }
 
-    /* CSS simple para la animación */
     .spinner-animation {
         animation: spin 1s linear infinite;
     }
@@ -109,44 +116,6 @@
         margin-bottom: 20px;
     }
 
-    /* Modal para vista previa de imágenes */
-    .image-modal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0,0,0,0.8);
-    }
-
-    .modal-content {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        max-width: 90%;
-        max-height: 90%;
-    }
-
-    .modal-image {
-        width: 100%;
-        height: auto;
-        border-radius: 4px;
-    }
-
-    .close-modal {
-        position: absolute;
-        top: 10px;
-        right: 20px;
-        color: white;
-        font-size: 30px;
-        font-weight: bold;
-        cursor: pointer;
-    }
-
-    /* NUEVO: Diagnóstico de rendimiento */
     .performance-info {
         background: linear-gradient(45deg, #28a745, #20c997);
         color: white;
@@ -154,7 +123,232 @@
         border-radius: 8px;
         font-size: 0.85rem;
     }
+
+    /* ===== MODAL DE ZOOM COMPLETO ===== */
+    .image-modal {
+        display: none;
+        position: fixed;
+        z-index: 9999;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.95);
+        backdrop-filter: blur(5px);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+        .image-modal.show {
+            display: flex !important;
+            opacity: 1;
+        }
+
+    .modal-content-zoom {
+        position: relative;
+        margin: auto;
+        width: 90%;
+        height: 90%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .zoom-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        cursor: grab;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .zoom-container:active {
+            cursor: grabbing;
+        }
+
+    .modal-image-zoom {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        transition: transform 0.3s ease;
+        user-select: none;
+        -webkit-user-drag: none;
+    }
+
+    /* Controles del modal */
+    .modal-controls {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        display: flex;
+        gap: 10px;
+        z-index: 10001;
+    }
+
+    .modal-control-btn {
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        padding: 10px;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+        font-size: 16px;
+        width: 45px;
+        height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .modal-control-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: scale(1.1);
+        }
+
+        .modal-control-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+    /* Información de la imagen */
+    .image-info {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        backdrop-filter: blur(10px);
+        max-width: 300px;
+    }
+
+    /* Indicador de zoom */
+    .zoom-indicator {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 20px;
+        font-size: 14px;
+        backdrop-filter: blur(10px);
+    }
+
+    /* Controles de zoom */
+    .zoom-controls {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        display: flex;
+        gap: 5px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 10px;
+        border-radius: 25px;
+        backdrop-filter: blur(10px);
+    }
+
+    .zoom-btn {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+        .zoom-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+    /* Galería de navegación */
+    .image-gallery-nav {
+        position: absolute;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 10px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 10px;
+        border-radius: 10px;
+        backdrop-filter: blur(10px);
+        max-width: 90%;
+        overflow-x: auto;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255,255,255,0.3) transparent;
+    }
+
+        .image-gallery-nav::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .image-gallery-nav::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+        }
+
+        .image-gallery-nav::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.3);
+            border-radius: 3px;
+        }
+
+    .gallery-thumb {
+        width: 60px;
+        height: 45px;
+        object-fit: cover;
+        border-radius: 4px;
+        cursor: pointer;
+        opacity: 0.6;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+        flex-shrink: 0;
+    }
+
+        .gallery-thumb:hover,
+        .gallery-thumb.active {
+            opacity: 1;
+            border-color: #007bff;
+            transform: scale(1.1);
+        }
+
+    /* Ayuda de controles */
+    .controls-help {
+        position: absolute;
+        top: 80px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 10px 15px;
+        border-radius: 8px;
+        backdrop-filter: blur(10px);
+        font-size: 12px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+    }
+
+    .image-modal:hover .controls-help {
+        opacity: 1;
+    }
 </style>
+
+<!-- ESTILOS RESPONSIVOS MOVIDOS AL FINAL DEL SCRIPT -->
 
 <div class="details-container">
     <div class="details-header">
@@ -205,6 +399,7 @@
             @if (Model.EvidenciasInfo?.Any() == true)
             {
                 <small class="text-muted">(@Model.EvidenciasInfo.Count imagen(es))</small>
+                <small class="text-info ms-2"><i class="fas fa-info-circle"></i> Click en cualquier imagen para ampliar</small>
             }
         </h4>
         <hr />
@@ -223,6 +418,8 @@
                             </div>
                             <img class="lazy-image"
                                  data-src="@Url.Page("./Detalles", "Image", new { evidenciaId = evidencia.EvidenciaID })"
+                                 data-filename="@evidencia.FileName"
+                                 data-capture-date="@(evidencia.CaptureDate?.ToString("dd/MM/yyyy HH:mm") ?? "")"
                                  alt="@evidencia.FileName"
                                  title="@evidencia.FileName - Click para ampliar" />
                         }
@@ -259,7 +456,6 @@
         <a asp-page="./Index" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Volver al Listado
         </a>
-        <!-- NUEVO BOTÓN PDF EN DETALLES -->
         @if (Model.LiquidacionDetalle != null)
         {
             <a asp-page="./GenerarPDF" asp-route-id="@Model.LiquidacionDetalle.POD_ID" class="btn btn-danger ms-2" target="_blank">
@@ -269,16 +465,571 @@
     </div>
 </div>
 
-<!-- Modal para vista previa de imágenes -->
+<!-- MODAL DE ZOOM COMPLETO CON ROTACIÓN -->
 <div id="imageModal" class="image-modal">
-    <span class="close-modal">&times;</span>
-    <div class="modal-content">
-        <img id="modalImage" class="modal-image" src="" alt="">
+    <!-- Controles superiores -->
+    <div class="modal-controls">
+        <button class="modal-control-btn" onclick="previousImage()" title="Imagen anterior (← o flecha izquierda)" id="prevBtn">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <button class="modal-control-btn" onclick="nextImage()" title="Siguiente imagen (→ o flecha derecha)" id="nextBtn">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+        <button class="modal-control-btn" onclick="downloadImage()" title="Descargar imagen">
+            <i class="fas fa-download"></i>
+        </button>
+        <button class="modal-control-btn" onclick="closeModal()" title="Cerrar (ESC)">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <!-- Ayuda de controles actualizada -->
+    <div class="controls-help">
+        <div><strong>Controles:</strong></div>
+        <div>🖱️ Rueda: Zoom</div>
+        <div>🖱️ Arrastrar: Mover</div>
+        <div>⌨️ +/- : Zoom</div>
+        <div>⌨️ ← → : Navegar</div>
+        <div>⌨️ R/L : Rotar</div>
+        <div>⌨️ 0 : Auto-centrar</div>
+    </div>
+
+    <!-- Indicador de zoom -->
+    <div class="zoom-indicator" id="zoomIndicator">
+        Zoom: 100%
+    </div>
+
+    <!-- Contenedor principal -->
+    <div class="modal-content-zoom">
+        <div class="zoom-container" id="zoomContainer">
+            <img id="modalImage" class="modal-image-zoom" src="" alt="">
+        </div>
+    </div>
+
+    <!-- Información de la imagen -->
+    <div class="image-info" id="imageInfo">
+        <div><strong id="imageName">Evidencia fotográfica</strong></div>
+        <div><small id="imageDetails">Información de la imagen</small></div>
+    </div>
+
+    <!-- Controles de zoom -->
+    <div class="zoom-controls">
+        <button class="zoom-btn" onclick="zoomOut()" title="Zoom Out (-)">
+            <i class="fas fa-search-minus"></i>
+        </button>
+        <button class="zoom-btn" onclick="resetZoom()" title="Tamaño original (0)">
+            <i class="fas fa-expand-arrows-alt"></i>
+        </button>
+        <button class="zoom-btn" onclick="zoomIn()" title="Zoom In (+)">
+            <i class="fas fa-search-plus"></i>
+        </button>
+    </div>
+
+    <!-- CONTROLES DE ROTACIÓN (NUEVO) -->
+    <div class="rotation-controls">
+        <button class="rotation-btn" onclick="rotateLeft()" title="Rotar izquierda (L)">
+            <i class="fas fa-undo"></i>
+        </button>
+        <button class="rotation-btn" onclick="resetRotation()" title="Resetear rotación">
+            <i class="fas fa-compass"></i>
+        </button>
+        <button class="rotation-btn" onclick="rotateRight()" title="Rotar derecha (R)">
+            <i class="fas fa-redo"></i>
+        </button>
+    </div>
+
+    <!-- Navegación por galería -->
+    <div class="image-gallery-nav" id="galleryNav">
+        <!-- Se llenarán dinámicamente -->
     </div>
 </div>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Crear estilos CSS dinámicamente para evitar conflictos con Razor
+        const style = document.createElement('style');
+        style.textContent = `
+            /* Animación de spinner */
+            @@keyframes spin {
+                0% { transform: translate(-50%, -50%) rotate(0deg); }
+                100% { transform: translate(-50%, -50%) rotate(360deg); }
+            }
+
+            /* Estilos responsivos */
+            @@media (max-width: 768px) {
+                .modal-controls {
+                    top: 10px;
+                    right: 10px;
+                    gap: 5px;
+                }
+
+                .modal-control-btn {
+                    width: 40px;
+                    height: 40px;
+                    font-size: 14px;
+                }
+
+                .image-info {
+                    bottom: 10px;
+                    left: 10px;
+                    padding: 10px 15px;
+                    max-width: 250px;
+                    font-size: 14px;
+                }
+
+                .zoom-controls {
+                    bottom: 10px;
+                    right: 10px;
+                    padding: 8px;
+                }
+
+                .zoom-btn {
+                    padding: 6px 10px;
+                    font-size: 12px;
+                }
+
+                .zoom-indicator {
+                    top: 10px;
+                    left: 10px;
+                    padding: 6px 10px;
+                    font-size: 12px;
+                }
+
+                .image-gallery-nav {
+                    bottom: 60px;
+                    padding: 8px;
+                }
+
+                .gallery-thumb {
+                    width: 50px;
+                    height: 37px;
+                }
+
+                .controls-help {
+                    display: none;
+                }
+
+                .rotation-controls {
+                    bottom: 60px;
+                    right: 10px;
+                }
+            }
+
+            /* NUEVOS ESTILOS PARA ROTACIÓN */
+            .rotation-controls {
+                position: absolute;
+                bottom: 80px;
+                right: 20px;
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+                background: rgba(0, 0, 0, 0.8);
+                padding: 8px;
+                border-radius: 20px;
+                backdrop-filter: blur(10px);
+            }
+
+            .rotation-btn {
+                background: rgba(255, 255, 255, 0.2);
+                border: none;
+                color: white;
+                padding: 8px;
+                border-radius: 50%;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                font-size: 14px;
+                width: 35px;
+                height: 35px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .rotation-btn:hover {
+                background: rgba(255, 255, 255, 0.3);
+                transform: scale(1.1);
+            }
+
+            /* Mejorar el auto-fit de la imagen */
+            .modal-image-zoom {
+                max-width: 100%;
+                max-height: 100%;
+                object-fit: contain;
+                transition: transform 0.3s ease;
+                user-select: none;
+                -webkit-user-drag: none;
+                transform-origin: center center;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Variables globales para zoom y rotación
+        let currentZoom = 1;
+        let currentImageIndex = 0;
+        let currentRotation = 0; // Nueva variable para rotación
+        let images = [];
+        let isDragging = false;
+        let startX, startY, translateX = 0, translateY = 0;
+
+        // Inicializar las imágenes
+        function initializeImageGallery() {
+            images = Array.from(document.querySelectorAll('.lazy-image.loaded'));
+            createGalleryNavigation();
+        }
+
+        // Crear navegación de galería
+        function createGalleryNavigation() {
+            const galleryNav = document.getElementById('galleryNav');
+            if (!galleryNav) return;
+
+            galleryNav.innerHTML = '';
+
+            images.forEach((img, index) => {
+                const thumb = document.createElement('img');
+                thumb.src = img.src;
+                thumb.className = 'gallery-thumb';
+                thumb.onclick = () => goToImage(index);
+                thumb.title = img.alt || `Evidencia ${index + 1}`;
+                galleryNav.appendChild(thumb);
+            });
+        }
+
+        // NUEVA FUNCIÓN: Auto-centrar imagen
+        function autoFitImage() {
+            const modalImg = document.getElementById('modalImage');
+            const container = document.getElementById('zoomContainer');
+
+            if (!modalImg || !container) return;
+
+            // Resetear transformaciones
+            currentZoom = 1;
+            translateX = 0;
+            translateY = 0;
+
+            // Esperar a que la imagen se cargue completamente
+            if (modalImg.complete) {
+                calculateOptimalZoom();
+            } else {
+                modalImg.onload = function() {
+                    calculateOptimalZoom();
+                };
+            }
+        }
+
+        // NUEVA FUNCIÓN: Calcular zoom óptimo para centrar
+        function calculateOptimalZoom() {
+            const modalImg = document.getElementById('modalImage');
+            const container = document.getElementById('zoomContainer');
+
+            if (!modalImg || !container) return;
+
+            const containerRect = container.getBoundingClientRect();
+            const imgNaturalWidth = modalImg.naturalWidth;
+            const imgNaturalHeight = modalImg.naturalHeight;
+
+            // Considerar la rotación actual
+            let effectiveWidth = imgNaturalWidth;
+            let effectiveHeight = imgNaturalHeight;
+
+            if (currentRotation === 90 || currentRotation === 270) {
+                effectiveWidth = imgNaturalHeight;
+                effectiveHeight = imgNaturalWidth;
+            }
+
+            // Calcular el zoom para que la imagen ocupe máximo 85% del contenedor
+            const scaleX = (containerRect.width * 0.85) / effectiveWidth;
+            const scaleY = (containerRect.height * 0.85) / effectiveHeight;
+
+            // Usar el menor de los dos para que la imagen complete quepa
+            currentZoom = Math.min(scaleX, scaleY, 1); // No hacer zoom mayor al 100% inicialmente
+
+            // Resetear posición al centro
+            translateX = 0;
+            translateY = 0;
+
+            applyZoom();
+        }
+
+        // Funciones de zoom (actualizadas)
+        window.zoomIn = function() {
+            currentZoom = Math.min(currentZoom * 1.5, 5);
+            applyZoom();
+        }
+
+        window.zoomOut = function() {
+            currentZoom = Math.max(currentZoom / 1.5, 0.2);
+            applyZoom();
+        }
+
+        window.resetZoom = function() {
+            autoFitImage(); // Usar auto-fit en lugar de zoom fijo
+        }
+
+        // NUEVA FUNCIÓN: Aplicar zoom con rotación
+        function applyZoom() {
+            const modalImg = document.getElementById('modalImage');
+            if (modalImg) {
+                modalImg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom}) rotate(${currentRotation}deg)`;
+
+                // Actualizar indicador
+                const indicator = document.getElementById('zoomIndicator');
+                if (indicator) {
+                    indicator.textContent = `Zoom: ${Math.round(currentZoom * 100)}% | Rotación: ${currentRotation}°`;
+                }
+            }
+        }
+
+        // NUEVAS FUNCIONES DE ROTACIÓN
+        window.rotateLeft = function() {
+            currentRotation = (currentRotation - 90 + 360) % 360;
+            autoFitImage(); // Re-calcular el centrado con la nueva rotación
+        }
+
+        window.rotateRight = function() {
+            currentRotation = (currentRotation + 90) % 360;
+            autoFitImage(); // Re-calcular el centrado con la nueva rotación
+        }
+
+        window.resetRotation = function() {
+            currentRotation = 0;
+            autoFitImage(); // Re-calcular el centrado sin rotación
+        }
+
+        // Funciones de navegación (actualizadas)
+        window.previousImage = function() {
+            if (images.length === 0) return;
+            currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
+            goToImage(currentImageIndex);
+        }
+
+        window.nextImage = function() {
+            if (images.length === 0) return;
+            currentImageIndex = (currentImageIndex + 1) % images.length;
+            goToImage(currentImageIndex);
+        }
+
+        function goToImage(index) {
+            currentImageIndex = index;
+            const modalImg = document.getElementById('modalImage');
+            if (modalImg && images[index]) {
+                modalImg.src = images[index].src;
+                modalImg.alt = images[index].alt;
+
+                // Resetear rotación al cambiar de imagen
+                currentRotation = 0;
+
+                updateImageInfo(images[index]);
+                updateGalleryNavigation();
+                updateNavigationButtons();
+                autoFitImage(); // Auto-centrar la nueva imagen
+            }
+        }
+
+        // Actualizar información de la imagen
+        function updateImageInfo(imgElement) {
+            const nameEl = document.getElementById('imageName');
+            const detailsEl = document.getElementById('imageDetails');
+
+            if (nameEl) {
+                nameEl.textContent = imgElement.getAttribute('data-filename') || imgElement.alt || 'Evidencia fotográfica';
+            }
+
+            if (detailsEl) {
+                let details = `Imagen ${currentImageIndex + 1} de ${images.length}`;
+                const captureDate = imgElement.getAttribute('data-capture-date');
+                if (captureDate) {
+                    details += ` • Capturada: ${captureDate}`;
+                }
+                detailsEl.textContent = details;
+            }
+        }
+
+        // Actualizar navegación de galería
+        function updateGalleryNavigation() {
+            const thumbs = document.querySelectorAll('.gallery-thumb');
+            thumbs.forEach((thumb, index) => {
+                thumb.classList.toggle('active', index === currentImageIndex);
+            });
+
+            // Scroll a la miniatura activa
+            const activeThumb = document.querySelector('.gallery-thumb.active');
+            if (activeThumb) {
+                activeThumb.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'nearest',
+                    inline: 'center'
+                });
+            }
+        }
+
+        // Actualizar botones de navegación
+        function updateNavigationButtons() {
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+
+            if (prevBtn) prevBtn.disabled = images.length <= 1;
+            if (nextBtn) nextBtn.disabled = images.length <= 1;
+        }
+
+        // Descargar imagen
+        window.downloadImage = function() {
+            const modalImg = document.getElementById('modalImage');
+            if (modalImg && modalImg.src) {
+                const link = document.createElement('a');
+                link.href = modalImg.src;
+                const filename = modalImg.getAttribute('data-filename') || modalImg.alt || 'evidencia';
+                link.download = filename;
+                link.click();
+            }
+        }
+
+        // Cerrar modal
+        window.closeModal = function() {
+            const modal = document.getElementById('imageModal');
+            if (modal) {
+                modal.classList.remove('show');
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+
+                    // Resetear valores al cerrar
+                    currentRotation = 0;
+                    currentZoom = 1;
+                    translateX = 0;
+                    translateY = 0;
+                }, 300);
+            }
+        }
+
+        // Eventos de arrastre para pan (actualizados para rotación)
+        const zoomContainer = document.getElementById('zoomContainer');
+        if (zoomContainer) {
+            zoomContainer.addEventListener('mousedown', startDrag);
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', stopDrag);
+
+            // Zoom con rueda del mouse
+            zoomContainer.addEventListener('wheel', function(e) {
+                e.preventDefault();
+                if (e.deltaY < 0) {
+                    zoomIn();
+                } else {
+                    zoomOut();
+                }
+            });
+
+            // Re-calcular centrado cuando cambie el tamaño de ventana
+            window.addEventListener('resize', function() {
+                setTimeout(() => {
+                    if (document.getElementById('imageModal').classList.contains('show')) {
+                        autoFitImage();
+                    }
+                }, 100);
+            });
+        }
+
+        function startDrag(e) {
+            if (currentZoom > 0.5) { // Permitir arrastrar con cualquier zoom
+                isDragging = true;
+                startX = e.clientX - translateX;
+                startY = e.clientY - translateY;
+                e.preventDefault();
+            }
+        }
+
+        function drag(e) {
+            if (isDragging) {
+                translateX = e.clientX - startX;
+                translateY = e.clientY - startY;
+                applyZoom();
+            }
+        }
+
+        function stopDrag() {
+            isDragging = false;
+        }
+
+        // Eventos de teclado (actualizados con rotación)
+        document.addEventListener('keydown', function(e) {
+            const modal = document.getElementById('imageModal');
+            if (modal && modal.classList.contains('show')) {
+                switch(e.key) {
+                    case 'Escape':
+                        closeModal();
+                        break;
+                    case 'ArrowLeft':
+                        previousImage();
+                        break;
+                    case 'ArrowRight':
+                        nextImage();
+                        break;
+                    case '+':
+                    case '=':
+                        e.preventDefault();
+                        zoomIn();
+                        break;
+                    case '-':
+                        e.preventDefault();
+                        zoomOut();
+                        break;
+                    case '0':
+                        e.preventDefault();
+                        resetZoom();
+                        break;
+                    case 'r':
+                    case 'R':
+                        e.preventDefault();
+                        rotateRight();
+                        break;
+                    case 'l':
+                    case 'L':
+                        e.preventDefault();
+                        rotateLeft();
+                        break;
+                }
+            }
+        });
+
+        // Cerrar modal al hacer clic fuera de la imagen
+        const modal = document.getElementById('imageModal');
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeModal();
+                }
+            });
+        }
+
+        // Soporte táctil para dispositivos móviles (actualizado)
+        let initialDistance = 0;
+        let initialZoom = 1;
+
+        if (zoomContainer) {
+            zoomContainer.addEventListener('touchstart', function(e) {
+                if (e.touches.length === 2) {
+                    initialDistance = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    initialZoom = currentZoom;
+                    e.preventDefault();
+                }
+            });
+
+            zoomContainer.addEventListener('touchmove', function(e) {
+                if (e.touches.length === 2) {
+                    const currentDistance = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+
+                    currentZoom = Math.max(0.2, Math.min(5, initialZoom * (currentDistance / initialDistance)));
+                    applyZoom();
+                    e.preventDefault();
+                }
+            });
+        }
+
         // OPTIMIZACIÓN: Implementar Intersection Observer para lazy loading
         const imageObserver = new IntersectionObserver((entries, observer) => {
             entries.forEach(entry => {
@@ -292,6 +1043,9 @@
                         lazyImage.onload = function() {
                             lazyImage.classList.add('loaded');
                             if (placeholder) placeholder.style.display = 'none';
+
+                            // Reinicializar galería cuando se cargan nuevas imágenes
+                            setTimeout(initializeImageGallery, 100);
                         };
 
                         lazyImage.onerror = function() {
@@ -305,7 +1059,7 @@
                 }
             });
         }, {
-            rootMargin: '50px 0px', // Comenzar a cargar 50px antes de que sea visible
+            rootMargin: '50px 0px',
             threshold: 0.1
         });
 
@@ -314,42 +1068,47 @@
             imageObserver.observe(container);
         });
 
-        // Modal para vista previa de imágenes
-        const modal = document.getElementById('imageModal');
-        const modalImage = document.getElementById('modalImage');
-        const closeModal = document.querySelector('.close-modal');
-
-        // Abrir modal al hacer click en una imagen cargada
+        // MODIFICAR EL EVENTO CLICK EXISTENTE PARA USAR EL NUEVO MODAL
         document.addEventListener('click', function(e) {
             if (e.target.classList.contains('lazy-image') && e.target.classList.contains('loaded')) {
-                modal.style.display = 'block';
-                modalImage.src = e.target.src;
-                modalImage.alt = e.target.alt;
+                // Actualizar lista de imágenes antes de abrir modal
+                initializeImageGallery();
+
+                // Encontrar índice de la imagen clickeada
+                const clickedIndex = images.findIndex(img => img.src === e.target.src);
+                if (clickedIndex !== -1) {
+                    currentImageIndex = clickedIndex;
+
+                    const modal = document.getElementById('imageModal');
+                    const modalImg = document.getElementById('modalImage');
+
+                    if (modal && modalImg) {
+                        modalImg.src = e.target.src;
+                        modalImg.alt = e.target.alt;
+
+                        // Copiar atributos de datos
+                        modalImg.setAttribute('data-filename', e.target.getAttribute('data-filename') || '');
+                        modalImg.setAttribute('data-capture-date', e.target.getAttribute('data-capture-date') || '');
+
+                        // Resetear rotación
+                        currentRotation = 0;
+
+                        updateImageInfo(e.target);
+                        updateGalleryNavigation();
+                        updateNavigationButtons();
+
+                        modal.style.display = 'flex';
+                        setTimeout(() => {
+                            modal.classList.add('show');
+                            // Auto-centrar después de que el modal sea visible
+                            setTimeout(autoFitImage, 50);
+                        }, 10);
+
+                        // Prevenir scroll del body
+                        document.body.style.overflow = 'hidden';
+                    }
+                }
             }
         });
-
-        // Cerrar modal
-        if (closeModal) {
-            closeModal.onclick = function() {
-                modal.style.display = 'none';
-            };
-        }
-
-        window.onclick = function(event) {
-            if (event.target === modal) {
-                modal.style.display = 'none';
-            }
-        };
     });
-
-    // Crear CSS para la animación de manera programática (evita problemas de Razor)
-    const style = document.createElement('style');
-    style.textContent = `
-    @@keyframes spin {
-
-            0% { transform: translate(-50%, -50%) rotate(0deg); }
-            100% { transform: translate(-50%, -50%) rotate(360deg); }
-        }
-    `;
-    document.head.appendChild(style);
 </script>

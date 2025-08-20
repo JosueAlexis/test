@@ -14,6 +14,7 @@ C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\R
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\ExcelNumberFormat.dll
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\iTextSharp.LGPLv2.Core.dll
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.Bcl.AsyncInterfaces.dll
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.Bcl.Memory.dll
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.Data.SqlClient.dll
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.EntityFrameworkCore.dll
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.EntityFrameworkCore.Abstractions.dll
@@ -28,6 +29,8 @@ C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\R
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.Extensions.Logging.Abstractions.dll
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.Extensions.Options.dll
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.Extensions.Primitives.dll
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.Graph.dll
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.Graph.Core.dll
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.Identity.Client.dll
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.Identity.Client.Extensions.Msal.dll
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.IdentityModel.Abstractions.dll
@@ -36,11 +39,20 @@ C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\R
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.IdentityModel.Protocols.dll
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.IdentityModel.Tokens.dll
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.IdentityModel.Validators.dll
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.Kiota.Abstractions.dll
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.Kiota.Authentication.Azure.dll
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.Kiota.Http.HttpClientLibrary.dll
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.Kiota.Serialization.Form.dll
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.Kiota.Serialization.Json.dll
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.Kiota.Serialization.Multipart.dll
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.Kiota.Serialization.Text.dll
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.SqlServer.Server.dll
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Microsoft.Win32.SystemEvents.dll
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\RBush.dll
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\SixLabors.Fonts.dll
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\SkiaSharp.dll
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\Std.UriTemplate.dll
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\System.ClientModel.dll
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\System.Configuration.ConfigurationManager.dll
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\PubTmp\Out\System.Diagnostics.DiagnosticSource.dll

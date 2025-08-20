@@ -1,3 +1,4 @@
+wwwroot\css\modern-layout.css
 wwwroot\css\site.css
 wwwroot\favicon.ico
 wwwroot\img\login-bg.png

@@ -311,6 +311,7 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                     FechaSalida = reader.IsDBNull("FechaSalida") ? null : reader.GetDateTime("FechaSalida"),
                     Origen = reader.IsDBNull("Origen") ? null : reader.GetString("Origen"),
                     Destino = reader.IsDBNull("Destino") ? null : reader.GetString("Destino"),
+                    Plant = reader.IsDBNull("Plant") ? null : reader.GetString("Plant"),
                     DriverName = reader.IsDBNull("DriverName") ? null : reader.GetString("DriverName"),
                     Status = ConvertStatusToString(reader.IsDBNull("Status") ? null : reader.GetByte("Status")),
                     PodRecordCaptureDate = reader.IsDBNull("CaptureDate") ? null : reader.GetDateTime("CaptureDate"),

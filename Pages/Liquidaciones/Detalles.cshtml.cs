@@ -90,6 +90,7 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                         FechaSalida = p.FechaSalida,
                         Origen = p.Origen,
                         Destino = p.Destino,
+                        Plant = p.Plant,
                         DriverName = p.DriverName,
                         Status = p.Status,
                         CaptureDate = p.CaptureDate
