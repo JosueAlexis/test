@@ -1,173 +1,691 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
-using ProyectoRH2025.Data;
+using Microsoft.Data.SqlClient;
 using ProyectoRH2025.MODELS;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+using ProyectoRH2025.Services;
+using System.Data;
 using System.Diagnostics;
 
 namespace ProyectoRH2025.Pages.Liquidaciones
 {
     public class DetallesModel : PageModel
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<DetallesModel> _logger;
+        private readonly ISharePointTestService _sharePointService; // NUEVO
 
-        public DetallesModel(ApplicationDbContext context)
+        public DetallesModel(IConfiguration configuration, ILogger<DetallesModel> logger, ISharePointTestService sharePointService) // MODIFICADO
         {
-            _context = context;
+            _configuration = configuration;
+            _logger = logger;
+            _sharePointService = sharePointService; // NUEVO
         }
 
-        // MANTENER LA MISMA INTERFAZ P�BLICA
-        public PodRecord LiquidacionDetalle { get; set; }
-        public List<PodEvidenciaInfo> EvidenciasInfo { get; set; } = new List<PodEvidenciaInfo>();
-        public string ErrorMessage { get; set; }
-        public string StatusText { get; private set; }
+        // Propiedades del modelo
+        public LiquidacionDetalle? LiquidacionDetalle { get; set; }
+        public List<EvidenciaInfo> EvidenciasInfo { get; set; } = new();
+        public string? ErrorMessage { get; set; }
+        public string? StatusText { get; set; }
+        public string? DiagnosticoTiempos { get; set; }
 
-        // NUEVO: Diagn�stico de rendimiento
-        public string DiagnosticoTiempos { get; set; } = "";
-
-        // Clase para manejar solo la informaci�n b�sica de las evidencias (IGUAL QUE ANTES)
-        public class PodEvidenciaInfo
-        {
-            public int EvidenciaID { get; set; }
-            public string FileName { get; set; }
-            public bool HasImage { get; set; }
-            public DateTime? CaptureDate { get; set; }
-            public int? ImageSequence { get; set; }
-        }
-
-        private string ConvertStatusToString(byte? statusValue)
-        {
-            if (!statusValue.HasValue) return "Desconocido";
-            return statusValue.Value switch
-            {
-                0 => "En Tr�nsito",
-                1 => "Entregado",
-                2 => "Pendiente",
-                _ => $"C�digo: {statusValue.Value}"
-            };
-        }
+        // NUEVAS PROPIEDADES PARA SHAREPOINT
+        public bool BusquedaEnSharePoint { get; set; } = false;
+        public string OrigenDatos { get; set; } = "Base de Datos";
 
         public async Task<IActionResult> OnGetAsync(int? id)
         {
-            var stopwatchTotal = Stopwatch.StartNew();
-            var diagnostico = new List<string>();
+            var stopwatch = Stopwatch.StartNew();
 
-            // ---- VERIFICACI�N DE ROL (IGUAL QUE ANTES) ----
-            var rolIdSession = HttpContext.Session.GetInt32("idRol");
-            var rolesITPermitidos = new[] { 5,1007 };
-            var idRolLiquidacionesPermitido = 1009;
-
-            bool esLiquidaciones = rolIdSession.HasValue && rolIdSession.Value == idRolLiquidacionesPermitido;
-            bool esAdministrativoIT = rolIdSession.HasValue && rolesITPermitidos.Contains(rolIdSession.Value);
-
-            if (!esLiquidaciones && !esAdministrativoIT)
+            if (!id.HasValue)
             {
-                return RedirectToPage("/Login");
-            }
-
-            if (id == null)
-            {
-                ErrorMessage = "No se proporcion� un ID para la liquidaci�n.";
+                ErrorMessage = "ID de liquidación no especificado.";
                 return Page();
             }
 
             try
             {
-                // OPTIMIZACI�N BACKEND 1: Consulta separada SIN im�genes
-                var sw1 = Stopwatch.StartNew();
-                LiquidacionDetalle = await _context.PodRecords
-                    .AsNoTracking() // Mejora rendimiento
-                    .Where(p => p.POD_ID == id.Value)
-                    .Select(p => new PodRecord
-                    {
-                        POD_ID = p.POD_ID,
-                        Folio = p.Folio,
-                        Cliente = p.Cliente,
-                        Tractor = p.Tractor,
-                        Remolque = p.Remolque,
-                        FechaSalida = p.FechaSalida,
-                        Origen = p.Origen,
-                        Destino = p.Destino,
-                        Plant = p.Plant,
-                        DriverName = p.DriverName,
-                        Status = p.Status,
-                        CaptureDate = p.CaptureDate
-                    })
-                    .FirstOrDefaultAsync();
-                sw1.Stop();
-                diagnostico.Add($"Detalle principal: {sw1.ElapsedMilliseconds}ms");
+                // PASO 1: Buscar en la base de datos
+                await BuscarEnBaseDatos(id.Value);
 
-                if (LiquidacionDetalle == null)
+                // PASO 2: Si encontramos el registro pero NO tiene evidencias, buscar en SharePoint
+                if (LiquidacionDetalle != null && !EvidenciasInfo.Any())
                 {
-                    ErrorMessage = $"No se encontr� la liquidaci�n con ID {id}.";
-                    return Page();
+                    await BuscarEvidenciasEnSharePoint(LiquidacionDetalle.Folio);
+                }
+                // PASO 3: Si no encontramos nada en BD, buscar todo en SharePoint
+                else if (LiquidacionDetalle == null)
+                {
+                    await BuscarEnSharePoint(id.ToString());
                 }
 
-                // OPTIMIZACI�N BACKEND 2: Evidencias SIN ImageData
-                var sw2 = Stopwatch.StartNew();
-                EvidenciasInfo = await _context.PodEvidenciasImagenes
-                    .AsNoTracking()
-                    .Where(e => e.POD_ID_FK == id.Value)
-                    .Select(e => new PodEvidenciaInfo
-                    {
-                        EvidenciaID = e.EvidenciaID,
-                        FileName = e.FileName ?? "Sin nombre",
-                        HasImage = e.ImageData != null && e.ImageData.Length > 0,
-                        CaptureDate = e.CaptureDate,
-                        ImageSequence = e.ImageSequence
-                    })
-                    .OrderBy(e => e.ImageSequence ?? 999)
-                    .ThenBy(e => e.CaptureDate)
-                    .ToListAsync();
-                sw2.Stop();
-                diagnostico.Add($"Evidencias ({EvidenciasInfo.Count}): {sw2.ElapsedMilliseconds}ms");
-
-                StatusText = ConvertStatusToString(LiquidacionDetalle.Status);
-
-                stopwatchTotal.Stop();
-                diagnostico.Add($"TOTAL: {stopwatchTotal.ElapsedMilliseconds}ms");
-                DiagnosticoTiempos = string.Join(" | ", diagnostico);
+                stopwatch.Stop();
+                DiagnosticoTiempos = $"Consulta completada en {stopwatch.ElapsedMilliseconds}ms - Origen: {OrigenDatos}";
 
                 return Page();
             }
             catch (Exception ex)
             {
-                stopwatchTotal.Stop();
-                ErrorMessage = $"Error al cargar los datos: {ex.Message}";
-                DiagnosticoTiempos = $"ERROR en {stopwatchTotal.ElapsedMilliseconds}ms: {ex.Message}";
+                _logger.LogError(ex, "Error al obtener detalles de liquidación");
+                ErrorMessage = "Error interno del servidor. Por favor, intente nuevamente.";
+                stopwatch.Stop();
+                DiagnosticoTiempos = $"Error en {stopwatch.ElapsedMilliseconds}ms";
                 return Page();
             }
         }
+        public async Task<IActionResult> OnGetSharePointImageAsync(string carpeta, string fileName)
+        {
+            _logger.LogInformation("🖼️ HANDLER DE IMAGEN EJECUTADO - Carpeta: {Carpeta}, Archivo: {FileName}", carpeta, fileName);
 
-        // M�TODO OPTIMIZADO: Servir im�genes individuales con cache
+            try
+            {
+                if (string.IsNullOrEmpty(carpeta) || string.IsNullOrEmpty(fileName))
+                {
+                    _logger.LogError("❌ Parámetros nulos - Carpeta: {Carpeta}, FileName: {FileName}", carpeta, fileName);
+                    return BadRequest("Parámetros requeridos");
+                }
+
+                var imageBytes = await _sharePointService.GetFileBytesAsync(carpeta, fileName);
+
+                if (imageBytes != null && imageBytes.Length > 0)
+                {
+                    _logger.LogInformation("✅ Imagen encontrada - Tamaño: {Size} bytes", imageBytes.Length);
+                    return File(imageBytes, "image/jpeg");
+                }
+
+                _logger.LogWarning("❌ Imagen no encontrada o vacía");
+                return NotFound($"Imagen no encontrada: {fileName}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ ERROR en handler SharePoint Image");
+                return StatusCode(500, "Error interno del servidor");
+            }
+        }
+
+        // MÉTODO ACTUALIZADO: Considerar el patrón temporal real de tu operación
+        private async Task BuscarEvidenciasEnSharePoint(string folio)
+        {
+            try
+            {
+                BusquedaEnSharePoint = true;
+                _logger.LogInformation("Buscando evidencias del día para folio '{Folio}'", folio);
+
+                var informacionViaje = await ObtenerInformacionAdicionalDeFolio(folio);
+
+                if (informacionViaje?.FechaSalida.HasValue == true)
+                {
+                    var fechaProcesamiento = informacionViaje.FechaSalida.Value.AddDays(1);
+                    var fechaCarpeta = fechaProcesamiento.ToString("yyyy-MM-dd");
+
+                    _logger.LogInformation("Buscando carpetas POD del día {Fecha}", fechaCarpeta);
+
+                    var contenidoDelDia = await _sharePointService.GetAllFolderContentsAsync(fechaCarpeta);
+
+                    // CORRECCIÓN: Buscar CARPETAS POD, no archivos
+                    // Buscar carpeta específica por POD_ID
+                    var carpetaEspecifica = contenidoDelDia
+                        .FirstOrDefault(item =>
+                            item.IsFolder &&
+                            item.Type != "status" &&
+                            item.Type != "error" &&
+                            item.Name.Equals($"POD_{informacionViaje.PodId}", StringComparison.OrdinalIgnoreCase));
+
+                    if (carpetaEspecifica != null)
+                    {
+                        _logger.LogInformation("📁 Carpeta POD encontrada: {Nombre}, explorando contenido...", carpetaEspecifica.Name);
+
+                        // OBTENER ARCHIVOS DENTRO DE LA CARPETA POD
+                        var rutaCarpetaPod = $"{fechaCarpeta}/{carpetaEspecifica.Name}";
+                        var archivosEnCarpeta = await _sharePointService.GetAllFolderContentsAsync(rutaCarpetaPod);
+
+                        var imagenes = archivosEnCarpeta
+                            .Where(archivo =>
+                                !archivo.IsFolder &&
+                                archivo.Type != "status" &&
+                                archivo.Type != "error" &&
+                                (archivo.Type == "image" || EsArchivoImagen(archivo.Name) ||
+                                 archivo.Name.Contains($"POD_{informacionViaje.PodId}", StringComparison.OrdinalIgnoreCase)))
+                            .ToList();
+
+                        _logger.LogInformation("🖼️ Imágenes encontradas en carpeta POD: {Count}", imagenes.Count);
+
+                        if (imagenes.Any())
+                        {
+                            EvidenciasInfo = imagenes.Select(imagen => new EvidenciaInfo
+                            {
+                                EvidenciaID = 0,
+                                FileName = imagen.Name,
+                                CaptureDate = imagen.Modified,
+                                HasImage = true, // ¡IMPORTANTE!
+                                SharePointUrl = imagen.WebUrl,
+                                IsFromSharePoint = true,
+                                CarpetaSharePoint = rutaCarpetaPod // Ruta completa para el handler
+                            }).ToList();
+
+                            OrigenDatos = "BD + SharePoint";
+                            StatusText += $" (Encontradas {imagenes.Count} imágenes en {carpetaEspecifica.Name})";
+                        }
+                        else
+                        {
+                            _logger.LogWarning("⚠️ No se encontraron imágenes en la carpeta POD");
+                            // Crear evidencia de la carpeta como fallback
+                            EvidenciasInfo = new List<EvidenciaInfo>
+        {
+            new EvidenciaInfo
+            {
+                EvidenciaID = 0,
+                FileName = carpetaEspecifica.Name,
+                CaptureDate = carpetaEspecifica.Modified,
+                HasImage = false,
+                SharePointUrl = carpetaEspecifica.WebUrl,
+                IsFromSharePoint = true
+            }
+        };
+                            OrigenDatos = "BD + SharePoint";
+                            StatusText += $" (Solo carpeta POD: {carpetaEspecifica.Name})";
+                        }
+                    }
+                    else
+                    {
+                        // Fallback: intentar en la fecha exacta del viaje
+                        var fechaExacta = informacionViaje.FechaSalida.Value.ToString("yyyy-MM-dd");
+                        var contenidoExacto = await _sharePointService.GetAllFolderContentsAsync(fechaExacta);
+
+                        // CAMBIAR ESTA PARTE:
+                        var carpetaEspecificaExacta = contenidoExacto
+                            .FirstOrDefault(item =>
+                                item.IsFolder &&
+                                item.Type != "status" &&
+                                item.Type != "error" &&
+                                item.Name.Equals($"POD_{informacionViaje.PodId}", StringComparison.OrdinalIgnoreCase));
+
+                        if (carpetaEspecificaExacta != null)
+                        {
+                            EvidenciasInfo = new List<EvidenciaInfo>
+        {
+            new EvidenciaInfo
+            {
+                EvidenciaID = 0,
+                FileName = carpetaEspecificaExacta.Name,
+                CaptureDate = carpetaEspecificaExacta.Modified,
+                HasImage = false,
+                SharePointUrl = carpetaEspecificaExacta.WebUrl,
+                IsFromSharePoint = true
+            }
+        };
+
+                            OrigenDatos = "BD + SharePoint";
+                            StatusText += $" (Carpeta POD específica en fecha exacta: {carpetaEspecificaExacta.Name})";
+                        }
+                        else
+                        {
+                            OrigenDatos = "BD (sin carpetas POD específicas en SharePoint)";
+                            StatusText += $" (POD_{informacionViaje.PodId} no encontrado en {fechaCarpeta} ni {fechaExacta})";
+                        }
+                    }
+                }
+                else
+                {
+                    OrigenDatos = "BD (sin fecha para buscar en SharePoint)";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error buscando evidencias en SharePoint");
+                OrigenDatos = "BD (error SharePoint)";
+            }
+        }
+        // NUEVO: Generar fechas de búsqueda considerando el patrón operativo
+        private List<DateTime> GenerarFechasDeRuteo(DateTime fechaSalida)
+        {
+            var fechas = new List<DateTime>();
+
+            // Patrón observado: documentos se crean el día siguiente
+            fechas.Add(fechaSalida.AddDays(1));  // +1 día (patrón principal)
+            fechas.Add(fechaSalida);             // Mismo día (por si acaso)
+            fechas.Add(fechaSalida.AddDays(2));  // +2 días (retrasos)
+            fechas.Add(fechaSalida.AddDays(-1)); // -1 día (adelantos)
+
+            return fechas;
+        }
+        // NUEVO: Buscar archivos específicos en una carpeta
+        private async Task<List<SharePointFileInfo>> BuscarArchivosEnCarpetaEspecifica(string carpeta, int podId)
+        {
+            try
+            {
+                var archivosEnCarpeta = await _sharePointService.GetAllFolderContentsAsync(carpeta);
+
+                // Buscar archivos que coincidan con el POD_ID
+                var archivosCoincidentes = archivosEnCarpeta
+                    .Where(archivo =>
+                        archivo.Type != "status" &&
+                        archivo.Type != "error" &&
+                        !archivo.IsFolder &&
+                        CoincideConPodId(archivo.Name, podId))
+                    .ToList();
+
+                return archivosCoincidentes;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error buscando en carpeta {Carpeta}", carpeta);
+                return new List<SharePointFileInfo>();
+            }
+        }
+        // NUEVO: Verificar si un nombre de archivo coincide con el POD_ID
+        private bool CoincideConPodId(string nombreArchivo, int podId)
+        {
+            // Patrones de búsqueda flexibles
+            var patronesABuscar = new[]
+            {
+        $"POD_{podId}",           // POD_9979
+        $"POD{podId}",            // POD9979  
+        podId.ToString(),         // 9979
+        $"_{podId}_",             // _9979_
+        $"_{podId}.",             // _9979.ext
+        $"POD_{podId:D4}",        // POD_0979 (con padding)
+        $"POD_{podId:D5}"         // POD_09979 (con más padding)
+    };
+
+            return patronesABuscar.Any(patron =>
+                nombreArchivo.Contains(patron, StringComparison.OrdinalIgnoreCase));
+        }
+        // NUEVO: Buscar por POD_ID en carpetas recientes como fallback
+        private async Task<List<SharePointFileInfo>> BuscarPorPodIdEnCarpetasRecientes(int podId)
+        {
+            var archivos = new List<SharePointFileInfo>();
+
+            try
+            {
+                // Obtener carpetas de fechas recientes
+                var carpetasRaiz = await _sharePointService.GetAllFolderContentsAsync();       
+                var carpetasFecha = carpetasRaiz
+                    .Where(item => item.IsFolder && item.Name.StartsWith("2025-"))
+                    .OrderByDescending(item => item.Name)
+                    .Take(7); // Buscar en la última semana
+
+                foreach (var carpeta in carpetasFecha)
+                {
+                    var archivosEncontrados = await BuscarArchivosEnCarpetaEspecifica(carpeta.Name, podId);
+
+                    if (archivosEncontrados.Any())
+                    {
+                        archivos.AddRange(archivosEncontrados);
+                        _logger.LogInformation("📁 Encontrados {Count} archivos para POD_ID {PodId} en {Carpeta}",
+                            archivosEncontrados.Count, podId, carpeta.Name);
+                        break; // Detener al encontrar la primera coincidencia
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error en búsqueda por POD_ID en carpetas recientes");
+            }
+
+            return archivos;
+        }
+        // NUEVO: Consultar BD para obtener información adicional del folio
+        private async Task<InformacionAdicionalFolio?> ObtenerInformacionAdicionalDeFolio(string folio)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+                await connection.OpenAsync();
+
+                var query = @"
+            SELECT TOP 5 
+                POD_ID, Folio, FechaSalida, Cliente, Tractor, Remolque
+            FROM POD_Records 
+            WHERE Folio = @Folio 
+               OR Folio LIKE '%' + @Folio + '%'
+               OR @Folio LIKE '%' + Folio + '%'
+            ORDER BY 
+                CASE WHEN Folio = @Folio THEN 1 ELSE 2 END,
+                POD_ID DESC";
+
+                using var command = new SqlCommand(query, connection);
+                command.Parameters.AddWithValue("@Folio", folio);
+
+                using var reader = await command.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    return new InformacionAdicionalFolio
+                    {
+                        PodId = reader.GetInt32("POD_ID"),
+                        Folio = reader["Folio"]?.ToString(),
+                        FechaSalida = reader["FechaSalida"] as DateTime?,
+                        Cliente = reader["Cliente"]?.ToString(),
+                        Tractor = reader["Tractor"]?.ToString(),
+                        Remolque = reader["Remolque"]?.ToString()
+                    };
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error obteniendo información adicional del folio");
+                return null;
+            }
+        }
+
+        // NUEVO: Buscar usando patrones relacionados con POD_ID
+        private async Task<List<SharePointFileInfo>> BuscarPorPatronesPodId(int podId)
+        {
+            var archivos = new List<SharePointFileInfo>();
+
+            try
+            {
+                // Obtener todas las carpetas de fecha disponibles
+                var carpetasRaiz = await _sharePointService.GetAllFolderContentsAsync();
+                var carpetasFecha = carpetasRaiz
+                    .Where(item => item.IsFolder && item.Name.StartsWith("2025-"))
+                    .OrderByDescending(item => item.Name)
+                    .Take(5); // Buscar en las 5 carpetas más recientes
+
+                foreach (var carpeta in carpetasFecha)
+                {
+                    try
+                    {
+                        var archivosEnCarpeta = await _sharePointService.GetAllFolderContentsAsync(carpeta.Name);
+
+                        // Buscar archivos que puedan estar relacionados con el POD_ID
+                        var archivosRelacionados = archivosEnCarpeta
+                            .Where(archivo =>
+                                archivo.Type != "status" &&
+                                archivo.Type != "error" &&
+                                !archivo.IsFolder &&
+                                (archivo.Name.Contains(podId.ToString()) ||
+                                 archivo.Name.Contains($"POD_{podId}") ||
+                                 archivo.Name.Contains($"POD{podId}")))
+                            .ToList();
+
+                        if (archivosRelacionados.Any())
+                        {
+                            archivos.AddRange(archivosRelacionados);
+                            _logger.LogInformation("Encontrados {Count} archivos relacionados con POD_ID {PodId} en {Carpeta}",
+                                archivosRelacionados.Count, podId, carpeta.Name);
+                            break; // Salir al encontrar la primera coincidencia
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Error buscando en carpeta {Carpeta}", carpeta.Name);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error en búsqueda por patrones POD_ID");
+            }
+
+            return archivos;
+        }
+
+        // NUEVO: Buscar por folio directo (método original como fallback)
+        private async Task<List<SharePointFileInfo>> BuscarPorFolioDirecto(string folio)
+        {
+            try
+            {
+                var archivosRaiz = await _sharePointService.GetAllFolderContentsAsync();
+                return archivosRaiz
+                    .Where(archivo => archivo.Name.Contains(folio, StringComparison.OrdinalIgnoreCase) &&
+                                     archivo.Type != "status" &&
+                                     archivo.Type != "error" &&
+                                     !archivo.IsFolder)
+                    .ToList();
+            }
+            catch
+            {
+                return new List<SharePointFileInfo>();
+            }
+        }
+
+        // NUEVA CLASE: Para almacenar información adicional obtenida de BD
+        public class InformacionAdicionalFolio
+        {
+            public int PodId { get; set; }
+            public string? Folio { get; set; }
+            public DateTime? FechaSalida { get; set; }
+            public string? Cliente { get; set; }
+            public string? Tractor { get; set; }
+            public string? Remolque { get; set; }
+        }
+        private async Task BuscarEnBaseDatos(int id)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+                await connection.OpenAsync();
+
+                // Consulta principal
+                var queryPrincipal = @"
+                    SELECT 
+                        p.POD_ID, p.Folio, p.Tractor, p.Remolque, p.FechaSalida,
+                        p.Origen, p.Destino, p.Cliente, p.Status, p.CaptureDate,
+                        p.DriverName, p.Plant
+                    FROM POD_Records p
+                    WHERE p.POD_ID = @PodId";
+
+                using var command = new SqlCommand(queryPrincipal, connection);
+                command.Parameters.AddWithValue("@PodId", id);
+
+                using var reader = await command.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    LiquidacionDetalle = new LiquidacionDetalle
+                    {
+                        POD_ID = reader.GetInt32("POD_ID"),
+                        Folio = reader["Folio"]?.ToString(),
+                        Tractor = reader["Tractor"]?.ToString(),
+                        Remolque = reader["Remolque"]?.ToString(),
+                        FechaSalida = reader["FechaSalida"] as DateTime?,
+                        Origen = reader["Origen"]?.ToString(),
+                        Destino = reader["Destino"]?.ToString(),
+                        Cliente = reader["Cliente"]?.ToString(),
+                        Status = reader["Status"]?.ToString(),
+                        CaptureDate = reader["CaptureDate"] as DateTime?,
+                        DriverName = reader["DriverName"]?.ToString(),
+                        Plant = reader["Plant"]?.ToString()
+                    };
+
+                    StatusText = DeterminarStatusText(LiquidacionDetalle.Status);
+                    OrigenDatos = "Base de Datos"; // NUEVO
+                }
+
+                reader.Close();
+
+                // Si encontramos en BD, buscar evidencias
+                if (LiquidacionDetalle != null)
+                {
+                    await BuscarEvidenciasEnBD(connection, id);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al buscar en base de datos");
+                throw;
+            }
+        }
+
+        private async Task BuscarEvidenciasEnBD(SqlConnection connection, int podId)
+        {
+            try
+            {
+                var queryEvidencias = @"
+                    SELECT EvidenciaID, FileName, CaptureDate, ImageData
+                    FROM POD_Evidencias_Imagenes 
+                    WHERE POD_ID_FK = @PodId 
+                    ORDER BY CaptureDate DESC";
+
+                using var commandEvidencias = new SqlCommand(queryEvidencias, connection);
+                commandEvidencias.Parameters.AddWithValue("@PodId", podId);
+
+                using var readerEvidencias = await commandEvidencias.ExecuteReaderAsync();
+
+                while (await readerEvidencias.ReadAsync())
+                {
+                    var evidencia = new EvidenciaInfo
+                    {
+                        EvidenciaID = readerEvidencias.GetInt32("EvidenciaID"),
+                        FileName = readerEvidencias["FileName"]?.ToString(),
+                        CaptureDate = readerEvidencias["CaptureDate"] as DateTime?,
+                        HasImage = !readerEvidencias.IsDBNull("ImageData") &&
+                                  ((byte[])readerEvidencias["ImageData"]).Length > 0,
+                        IsFromSharePoint = false // NUEVO
+                    };
+
+                    EvidenciasInfo.Add(evidencia);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al buscar evidencias en BD");
+            }
+        }
+
+        // NUEVO MÉTODO: Buscar en SharePoint
+        private async Task BuscarEnSharePoint(string folio)
+        {
+            try
+            {   
+                BusquedaEnSharePoint = true;
+                _logger.LogInformation("Buscando folio '{Folio}' en SharePoint", folio);
+
+                // Usar tu servicio existente para buscar archivos
+                var archivosSharePoint = await _sharePointService.GetAllFolderContentsAsync();
+
+                // Filtrar archivos que contengan el folio en el nombre
+                var archivosFiltrados = archivosSharePoint
+                    .Where(archivo => archivo.Name.Contains(folio, StringComparison.OrdinalIgnoreCase) &&
+                                     archivo.Type != "status" &&
+                                     archivo.Type != "error")
+                    .ToList();
+
+                if (archivosFiltrados.Any())
+                {
+                    // Crear liquidación "virtual" con datos de SharePoint
+                    LiquidacionDetalle = new LiquidacionDetalle
+                    {
+                        POD_ID = 0,
+                        Folio = folio,
+                        Cliente = "Datos desde SharePoint",
+                        Tractor = "Ver SharePoint",
+                        Remolque = "Ver SharePoint",
+                        Status = "Encontrado en SharePoint",
+                        Origen = "SharePoint",
+                        Destino = "SharePoint",
+                        FechaSalida = archivosFiltrados.FirstOrDefault()?.Modified,
+                        DriverName = "N/A",
+                        Plant = "SharePoint",
+                        CaptureDate = archivosFiltrados.FirstOrDefault()?.Modified
+                    };
+
+                    // Convertir archivos de SharePoint a evidencias
+                    EvidenciasInfo = archivosFiltrados.Select(archivo => new EvidenciaInfo
+                    {
+                        EvidenciaID = 0,
+                        FileName = archivo.Name,
+                        CaptureDate = archivo.Modified,
+                        HasImage = EsArchivoImagen(archivo.Name),
+                        SharePointUrl = archivo.WebUrl,
+                        IsFromSharePoint = true
+                    }).ToList();
+
+                    StatusText = $"Encontrado en SharePoint ({archivosFiltrados.Count} archivos)";
+                    OrigenDatos = "SharePoint";
+
+                    _logger.LogInformation("Encontrados {Count} archivos para folio '{Folio}' en SharePoint", archivosFiltrados.Count, folio);
+                }
+                else
+                {
+                    ErrorMessage = $"Folio '{folio}' no encontrado ni en Base de Datos ni en SharePoint.";
+                    _logger.LogInformation("Folio '{Folio}' no encontrado en SharePoint", folio);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al buscar en SharePoint");
+                ErrorMessage = $"No encontrado en BD. Error al buscar en SharePoint: {ex.Message}";
+            }
+        }
+
+        // NUEVO MÉTODO: Determinar si es imagen
+        private bool EsArchivoImagen(string nombreArchivo)
+        {
+            var extensiones = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff" };
+            var extension = Path.GetExtension(nombreArchivo)?.ToLower();
+            return extensiones.Contains(extension);
+        }
+
         public async Task<IActionResult> OnGetImageAsync(int evidenciaId)
         {
             try
             {
-                // OPTIMIZACI�N: Consulta solo la imagen espec�fica necesaria
-                var evidencia = await _context.PodEvidenciasImagenes
-                    .AsNoTracking()
-                    .Where(e => e.EvidenciaID == evidenciaId)
-                    .Select(e => new { e.ImageData, e.MimeType, e.FileName })
-                    .FirstOrDefaultAsync();
+                using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+                await connection.OpenAsync();
 
-                if (evidencia == null || evidencia.ImageData == null || string.IsNullOrEmpty(evidencia.MimeType))
+                var query = "SELECT ImageData FROM POD_Evidencias_Imagenes WHERE EvidenciaID = @EvidenciaID";
+                using var command = new SqlCommand(query, connection);
+                command.Parameters.AddWithValue("@EvidenciaID", evidenciaId);
+
+                var imageData = await command.ExecuteScalarAsync() as byte[];
+
+                if (imageData != null && imageData.Length > 0)
                 {
-                    return NotFound();
+                    return File(imageData, "image/jpeg");
                 }
 
-                // OPTIMIZACI�N: Headers de cache para evitar descargas repetidas
-                Response.Headers.Add("Cache-Control", "public, max-age=3600"); // 1 hora
-                Response.Headers.Add("ETag", $"\"{evidenciaId}_{evidencia.ImageData.Length}\"");
-
-                return File(evidencia.ImageData, evidencia.MimeType, evidencia.FileName ?? "imagen");
+                return NotFound();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error al obtener imagen");
                 return NotFound();
             }
         }
+
+        private string DeterminarStatusText(string? status)
+        {
+            return status switch
+            {
+                "1" => "En Tránsito",
+                "2" => "Entregado",
+                "3" => "Cancelado",
+                _ => status ?? "Desconocido"
+            };
+        }
+    }
+
+    // Clases de modelo (actualizadas)
+    public class LiquidacionDetalle
+    {
+        public int POD_ID { get; set; }
+        public string? Folio { get; set; }
+        public string? Tractor { get; set; }
+        public string? Remolque { get; set; }
+        public DateTime? FechaSalida { get; set; }
+        public string? Origen { get; set; }
+        public string? Destino { get; set; }
+        public string? Cliente { get; set; }
+        public string? Status { get; set; }
+        public DateTime? CaptureDate { get; set; }
+        public string? DriverName { get; set; }
+        public string? Plant { get; set; }
+    }
+
+    public class EvidenciaInfo
+    {
+        public int EvidenciaID { get; set; }
+        public string? FileName { get; set; }
+        public DateTime? CaptureDate { get; set; }
+        public bool HasImage { get; set; }
+
+        // NUEVAS PROPIEDADES PARA SHAREPOINT
+        public bool IsFromSharePoint { get; set; } = false;
+        public string? SharePointUrl { get; set; }
+        public string? CarpetaSharePoint { get; set; }
     }
 }
