@@ -533,19 +533,25 @@ namespace ProyectoRH2025.Services
         {
             try
             {
-                if (_graphClient == null) return "";
-
+                // ✅ CORRECCIÓN: No depender de _graphClient, usar directamente HTTP client
                 var credential = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
                 var token = await credential.GetTokenAsync(new TokenRequestContext(new[] { "https://graph.microsoft.com/.default" }));
 
                 using var httpClient = new HttpClient();
                 httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Token);
 
-                var uri = new Uri(_config.SiteUrl ?? "");
+                if (string.IsNullOrEmpty(_config.SiteUrl))
+                {
+                    _logger.LogError("❌ SiteUrl no configurado");
+                    return "";
+                }
+
+                var uri = new Uri(_config.SiteUrl);
                 var hostname = uri.Host;
                 var sitePath = uri.AbsolutePath;
 
                 var url = $"https://graph.microsoft.com/v1.0/sites/{hostname}:{sitePath}";
+                _logger.LogInformation("🌐 Obteniendo Site ID desde: {Url}", url);
 
                 var response = await httpClient.GetAsync(url);
 
@@ -556,20 +562,22 @@ namespace ProyectoRH2025.Services
 
                     if (result.TryGetProperty("id", out var idElement))
                     {
-                        return idElement.GetString() ?? "";
+                        var siteId = idElement.GetString();
+                        _logger.LogInformation("✅ Site ID obtenido: {SiteId}", siteId);
+                        return siteId ?? "";
                     }
                 }
 
-                _logger.LogWarning($"No se pudo obtener Site ID. Status: {response.StatusCode}");
+                _logger.LogWarning("❌ No se pudo obtener Site ID. Status: {StatusCode}, Content: {Content}",
+                    response.StatusCode, await response.Content.ReadAsStringAsync());
                 return "";
             }
             catch (Exception ex)
             {
-                _logger.LogWarning($"No se pudo obtener Site ID: {ex.Message}");
+                _logger.LogError(ex, "❌ Error obteniendo Site ID para URL: {SiteUrl}", _config.SiteUrl);
                 return "";
             }
         }
-
         private async Task<List<SharePointFileInfo>> GetRealFolderContentsAsync(string siteId, string driveId, string folderPath)
         {
             var files = new List<SharePointFileInfo>();
@@ -762,18 +770,37 @@ namespace ProyectoRH2025.Services
             {
                 _logger.LogInformation("🔍 Buscando archivo: {FileName} en carpeta: {Carpeta}", fileName, carpeta);
 
+                // ✅ CORRECCIÓN: Asegurar que _graphClient esté inicializado
+                if (_graphClient == null)
+                {
+                    var credential = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
+                    _graphClient = new GraphServiceClient(credential);
+                }
+
                 var siteId = await GetSiteIdAsync();
+                if (string.IsNullOrEmpty(siteId))
+                {
+                    _logger.LogError("❌ No se pudo obtener Site ID");
+                    return null;
+                }
+
                 var drives = await _graphClient.Sites[siteId].Drives.GetAsync();
                 var documentDrive = drives?.Value?.FirstOrDefault(d =>
                     d.Name?.Contains("Documents", StringComparison.OrdinalIgnoreCase) == true ||
                     d.Name?.Contains("Documentos", StringComparison.OrdinalIgnoreCase) == true);
 
-                if (documentDrive == null) return null;
+                if (documentDrive == null)
+                {
+                    _logger.LogError("❌ No se encontró la biblioteca de documentos");
+                    return null;
+                }
 
                 var basePath = _config.LiquidacionesFolder ?? "POD AKNA/POD AKNA 2025/POD QUIOSCO";
                 var searchPath = string.IsNullOrEmpty(carpeta) ? basePath : $"{basePath}/{carpeta}";
 
-                // NUEVO: Buscar archivo recursivamente en todas las subcarpetas
+                _logger.LogInformation("🔍 Buscando en ruta: {SearchPath}", searchPath);
+
+                // Buscar archivo recursivamente en todas las subcarpetas
                 var foundFile = await SearchFileRecursivelyAsync(siteId, documentDrive.Id, searchPath, fileName);
 
                 if (foundFile != null)
@@ -782,12 +809,12 @@ namespace ProyectoRH2025.Services
                     return await DownloadFileFromSharePointAsync(siteId, documentDrive.Id, foundFile.FullPath);
                 }
 
-                _logger.LogWarning("❌ Archivo no encontrado: {FileName}", fileName);
+                _logger.LogWarning("❌ Archivo no encontrado: {FileName} en {SearchPath}", fileName, searchPath);
                 return null;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Error en GetFileBytesAsync");
+                _logger.LogError(ex, "❌ Error en GetFileBytesAsync para {FileName} en {Carpeta}", fileName, carpeta);
                 return null;
             }
         }

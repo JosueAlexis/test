@@ -74,22 +74,26 @@ namespace ProyectoRH2025.Pages.Liquidaciones
         }
         public async Task<IActionResult> OnGetSharePointImageAsync(string carpeta, string fileName)
         {
-            _logger.LogInformation("🖼️ HANDLER DE IMAGEN EJECUTADO - Carpeta: {Carpeta}, Archivo: {FileName}", carpeta, fileName);
+            _logger.LogInformation("🖼️ HANDLER SharePoint Image - Carpeta: {Carpeta}, Archivo: {FileName}", carpeta, fileName);
 
             try
             {
                 if (string.IsNullOrEmpty(carpeta) || string.IsNullOrEmpty(fileName))
                 {
-                    _logger.LogError("❌ Parámetros nulos - Carpeta: {Carpeta}, FileName: {FileName}", carpeta, fileName);
-                    return BadRequest("Parámetros requeridos");
+                    _logger.LogError("❌ Parámetros requeridos faltantes");
+                    return BadRequest("Carpeta y nombre de archivo son requeridos");
                 }
 
+                // Usar el servicio SharePoint para obtener los bytes de la imagen
                 var imageBytes = await _sharePointService.GetFileBytesAsync(carpeta, fileName);
 
                 if (imageBytes != null && imageBytes.Length > 0)
                 {
                     _logger.LogInformation("✅ Imagen encontrada - Tamaño: {Size} bytes", imageBytes.Length);
-                    return File(imageBytes, "image/jpeg");
+
+                    // Determinar el tipo MIME basado en la extensión
+                    var contentType = GetContentType(fileName);
+                    return File(imageBytes, contentType);
                 }
 
                 _logger.LogWarning("❌ Imagen no encontrada o vacía");
@@ -102,13 +106,27 @@ namespace ProyectoRH2025.Pages.Liquidaciones
             }
         }
 
+        private string GetContentType(string fileName)
+        {
+            var extension = Path.GetExtension(fileName).ToLowerInvariant();
+            return extension switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".bmp" => "image/bmp",
+                ".tiff" or ".tif" => "image/tiff",
+                _ => "image/jpeg" // Default
+            };
+        }
+
         // MÉTODO ACTUALIZADO: Considerar el patrón temporal real de tu operación
         private async Task BuscarEvidenciasEnSharePoint(string folio)
         {
             try
             {
                 BusquedaEnSharePoint = true;
-                _logger.LogInformation("Buscando evidencias del día para folio '{Folio}'", folio);
+                _logger.LogInformation("🔍 Buscando evidencias SharePoint para folio '{Folio}'", folio);
 
                 var informacionViaje = await ObtenerInformacionAdicionalDeFolio(folio);
 
@@ -117,25 +135,24 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                     var fechaProcesamiento = informacionViaje.FechaSalida.Value.AddDays(1);
                     var fechaCarpeta = fechaProcesamiento.ToString("yyyy-MM-dd");
 
-                    _logger.LogInformation("Buscando carpetas POD del día {Fecha}", fechaCarpeta);
+                    _logger.LogInformation("📅 Buscando en carpeta del día: {Fecha}", fechaCarpeta);
 
                     var contenidoDelDia = await _sharePointService.GetAllFolderContentsAsync(fechaCarpeta);
 
-                    // CORRECCIÓN: Buscar CARPETAS POD, no archivos
-                    // Buscar carpeta específica por POD_ID
-                    var carpetaEspecifica = contenidoDelDia
+                    // Buscar carpeta POD específica
+                    var carpetaPod = contenidoDelDia
                         .FirstOrDefault(item =>
                             item.IsFolder &&
                             item.Type != "status" &&
                             item.Type != "error" &&
                             item.Name.Equals($"POD_{informacionViaje.PodId}", StringComparison.OrdinalIgnoreCase));
 
-                    if (carpetaEspecifica != null)
+                    if (carpetaPod != null)
                     {
-                        _logger.LogInformation("📁 Carpeta POD encontrada: {Nombre}, explorando contenido...", carpetaEspecifica.Name);
+                        _logger.LogInformation("📁 Carpeta POD encontrada: {Nombre}", carpetaPod.Name);
 
-                        // OBTENER ARCHIVOS DENTRO DE LA CARPETA POD
-                        var rutaCarpetaPod = $"{fechaCarpeta}/{carpetaEspecifica.Name}";
+                        // Obtener archivos dentro de la carpeta POD
+                        var rutaCarpetaPod = $"{fechaCarpeta}/{carpetaPod.Name}";
                         var archivosEnCarpeta = await _sharePointService.GetAllFolderContentsAsync(rutaCarpetaPod);
 
                         var imagenes = archivosEnCarpeta
@@ -143,11 +160,10 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                                 !archivo.IsFolder &&
                                 archivo.Type != "status" &&
                                 archivo.Type != "error" &&
-                                (archivo.Type == "image" || EsArchivoImagen(archivo.Name) ||
-                                 archivo.Name.Contains($"POD_{informacionViaje.PodId}", StringComparison.OrdinalIgnoreCase)))
+                                EsArchivoImagen(archivo.Name))
                             .ToList();
 
-                        _logger.LogInformation("🖼️ Imágenes encontradas en carpeta POD: {Count}", imagenes.Count);
+                        _logger.LogInformation("🖼️ Imágenes encontradas: {Count}", imagenes.Count);
 
                         if (imagenes.Any())
                         {
@@ -156,83 +172,94 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                                 EvidenciaID = 0,
                                 FileName = imagen.Name,
                                 CaptureDate = imagen.Modified,
-                                HasImage = true, // ¡IMPORTANTE!
+                                HasImage = true, // ✅ CRUCIAL: Esto debe ser true
                                 SharePointUrl = imagen.WebUrl,
                                 IsFromSharePoint = true,
-                                CarpetaSharePoint = rutaCarpetaPod // Ruta completa para el handler
+                                CarpetaSharePoint = rutaCarpetaPod // ✅ Ruta completa para el handler
                             }).ToList();
 
                             OrigenDatos = "BD + SharePoint";
-                            StatusText += $" (Encontradas {imagenes.Count} imágenes en {carpetaEspecifica.Name})";
+                            StatusText += $" (Encontradas {imagenes.Count} imágenes en {carpetaPod.Name})";
+
+                            // Log de debug
+                            foreach (var evidencia in EvidenciasInfo)
+                            {
+                                _logger.LogInformation("📄 Evidencia configurada: {FileName}, HasImage: {HasImage}, Carpeta: {Carpeta}",
+                                    evidencia.FileName, evidencia.HasImage, evidencia.CarpetaSharePoint);
+                            }
                         }
                         else
                         {
                             _logger.LogWarning("⚠️ No se encontraron imágenes en la carpeta POD");
-                            // Crear evidencia de la carpeta como fallback
-                            EvidenciasInfo = new List<EvidenciaInfo>
-        {
-            new EvidenciaInfo
-            {
-                EvidenciaID = 0,
-                FileName = carpetaEspecifica.Name,
-                CaptureDate = carpetaEspecifica.Modified,
-                HasImage = false,
-                SharePointUrl = carpetaEspecifica.WebUrl,
-                IsFromSharePoint = true
-            }
-        };
-                            OrigenDatos = "BD + SharePoint";
-                            StatusText += $" (Solo carpeta POD: {carpetaEspecifica.Name})";
                         }
                     }
                     else
                     {
-                        // Fallback: intentar en la fecha exacta del viaje
-                        var fechaExacta = informacionViaje.FechaSalida.Value.ToString("yyyy-MM-dd");
-                        var contenidoExacto = await _sharePointService.GetAllFolderContentsAsync(fechaExacta);
+                        _logger.LogWarning("❌ No se encontró carpeta POD_{PodId} en {Fecha}", informacionViaje.PodId, fechaCarpeta);
 
-                        // CAMBIAR ESTA PARTE:
-                        var carpetaEspecificaExacta = contenidoExacto
-                            .FirstOrDefault(item =>
-                                item.IsFolder &&
-                                item.Type != "status" &&
-                                item.Type != "error" &&
-                                item.Name.Equals($"POD_{informacionViaje.PodId}", StringComparison.OrdinalIgnoreCase));
-
-                        if (carpetaEspecificaExacta != null)
-                        {
-                            EvidenciasInfo = new List<EvidenciaInfo>
-        {
-            new EvidenciaInfo
-            {
-                EvidenciaID = 0,
-                FileName = carpetaEspecificaExacta.Name,
-                CaptureDate = carpetaEspecificaExacta.Modified,
-                HasImage = false,
-                SharePointUrl = carpetaEspecificaExacta.WebUrl,
-                IsFromSharePoint = true
-            }
-        };
-
-                            OrigenDatos = "BD + SharePoint";
-                            StatusText += $" (Carpeta POD específica en fecha exacta: {carpetaEspecificaExacta.Name})";
-                        }
-                        else
-                        {
-                            OrigenDatos = "BD (sin carpetas POD específicas en SharePoint)";
-                            StatusText += $" (POD_{informacionViaje.PodId} no encontrado en {fechaCarpeta} ni {fechaExacta})";
-                        }
+                        // Fallback: buscar en fecha exacta
+                        await BuscarEnFechaExacta(informacionViaje, informacionViaje.FechaSalida.Value.ToString("yyyy-MM-dd"));
                     }
                 }
                 else
                 {
-                    OrigenDatos = "BD (sin fecha para buscar en SharePoint)";
+                    _logger.LogWarning("❌ No hay fecha de salida para buscar en SharePoint");
+                    OrigenDatos = "BD (sin fecha para SharePoint)";
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error buscando evidencias en SharePoint");
+                _logger.LogError(ex, "❌ Error buscando evidencias en SharePoint");
                 OrigenDatos = "BD (error SharePoint)";
+            }
+        }
+        private async Task BuscarEnFechaExacta(InformacionAdicionalFolio informacionViaje, string fechaExacta)
+        {
+            try
+            {
+                var contenidoExacto = await _sharePointService.GetAllFolderContentsAsync(fechaExacta);
+
+                var carpetaPodExacta = contenidoExacto
+                    .FirstOrDefault(item =>
+                        item.IsFolder &&
+                        item.Type != "status" &&
+                        item.Type != "error" &&
+                        item.Name.Equals($"POD_{informacionViaje.PodId}", StringComparison.OrdinalIgnoreCase));
+
+                if (carpetaPodExacta != null)
+                {
+                    var rutaCarpetaPod = $"{fechaExacta}/{carpetaPodExacta.Name}";
+                    var archivosEnCarpeta = await _sharePointService.GetAllFolderContentsAsync(rutaCarpetaPod);
+
+                    var imagenes = archivosEnCarpeta
+                        .Where(archivo =>
+                            !archivo.IsFolder &&
+                            archivo.Type != "status" &&
+                            archivo.Type != "error" &&
+                            EsArchivoImagen(archivo.Name))
+                        .ToList();
+
+                    if (imagenes.Any())
+                    {
+                        EvidenciasInfo = imagenes.Select(imagen => new EvidenciaInfo
+                        {
+                            EvidenciaID = 0,
+                            FileName = imagen.Name,
+                            CaptureDate = imagen.Modified,
+                            HasImage = true,
+                            SharePointUrl = imagen.WebUrl,
+                            IsFromSharePoint = true,
+                            CarpetaSharePoint = rutaCarpetaPod
+                        }).ToList();
+
+                        OrigenDatos = "BD + SharePoint";
+                        StatusText += $" (Encontradas {imagenes.Count} imágenes en fecha exacta)";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error buscando en fecha exacta");
             }
         }
         // NUEVO: Generar fechas de búsqueda considerando el patrón operativo
@@ -615,11 +642,14 @@ namespace ProyectoRH2025.Pages.Liquidaciones
         // NUEVO MÉTODO: Determinar si es imagen
         private bool EsArchivoImagen(string nombreArchivo)
         {
-            var extensiones = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff" };
-            var extension = Path.GetExtension(nombreArchivo)?.ToLower();
-            return extensiones.Contains(extension);
-        }
+            if (string.IsNullOrEmpty(nombreArchivo))
+                return false;
 
+            var extensionesImagen = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif" };
+            var extension = Path.GetExtension(nombreArchivo)?.ToLowerInvariant();
+
+            return !string.IsNullOrEmpty(extension) && extensionesImagen.Contains(extension);
+        }
         public async Task<IActionResult> OnGetImageAsync(int evidenciaId)
         {
             try

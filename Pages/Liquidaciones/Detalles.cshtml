@@ -170,7 +170,29 @@
         border-radius: 8px;
         font-size: 0.85rem;
     }
+    /*IMAGENES CICLEABLES DE SHAREPOINT*/
+    /* Asegurar que las imágenes SharePoint sean clickeables */
+    .lazy-image[data-sharepoint-url] {
+        cursor: pointer !important;
+        opacity: 1 !important;
+        transition: all 0.3s ease;
+    }
 
+        .lazy-image[data-sharepoint-url]:hover {
+            transform: scale(1.02);
+            filter: brightness(1.1);
+        }
+
+    /* Debug temporal: borde para identificar imágenes SharePoint */
+    .image-container.sharepoint-image .lazy-image {
+        border: 2px solid #2196f3 !important;
+    }
+
+    /* Asegurar visibilidad del modal */
+    .image-modal.show {
+        display: flex !important;
+        opacity: 1 !important;
+    }
     /* ===== MODAL DE ZOOM COMPLETO ===== */
     .image-modal {
         display: none;
@@ -393,6 +415,9 @@
     .image-modal:hover .controls-help {
         opacity: 1;
     }
+    .lazy-image:not([data-sharepoint-url]) {
+        opacity: 1 !important;
+    }
 </style>
 
 <!-- ESTILOS RESPONSIVOS MOVIDOS AL FINAL DEL SCRIPT -->
@@ -510,6 +535,7 @@
                     <div class="image-container @(evidencia.IsFromSharePoint ? "sharepoint-image" : "")"
                          data-evidencia-id="@evidencia.EvidenciaID"
                          data-is-sharepoint="@evidencia.IsFromSharePoint.ToString().ToLower()">
+
                         <!-- Overlay para imágenes de SharePoint -->
                         @if (evidencia.IsFromSharePoint)
                         {
@@ -517,9 +543,11 @@
                                 <i class="fab fa-microsoft"></i> SP
                             </div>
                         }
+
                         @if (evidencia.HasImage)
                         {
-                            @if (!evidencia.IsFromSharePoint && evidencia.HasImage)
+                            @* IMAGEN DE BASE DE DATOS *@
+                            @if (!evidencia.IsFromSharePoint)
                             {
                                 <img class="lazy-image"
                                      src="@Url.Page("./Detalles", "Image", new { evidenciaId = evidencia.EvidenciaID })"
@@ -528,19 +556,40 @@
                                      alt="@evidencia.FileName"
                                      title="@evidencia.FileName - Base de datos (Click para ampliar)" />
                             }
-                            else if (evidencia.IsFromSharePoint && !string.IsNullOrEmpty(evidencia.CarpetaSharePoint))
+                            @* IMAGEN DE SHAREPOINT - URL CORREGIDA *@
+                            @if (evidencia.IsFromSharePoint && !string.IsNullOrEmpty(evidencia.CarpetaSharePoint))
                             {
-                                <img class="lazy-image"
-                                     src="@Url.Page("./Detalles", "SharePointImage", new { carpeta = evidencia.CarpetaSharePoint, fileName = evidencia.FileName })"
-                                     data-filename="@evidencia.FileName"
+                                <img class="lazy-image loaded"
+                                     src="@($"?handler=SharePointImage&carpeta={Uri.EscapeDataString(evidencia.CarpetaSharePoint)}&fileName={Uri.EscapeDataString(evidencia.FileName)}")" data-filename="@evidencia.FileName"
                                      data-capture-date="@(evidencia.CaptureDate?.ToString("dd/MM/yyyy HH:mm") ?? "")"
+                                     data-sharepoint-url="@evidencia.SharePointUrl"
                                      alt="@evidencia.FileName"
-                                     title="@evidencia.FileName - SharePoint (Click para ampliar)" />
+                                     title="@evidencia.FileName - SharePoint (Click para ampliar)"
+                                     style="opacity: 1;"
+                                     onload="console.log('✅ Imagen SharePoint cargada:', this.src)"
+                                     onerror="console.error('❌ Error cargando imagen SharePoint:', this.src)" />
+                            }
+                            @* FALLBACK: PROBLEMA CON SHAREPOINT *@
+                            else if (evidencia.IsFromSharePoint && string.IsNullOrEmpty(evidencia.CarpetaSharePoint))
+                            {
+                                <div class="image-placeholder">
+                                    <div>
+                                        <i class="fas fa-exclamation-triangle text-warning"></i><br />
+                                        <small>@evidencia.FileName</small><br />
+                                        <small class="text-warning">Error: Sin ruta de carpeta</small><br />
+                                        @if (!string.IsNullOrEmpty(evidencia.SharePointUrl))
+                                        {
+                                            <a href="@evidencia.SharePointUrl" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                                                <i class="fab fa-microsoft"></i> Ver en SharePoint
+                                            </a>
+                                        }
+                                    </div>
+                                </div>
                             }
                         }
-
                         else
                         {
+                            @* SIN IMAGEN DISPONIBLE *@
                             <div class="image-placeholder">
                                 <div>
                                     <i class="fas fa-image"></i><br />
@@ -699,637 +748,383 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Crear estilos CSS dinámicamente para evitar conflictos con Razor
-        const style = document.createElement('style');
-        style.textContent = `
-            /* Animación de spinner */
-            @@keyframes spin {
-                0% { transform: translate(-50%, -50%) rotate(0deg); }
-                100% { transform: translate(-50%, -50%) rotate(360deg); }
-            }
-
-            /* Estilos responsivos */
-            @@media (max-width: 768px) {
-                .modal-controls {
-                    top: 10px;
-                    right: 10px;
-                    gap: 5px;
-                }
-
-                .modal-control-btn {
-                    width: 40px;
-                    height: 40px;
-                    font-size: 14px;
-                }
-
-                .image-info {
-                    bottom: 10px;
-                    left: 10px;
-                    padding: 10px 15px;
-                    max-width: 250px;
-                    font-size: 14px;
-                }
-
-                .zoom-controls {
-                    bottom: 10px;
-                    right: 10px;
-                    padding: 8px;
-                }
-
-                .zoom-btn {
-                    padding: 6px 10px;
-                    font-size: 12px;
-                }
-
-                .zoom-indicator {
-                    top: 10px;
-                    left: 10px;
-                    padding: 6px 10px;
-                    font-size: 12px;
-                }
-
-                .image-gallery-nav {
-                    bottom: 60px;
-                    padding: 8px;
-                }
-
-                .gallery-thumb {
-                    width: 50px;
-                    height: 37px;
-                }
-
-                .controls-help {
-                    display: none;
-                }
-
-                .rotation-controls {
-                    bottom: 60px;
-                    right: 10px;
-                }
-            }
-
-            /* NUEVOS ESTILOS PARA ROTACIÓN */
-            .rotation-controls {
-                position: absolute;
-                bottom: 80px;
-                right: 20px;
-                display: flex;
-                flex-direction: column;
-                gap: 5px;
-                background: rgba(0, 0, 0, 0.8);
-                padding: 8px;
-                border-radius: 20px;
-                backdrop-filter: blur(10px);
-            }
-
-            .rotation-btn {
-                background: rgba(255, 255, 255, 0.2);
-                border: none;
-                color: white;
-                padding: 8px;
-                border-radius: 50%;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                font-size: 14px;
-                width: 35px;
-                height: 35px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-
-            .rotation-btn:hover {
-                background: rgba(255, 255, 255, 0.3);
-                transform: scale(1.1);
-            }
-
-            /* Mejorar el auto-fit de la imagen */
-            .modal-image-zoom {
-                max-width: 100%;
-                max-height: 100%;
-                object-fit: contain;
-                transition: transform 0.3s ease;
-                user-select: none;
-                -webkit-user-drag: none;
-                transform-origin: center center;
-            }
-        `;
-        document.head.appendChild(style);
-
-        // Variables globales para zoom y rotación
-        let currentZoom = 1;
-        let currentImageIndex = 0;
-        let currentRotation = 0; // Nueva variable para rotación
-        let images = [];
-        let isDragging = false;
-        let startX, startY, translateX = 0, translateY = 0;
-
-        // Inicializar las imágenes
-        function initializeImageGallery() {
-            images = Array.from(document.querySelectorAll('.lazy-image.loaded'));
-            createGalleryNavigation();
+document.addEventListener('DOMContentLoaded', function() {
+    // CSS dinámico con escape correcto para Razor
+    const style = document.createElement('style');
+    style.textContent = `
+        @@keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
         }
-
-        // Crear navegación de galería
-        function createGalleryNavigation() {
-            const galleryNav = document.getElementById('galleryNav');
-            if (!galleryNav) return;
-
-            galleryNav.innerHTML = '';
-
-            images.forEach((img, index) => {
-                const thumb = document.createElement('img');
-                thumb.src = img.src;
-                thumb.className = 'gallery-thumb';
-                thumb.onclick = () => goToImage(index);
-                thumb.title = img.alt || `Evidencia ${index + 1}`;
-                galleryNav.appendChild(thumb);
-            });
+        @@media (max-width: 768px) {
+            .modal-controls { top: 10px; right: 10px; gap: 5px; }
+            .modal-control-btn { width: 40px; height: 40px; font-size: 14px; }
+            .rotation-controls { bottom: 60px; right: 10px; }
         }
+        .rotation-controls {
+            position: absolute; bottom: 80px; right: 20px; display: flex;
+            flex-direction: column; gap: 5px; background: rgba(0, 0, 0, 0.8);
+            padding: 8px; border-radius: 20px; backdrop-filter: blur(10px);
+        }
+        .rotation-btn {
+            background: rgba(255, 255, 255, 0.2); border: none; color: white;
+            padding: 8px; border-radius: 50%; cursor: pointer; transition: all 0.3s ease;
+            font-size: 14px; width: 35px; height: 35px; display: flex;
+            align-items: center; justify-content: center;
+        }
+        .rotation-btn:hover { background: rgba(255, 255, 255, 0.3); transform: scale(1.1); }
+        .modal-image-zoom {
+            max-width: 100%; max-height: 100%; object-fit: contain;
+            transition: transform 0.3s ease; user-select: none;
+            -webkit-user-drag: none; transform-origin: center center;
+        }
+    `;
+    document.head.appendChild(style);
 
-        // NUEVA FUNCIÓN: Auto-centrar imagen
-        function autoFitImage() {
-            const modalImg = document.getElementById('modalImage');
-            const container = document.getElementById('zoomContainer');
+    // Variables globales
+    let currentZoom = 1;
+    let currentImageIndex = 0;
+    let currentRotation = 0;
+    let images = [];
+    let isDragging = false;
+    let startX, startY, translateX = 0, translateY = 0;
 
-            if (!modalImg || !container) return;
+    // Función de inicialización de galería
+    function initializeImageGallery() {
+        images = Array.from(document.querySelectorAll('.lazy-image')).filter(img => {
+            const isBDLoaded = !img.hasAttribute('data-sharepoint-url') && img.src && img.src !== '' && img.src !== window.location.href;
+            const isSharePoint = img.hasAttribute('data-sharepoint-url');
+            return isBDLoaded || isSharePoint;
+        });
 
-            // Resetear transformaciones
-            currentZoom = 1;
-            translateX = 0;
-            translateY = 0;
+        console.log('Galería inicializada con ' + images.length + ' imágenes:', {
+            total: images.length,
+            sharepoint: images.filter(img => img.hasAttribute('data-sharepoint-url')).length,
+            database: images.filter(img => !img.hasAttribute('data-sharepoint-url')).length
+        });
 
-            // Esperar a que la imagen se cargue completamente
-            if (modalImg.complete) {
-                calculateOptimalZoom();
-            } else {
-                modalImg.onload = function() {
-                    calculateOptimalZoom();
-                };
+        createGalleryNavigation();
+    }
+
+    // Crear navegación
+    function createGalleryNavigation() {
+        const galleryNav = document.getElementById('galleryNav');
+        if (!galleryNav) return;
+        galleryNav.innerHTML = '';
+        images.forEach((img, index) => {
+            const thumb = document.createElement('img');
+            thumb.src = img.src;
+            thumb.className = 'gallery-thumb';
+            thumb.onclick = () => goToImage(index);
+            thumb.title = img.alt || 'Evidencia ' + (index + 1);
+            galleryNav.appendChild(thumb);
+        });
+    }
+
+    // Auto-centrar imagen
+    function autoFitImage() {
+        const modalImg = document.getElementById('modalImage');
+        const container = document.getElementById('zoomContainer');
+        if (!modalImg || !container) return;
+        currentZoom = 1;
+        translateX = 0;
+        translateY = 0;
+        if (modalImg.complete) {
+            calculateOptimalZoom();
+        } else {
+            modalImg.onload = () => calculateOptimalZoom();
+        }
+    }
+
+    // Calcular zoom óptimo
+    function calculateOptimalZoom() {
+        const modalImg = document.getElementById('modalImage');
+        const container = document.getElementById('zoomContainer');
+        if (!modalImg || !container) return;
+        const containerRect = container.getBoundingClientRect();
+        let effectiveWidth = modalImg.naturalWidth;
+        let effectiveHeight = modalImg.naturalHeight;
+        if (currentRotation === 90 || currentRotation === 270) {
+            effectiveWidth = modalImg.naturalHeight;
+            effectiveHeight = modalImg.naturalWidth;
+        }
+        const scaleX = (containerRect.width * 0.85) / effectiveWidth;
+        const scaleY = (containerRect.height * 0.85) / effectiveHeight;
+        currentZoom = Math.min(scaleX, scaleY, 1);
+        translateX = 0;
+        translateY = 0;
+        applyZoom();
+    }
+
+    // Funciones globales de zoom
+    window.zoomIn = () => { currentZoom = Math.min(currentZoom * 1.5, 5); applyZoom(); };
+    window.zoomOut = () => { currentZoom = Math.max(currentZoom / 1.5, 0.2); applyZoom(); };
+    window.resetZoom = () => autoFitImage();
+
+    // Aplicar zoom
+    function applyZoom() {
+        const modalImg = document.getElementById('modalImage');
+        if (modalImg) {
+            modalImg.style.transform = 'translate(' + translateX + 'px, ' + translateY + 'px) scale(' + currentZoom + ') rotate(' + currentRotation + 'deg)';
+            const indicator = document.getElementById('zoomIndicator');
+            if (indicator) {
+                indicator.textContent = 'Zoom: ' + Math.round(currentZoom * 100) + '% | Rotación: ' + currentRotation + '°';
             }
         }
+    }
 
-        // NUEVA FUNCIÓN: Calcular zoom óptimo para centrar
-        function calculateOptimalZoom() {
-            const modalImg = document.getElementById('modalImage');
-            const container = document.getElementById('zoomContainer');
+    // Funciones de rotación
+    window.rotateLeft = () => { currentRotation = (currentRotation - 90 + 360) % 360; autoFitImage(); };
+    window.rotateRight = () => { currentRotation = (currentRotation + 90) % 360; autoFitImage(); };
+    window.resetRotation = () => { currentRotation = 0; autoFitImage(); };
 
-            if (!modalImg || !container) return;
+    // Navegación
+    window.previousImage = () => { 
+        if (images.length === 0) return; 
+        currentImageIndex = (currentImageIndex - 1 + images.length) % images.length; 
+        goToImage(currentImageIndex); 
+    };
+    window.nextImage = () => { 
+        if (images.length === 0) return; 
+        currentImageIndex = (currentImageIndex + 1) % images.length; 
+        goToImage(currentImageIndex); 
+    };
 
-            const containerRect = container.getBoundingClientRect();
-            const imgNaturalWidth = modalImg.naturalWidth;
-            const imgNaturalHeight = modalImg.naturalHeight;
-
-            // Considerar la rotación actual
-            let effectiveWidth = imgNaturalWidth;
-            let effectiveHeight = imgNaturalHeight;
-
-            if (currentRotation === 90 || currentRotation === 270) {
-                effectiveWidth = imgNaturalHeight;
-                effectiveHeight = imgNaturalWidth;
-            }
-
-            // Calcular el zoom para que la imagen ocupe máximo 85% del contenedor
-            const scaleX = (containerRect.width * 0.85) / effectiveWidth;
-            const scaleY = (containerRect.height * 0.85) / effectiveHeight;
-
-            // Usar el menor de los dos para que la imagen complete quepa
-            currentZoom = Math.min(scaleX, scaleY, 1); // No hacer zoom mayor al 100% inicialmente
-
-            // Resetear posición al centro
-            translateX = 0;
-            translateY = 0;
-
-            applyZoom();
-        }
-
-        // Funciones de zoom (actualizadas)
-        window.zoomIn = function() {
-            currentZoom = Math.min(currentZoom * 1.5, 5);
-            applyZoom();
-        }
-
-        window.zoomOut = function() {
-            currentZoom = Math.max(currentZoom / 1.5, 0.2);
-            applyZoom();
-        }
-
-        window.resetZoom = function() {
-            autoFitImage(); // Usar auto-fit en lugar de zoom fijo
-        }
-
-        // NUEVA FUNCIÓN: Aplicar zoom con rotación
-        function applyZoom() {
-            const modalImg = document.getElementById('modalImage');
-            if (modalImg) {
-                modalImg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom}) rotate(${currentRotation}deg)`;
-
-                // Actualizar indicador
-                const indicator = document.getElementById('zoomIndicator');
-                if (indicator) {
-                    indicator.textContent = `Zoom: ${Math.round(currentZoom * 100)}% | Rotación: ${currentRotation}°`;
-                }
-            }
-        }
-
-        // NUEVAS FUNCIONES DE ROTACIÓN
-        window.rotateLeft = function() {
-            currentRotation = (currentRotation - 90 + 360) % 360;
-            autoFitImage(); // Re-calcular el centrado con la nueva rotación
-        }
-
-        window.rotateRight = function() {
-            currentRotation = (currentRotation + 90) % 360;
-            autoFitImage(); // Re-calcular el centrado con la nueva rotación
-        }
-
-        window.resetRotation = function() {
+    function goToImage(index) {
+        currentImageIndex = index;
+        const modalImg = document.getElementById('modalImage');
+        if (modalImg && images[index]) {
+            modalImg.src = images[index].src;
+            modalImg.alt = images[index].alt;
             currentRotation = 0;
-            autoFitImage(); // Re-calcular el centrado sin rotación
+            updateImageInfo(images[index]);
+            updateGalleryNavigation();
+            updateNavigationButtons();
+            autoFitImage();
         }
+    }
 
-        // Funciones de navegación (actualizadas)
-        window.previousImage = function() {
-            if (images.length === 0) return;
-            currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
-            goToImage(currentImageIndex);
+    // Actualizar información
+    function updateImageInfo(imgElement) {
+        const nameEl = document.getElementById('imageName');
+        const detailsEl = document.getElementById('imageDetails');
+        if (nameEl) {
+            nameEl.textContent = imgElement.getAttribute('data-filename') || imgElement.alt || 'Evidencia fotográfica';
         }
-
-        window.nextImage = function() {
-            if (images.length === 0) return;
-            currentImageIndex = (currentImageIndex + 1) % images.length;
-            goToImage(currentImageIndex);
+        if (detailsEl) {
+            let details = 'Imagen ' + (currentImageIndex + 1) + ' de ' + images.length;
+            const captureDate = imgElement.getAttribute('data-capture-date');
+            if (captureDate) details += ' • Capturada: ' + captureDate;
+            const isSharePoint = imgElement.getAttribute('data-sharepoint-url');
+            details += isSharePoint ? ' • SharePoint' : ' • Base de Datos';
+            detailsEl.textContent = details;
         }
+    }
 
-        function goToImage(index) {
-            currentImageIndex = index;
-            const modalImg = document.getElementById('modalImage');
-            if (modalImg && images[index]) {
-                modalImg.src = images[index].src;
-                modalImg.alt = images[index].alt;
+    // Actualizar navegación de galería
+    function updateGalleryNavigation() {
+        document.querySelectorAll('.gallery-thumb').forEach((thumb, index) => {
+            thumb.classList.toggle('active', index === currentImageIndex);
+        });
+        const activeThumb = document.querySelector('.gallery-thumb.active');
+        if (activeThumb) {
+            activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+    }
 
-                // Resetear rotación al cambiar de imagen
+    // Actualizar botones
+    function updateNavigationButtons() {
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        if (prevBtn) prevBtn.disabled = images.length <= 1;
+        if (nextBtn) nextBtn.disabled = images.length <= 1;
+    }
+
+    // Funciones globales del modal
+    window.downloadImage = function() {
+        const modalImg = document.getElementById('modalImage');
+        if (modalImg && modalImg.src) {
+            const link = document.createElement('a');
+            link.href = modalImg.src;
+            const filename = modalImg.getAttribute('data-filename') || modalImg.alt || 'evidencia';
+            link.download = filename;
+            link.click();
+        }
+    };
+
+    window.closeModal = function() {
+        const modal = document.getElementById('imageModal');
+        if (modal) {
+            modal.classList.remove('show');
+            setTimeout(() => {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
                 currentRotation = 0;
-
-                updateImageInfo(images[index]);
-                updateGalleryNavigation();
-                updateNavigationButtons();
-                autoFitImage(); // Auto-centrar la nueva imagen
-            }
+                currentZoom = 1;
+                translateX = 0;
+                translateY = 0;
+            }, 300);
         }
+    };
 
-        // Actualizar información de la imagen
-        function updateImageInfo(imgElement) {
-            const nameEl = document.getElementById('imageName');
-            const detailsEl = document.getElementById('imageDetails');
-
-            if (nameEl) {
-                nameEl.textContent = imgElement.getAttribute('data-filename') || imgElement.alt || 'Evidencia fotográfica';
-            }
-
-            if (detailsEl) {
-                let details = `Imagen ${currentImageIndex + 1} de ${images.length}`;
-                const captureDate = imgElement.getAttribute('data-capture-date');
-                if (captureDate) {
-                    details += ` • Capturada: ${captureDate}`;
-                }
-
-                // NUEVO: Indicar si es de SharePoint
-                const isSharePoint = imgElement.getAttribute('data-sharepoint-url');
-                if (isSharePoint) {
-                    details += ` • SharePoint`;
-                }
-
-                detailsEl.textContent = details;
-            }
-        }
-
-        // Actualizar navegación de galería
-        function updateGalleryNavigation() {
-            const thumbs = document.querySelectorAll('.gallery-thumb');
-            thumbs.forEach((thumb, index) => {
-                thumb.classList.toggle('active', index === currentImageIndex);
-            });
-
-            // Scroll a la miniatura activa
-            const activeThumb = document.querySelector('.gallery-thumb.active');
-            if (activeThumb) {
-                activeThumb.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'nearest',
-                    inline: 'center'
-                });
-            }
-        }
-
-        // Actualizar botones de navegación
-        function updateNavigationButtons() {
-            const prevBtn = document.getElementById('prevBtn');
-            const nextBtn = document.getElementById('nextBtn');
-
-            if (prevBtn) prevBtn.disabled = images.length <= 1;
-            if (nextBtn) nextBtn.disabled = images.length <= 1;
-        }
-
-        // Descargar imagen
-        window.downloadImage = function() {
-            const modalImg = document.getElementById('modalImage');
-            if (modalImg && modalImg.src) {
-                const link = document.createElement('a');
-                link.href = modalImg.src;
-                const filename = modalImg.getAttribute('data-filename') || modalImg.alt || 'evidencia';
-                link.download = filename;
-                link.click();
-            }
-        }
-
-        // Cerrar modal
-        window.closeModal = function() {
-            const modal = document.getElementById('imageModal');
-            if (modal) {
-                modal.classList.remove('show');
-                setTimeout(() => {
-                    modal.style.display = 'none';
-                    document.body.style.overflow = 'auto';
-
-                    // Resetear valores al cerrar
-                    currentRotation = 0;
-                    currentZoom = 1;
-                    translateX = 0;
-                    translateY = 0;
-                }, 300);
-            }
-        }
-
-        // Eventos de arrastre para pan (actualizados para rotación)
-        const zoomContainer = document.getElementById('zoomContainer');
-        if (zoomContainer) {
-            zoomContainer.addEventListener('mousedown', startDrag);
-            document.addEventListener('mousemove', drag);
-            document.addEventListener('mouseup', stopDrag);
-
-            // Zoom con rueda del mouse
-            zoomContainer.addEventListener('wheel', function(e) {
-                e.preventDefault();
-                if (e.deltaY < 0) {
-                    zoomIn();
-                } else {
-                    zoomOut();
-                }
-            });
-
-            // Re-calcular centrado cuando cambie el tamaño de ventana
-            window.addEventListener('resize', function() {
-                setTimeout(() => {
-                    if (document.getElementById('imageModal').classList.contains('show')) {
-                        autoFitImage();
-                    }
-                }, 100);
-            });
-        }
-
-        function startDrag(e) {
-            if (currentZoom > 0.5) { // Permitir arrastrar con cualquier zoom
+    // Eventos de arrastre
+    const zoomContainer = document.getElementById('zoomContainer');
+    if (zoomContainer) {
+        zoomContainer.addEventListener('mousedown', (e) => {
+            if (currentZoom > 0.5) {
                 isDragging = true;
                 startX = e.clientX - translateX;
                 startY = e.clientY - translateY;
                 e.preventDefault();
             }
-        }
-
-        function drag(e) {
+        });
+        document.addEventListener('mousemove', (e) => {
             if (isDragging) {
                 translateX = e.clientX - startX;
-                translateY = e.clientY - translateY;
+                translateY = e.clientY - startY;
                 applyZoom();
             }
-        }
-
-        function stopDrag() {
-            isDragging = false;
-        }
-
-        // Eventos de teclado (actualizados con rotación)
-        document.addEventListener('keydown', function(e) {
-            const modal = document.getElementById('imageModal');
-            if (modal && modal.classList.contains('show')) {
-                switch(e.key) {
-                    case 'Escape':
-                        closeModal();
-                        break;
-                    case 'ArrowLeft':
-                        previousImage();
-                        break;
-                    case 'ArrowRight':
-                        nextImage();
-                        break;
-                    case '+':
-                    case '=':
-                        e.preventDefault();
-                        zoomIn();
-                        break;
-                    case '-':
-                        e.preventDefault();
-                        zoomOut();
-                        break;
-                    case '0':
-                        e.preventDefault();
-                        resetZoom();
-                        break;
-                    case 'r':
-                    case 'R':
-                        e.preventDefault();
-                        rotateRight();
-                        break;
-                    case 'l':
-                    case 'L':
-                        e.preventDefault();
-                        rotateLeft();
-                        break;
-                }
-            }
         });
+        document.addEventListener('mouseup', () => { isDragging = false; });
+        zoomContainer.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            if (e.deltaY < 0) zoomIn(); else zoomOut();
+        });
+    }
 
-        // Cerrar modal al hacer clic fuera de la imagen
+    // Eventos de teclado
+    document.addEventListener('keydown', (e) => {
         const modal = document.getElementById('imageModal');
-        if (modal) {
-            modal.addEventListener('click', function(e) {
-                if (e.target === this) {
-                    closeModal();
-                }
-            });
-        }
-
-        // Soporte táctil para dispositivos móviles (actualizado)
-        let initialDistance = 0;
-        let initialZoom = 1;
-
-        if (zoomContainer) {
-            zoomContainer.addEventListener('touchstart', function(e) {
-                if (e.touches.length === 2) {
-                    initialDistance = Math.hypot(
-                        e.touches[0].clientX - e.touches[1].clientX,
-                        e.touches[0].clientY - e.touches[1].clientY
-                    );
-                    initialZoom = currentZoom;
-                    e.preventDefault();
-                }
-            });
-
-            zoomContainer.addEventListener('touchmove', function(e) {
-                if (e.touches.length === 2) {
-                    const currentDistance = Math.hypot(
-                        e.touches[0].clientX - e.touches[1].clientX,
-                        e.touches[0].clientY - e.touches[1].clientY
-                    );
-
-                    currentZoom = Math.max(0.2, Math.min(5, initialZoom * (currentDistance / initialDistance)));
-                    applyZoom();
-                    e.preventDefault();
-                }
-            });
-        }
-
-        // OPTIMIZACIÓN: Implementar Intersection Observer para lazy loading
-        const imageObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const lazyImage = entry.target.querySelector('.lazy-image');
-                    const placeholder = entry.target.querySelector('.image-placeholder');
-                    const isSharePoint = entry.target.dataset.isSharepoint === 'true';
-
-                    if (lazyImage && lazyImage.dataset.src) {
-                        lazyImage.src = lazyImage.dataset.src;
-
-                        lazyImage.onload = function() {
-                            lazyImage.classList.add('loaded');
-                            if (placeholder) placeholder.style.display = 'none';
-
-                            // Reinicializar galería cuando se cargan nuevas imágenes
-                            setTimeout(initializeImageGallery, 100);
-                        };
-
-                        lazyImage.onerror = function() {
-                            if (placeholder) {
-                                if (isSharePoint) {
-                                    placeholder.innerHTML = `
-                                        <div>
-                                            <i class="fas fa-exclamation-triangle text-warning"></i><br />
-                                            <small>Error al cargar desde SharePoint</small><br />
-                                            <small class="text-info">
-                                                <a href="${lazyImage.dataset.sharepointUrl || '#'}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
-                                                    <i class="fab fa-microsoft"></i> Ver en SharePoint
-                                                </a>
-                                            </small>
-                                        </div>
-                                    `;
-                                } else {
-                                    placeholder.innerHTML = '<div><i class="fas fa-exclamation-triangle text-warning"></i><br /><small>Error al cargar imagen</small></div>';
-                                }
-                            }
-                        };
-
-                        observer.unobserve(entry.target);
-                    }
-                }
-            });
-        }, {
-            rootMargin: '50px 0px',
-            threshold: 0.1
-        });
-
-        // Observar todos los contenedores de imágenes
-        document.querySelectorAll('.image-container').forEach(container => {
-            imageObserver.observe(container);
-        });
-
-        // MODIFICAR EL EVENTO CLICK EXISTENTE PARA USAR EL NUEVO MODAL
-        document.addEventListener('click', function(e) {
-            if (e.target.classList.contains('lazy-image') && e.target.classList.contains('loaded')) {
-                // Actualizar lista de imágenes antes de abrir modal
-                initializeImageGallery();
-
-                // Encontrar índice de la imagen clickeada
-                const clickedIndex = images.findIndex(img => img.src === e.target.src);
-                if (clickedIndex !== -1) {
-                    currentImageIndex = clickedIndex;
-
-                    const modal = document.getElementById('imageModal');
-                    const modalImg = document.getElementById('modalImage');
-
-                    if (modal && modalImg) {
-                        modalImg.src = e.target.src;
-                        modalImg.alt = e.target.alt;
-
-                        // Copiar atributos de datos
-                        modalImg.setAttribute('data-filename', e.target.getAttribute('data-filename') || '');
-                        modalImg.setAttribute('data-capture-date', e.target.getAttribute('data-capture-date') || '');
-                        modalImg.setAttribute('data-sharepoint-url', e.target.getAttribute('data-sharepoint-url') || '');
-
-                        // Resetear rotación
-                        currentRotation = 0;
-
-                        updateImageInfo(e.target);
-                        updateGalleryNavigation();
-                        updateNavigationButtons();
-
-                        modal.style.display = 'flex';
-                        setTimeout(() => {
-                            modal.classList.add('show');
-                            // Auto-centrar después de que el modal sea visible
-                            setTimeout(autoFitImage, 50);
-                        }, 10);
-
-                        // Prevenir scroll del body
-                        document.body.style.overflow = 'hidden';
-                    }
-                }
+        if (modal && modal.classList.contains('show')) {
+            switch(e.key) {
+                case 'Escape': closeModal(); break;
+                case 'ArrowLeft': previousImage(); break;
+                case 'ArrowRight': nextImage(); break;
+                case '+': case '=': e.preventDefault(); zoomIn(); break;
+                case '-': e.preventDefault(); zoomOut(); break;
+                case '0': e.preventDefault(); resetZoom(); break;
+                case 'r': case 'R': e.preventDefault(); rotateRight(); break;
+                case 'l': case 'L': e.preventDefault(); rotateLeft(); break;
             }
-        });
-
-        // NUEVO: Log de integración SharePoint
-        console.log('✅ Página de detalles cargada con integración SharePoint');
-        console.log('📊 Origen de datos:', '@Model.OrigenDatos');
-
-    @if (Model.BusquedaEnSharePoint)
-    {
-        <text>
-                console.log('🔍 Búsqueda SharePoint realizada');
-                console.log('📁 Evidencias encontradas:', @(Model.EvidenciasInfo?.Count ?? 0));
-        </text>
-    }
-        <!-- DEBUG: Información de evidencias -->
-    @if (Model.EvidenciasInfo?.Any() == true)
-    {
-            <div style="background: #f0f0f0; padding: 10px; margin: 10px; font-size: 12px; border: 2px solid red;">
-                <strong>🔍 DEBUG - Evidencias encontradas:</strong><br/>
-            @foreach (var ev in Model.EvidenciasInfo)
-            {
-                        <div style="margin: 5px 0; padding: 5px; background: white;">
-                            📄 <strong>FileName:</strong> @ev.FileName<br/>
-                            📂 <strong>CarpetaSharePoint:</strong> @(ev.CarpetaSharePoint ?? "NULL")<br/>
-                            🖼️ <strong>HasImage:</strong> @ev.HasImage<br/>
-                            🌐 <strong>IsFromSharePoint:</strong> @ev.IsFromSharePoint<br/>
-                    @if (ev.IsFromSharePoint && ev.HasImage && !string.IsNullOrEmpty(ev.CarpetaSharePoint))
-                    {
-                                    <span style="color: green;">
-                                        ✅ <strong>URL generada:</strong>
-                            @Url.Page("./Detalles", "SharePointImage", new { carpeta = ev.CarpetaSharePoint, fileName = ev.FileName })
-                                    </span>
-                    }
-                    else
-                    {
-                                    <span style="color: red;">
-                                        ❌ <strong>No se generará URL</strong> -
-                                        HasImage: @ev.HasImage,
-                                        CarpetaSharePoint: @(string.IsNullOrEmpty(ev.CarpetaSharePoint) ? "VACÍA" : "OK")
-                                    </span>
-                    }
-                        </div>
-            }
-            </div>
-    }
-
+        }
     });
+
+    // Cerrar modal al hacer clic fuera
+    const modal = document.getElementById('imageModal');
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+    }
+
+    // EVENT LISTENER DE CLICK PRINCIPAL
+    document.addEventListener('click', function(e) {
+    const isValidImage = e.target.classList.contains('lazy-image') &&
+        ((e.target.src && e.target.src !== '' && e.target.src !== window.location.href) || e.target.hasAttribute('data-sharepoint-url'));
+        
+        if (isValidImage) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('CLICK DETECTADO en:', e.target.getAttribute('data-filename'));
+            
+            initializeImageGallery();
+            
+            const clickedIndex = images.findIndex(img => img.src === e.target.src);
+            console.log('Índice encontrado:', clickedIndex);
+            
+            if (clickedIndex !== -1) {
+                currentImageIndex = clickedIndex;
+                
+                const modal = document.getElementById('imageModal');
+                const modalImg = document.getElementById('modalImage');
+                
+                if (modal && modalImg) {
+                    modalImg.src = e.target.src;
+                    modalImg.alt = e.target.alt;
+                    
+                    modalImg.setAttribute('data-filename', e.target.getAttribute('data-filename') || '');
+                    modalImg.setAttribute('data-capture-date', e.target.getAttribute('data-capture-date') || '');
+                    modalImg.setAttribute('data-sharepoint-url', e.target.getAttribute('data-sharepoint-url') || '');
+                    
+                    currentRotation = 0;
+                    
+                    updateImageInfo(e.target);
+                    updateGalleryNavigation();
+                    updateNavigationButtons();
+                    
+                    modal.style.display = 'flex';
+                    setTimeout(() => {
+                        modal.classList.add('show');
+                        setTimeout(() => autoFitImage(), 50);
+                    }, 10);
+                    
+                    document.body.style.overflow = 'hidden';
+                    console.log('MODAL ABIERTO para:', e.target.getAttribute('data-filename'));
+                }
+            } else {
+                console.error('ERROR: Imagen no encontrada en array');
+            }
+        }
+    });
+
+    // Intersection Observer para lazy loading
+    const imageObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const lazyImage = entry.target.querySelector('.lazy-image');
+                if (lazyImage && !lazyImage.classList.contains('loaded') && !lazyImage.hasAttribute('data-sharepoint-url')) {
+                    lazyImage.onload = () => {
+                        lazyImage.classList.add('loaded');
+                        setTimeout(initializeImageGallery, 100);
+                    };
+                    if (lazyImage.dataset.src) {
+                        lazyImage.src = lazyImage.dataset.src;
+                    }
+                    imageObserver.unobserve(entry.target);
+                }
+            }
+        });
+    }, { rootMargin: '50px 0px', threshold: 0.1 });
+
+    document.querySelectorAll('.image-container').forEach(container => {
+        imageObserver.observe(container);
+    });
+
+    // Inicialización final con debug completo
+    setTimeout(() => {
+        console.log('=== INICIALIZANDO SISTEMA ===');
+        
+        initializeImageGallery();
+        
+        const totalImages = document.querySelectorAll('.lazy-image').length;
+        const sharePointImages = document.querySelectorAll('.lazy-image[data-sharepoint-url]').length;
+        const loadedImages = document.querySelectorAll('.lazy-image.loaded').length;
+        
+        console.log('Estado del sistema:', {
+            total: totalImages,
+            sharepoint: sharePointImages,
+            loaded: loadedImages,
+            clickeables: images.length
+        });
+        
+        // Debug visual y click test para SharePoint
+        document.querySelectorAll('.lazy-image[data-sharepoint-url]').forEach((img, index) => {
+            img.style.border = '3px solid red';
+            img.style.cursor = 'pointer';
+            img.style.opacity = '1';
+            console.log('Imagen SharePoint', (index + 1) + ':', img.getAttribute('data-filename'));
+            
+            // Test de click directo
+            img.addEventListener('click', function() {
+                console.log('CLICK DIRECTO FUNCIONANDO en:', this.getAttribute('data-filename'));
+            }, true);
+        });
+        
+        console.log('=== SISTEMA LISTO ===');
+        
+    }, 1000);
+
+    console.log('Página cargada - Sistema de imágenes iniciado');
+});
 </script>
