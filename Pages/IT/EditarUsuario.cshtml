@@ -1,0 +1,117 @@
+﻿@page
+@model ProyectoRH2025.Pages.IT.EditarUsuarioModel
+@{
+    ViewData["Title"] = "Editar Usuario";
+}
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-warning text-dark">
+            <h4 class="mb-0">Editar Usuario: @Model.Usuario.UsuarioNombre</h4>
+        </div>
+        <div class="card-body">
+            @if (!string.IsNullOrEmpty(Model.MensajeError))
+            {
+                <div class="alert alert-danger">
+                    @Model.MensajeError
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.MensajeExito))
+            {
+                <div class="alert alert-success">
+                    @Model.MensajeExito
+                </div>
+            }
+
+            <form method="post">
+                <input type="hidden" asp-for="Usuario.idUsuario" />
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Usuario</label>
+                        <input asp-for="Usuario.UsuarioNombre" class="form-control" />
+                        <span asp-validation-for="Usuario.UsuarioNombre" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Correo electrónico</label>
+                        <input asp-for="Usuario.CorreoElectronico" class="form-control" />
+                        <span asp-validation-for="Usuario.CorreoElectronico" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Nombre completo</label>
+                        <input asp-for="Usuario.NombreCompleto" class="form-control" />
+                        <span asp-validation-for="Usuario.NombreCompleto" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Rol</label>
+                        <select asp-for="Usuario.idRol" asp-items="Model.Roles" class="form-select"></select>
+                        <span asp-validation-for="Usuario.idRol" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Estado</label>
+                        <select asp-for="Usuario.Status" class="form-select">
+                            <option value="1">Activo</option>
+                            <option value="0">Inactivo</option>
+                        </select>
+                        <span asp-validation-for="Usuario.Status" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Sucursal (Opcional)</label>
+                        <input asp-for="Usuario.idSucursal" class="form-control" type="number" />
+                        <span asp-validation-for="Usuario.idSucursal" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                        <div class="form-check">
+                            <input asp-for="ForzarCambioPassword" class="form-check-input" type="checkbox" />
+                            <label class="form-check-label" asp-for="ForzarCambioPassword">
+                                Forzar cambio de contraseña en el próximo inicio de sesión
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <hr />
+
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <h5>Cambiar contraseña (opcional)</h5>
+                        <small class="text-muted">Deje en blanco si no desea cambiar la contraseña</small>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Nueva contraseña</label>
+                        <input asp-for="NuevaPassword" class="form-control" type="password" />
+                        <span asp-validation-for="NuevaPassword" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Confirmar nueva contraseña</label>
+                        <input asp-for="ConfirmarPassword" class="form-control" type="password" />
+                        <span asp-validation-for="ConfirmarPassword" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <a asp-page="/IT/Usuarios" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Regresar
+                    </a>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

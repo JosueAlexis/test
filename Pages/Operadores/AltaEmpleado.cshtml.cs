@@ -91,7 +91,7 @@ namespace ProyectoRH2025.Pages.Operadores
                     idEmpleado = Empleado.Id,
                     Imagen = base64
                 };
-                _context.ImagenesEmpleados.Add(img);
+                object value = _context.ImagenesEmpleados.Add(img);
                 await _context.SaveChangesAsync();
             }
 

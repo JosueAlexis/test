@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using ProyectoRH2025.Data;
 using ProyectoRH2025.Models;
 using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -21,101 +20,118 @@ namespace ProyectoRH2025.Pages.IT
         }
 
         [BindProperty]
-        public Usuario Usuario { get; set; }
+        public Usuario Usuario { get; set; } = new Usuario { Status = 1 };
 
         [BindProperty]
-        [Required(ErrorMessage = "La contraseña es obligatoria.")]
-        public string PasswordInicial { get; set; }
+        [Required(ErrorMessage = "La contraseña inicial es obligatoria.")]
+        [MinLength(6, ErrorMessage = "La contraseña debe tener al menos 6 caracteres.")]
+        [DataType(DataType.Password)]
+        public string PasswordInicial { get; set; } = string.Empty;
 
         [BindProperty]
-        public bool ForzarCambio { get; set; }
+        public bool ForzarCambio { get; set; } = true;
 
         public List<SelectListItem> Roles { get; set; } = new();
-
         public string? MensajeError { get; set; }
 
         public async Task<IActionResult> OnGetAsync()
         {
+            // Verificar permisos
             var rol = HttpContext.Session.GetInt32("idRol");
-            if (rol != 5 && rol != 1007)
+            if (rol != 5 && rol != 7) // Solo Admin o IT
+            {
                 return RedirectToPage("/Login");
+            }
 
-            await LoadRolesAsync();
+            await CargarRoles();
             return Page();
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
-            Debug.WriteLine("?? El método OnPostAsync se ejecutó");
-            await LoadRolesAsync();
+            // Verificar permisos
+            var rol = HttpContext.Session.GetInt32("idRol");
+            if (rol != 5 && rol != 7)
+            {
+                return RedirectToPage("/Login");
+            }
 
             if (!ModelState.IsValid)
             {
-                // ?? Mostrar en consola los errores de validación
-                foreach (var entry in ModelState)
-                {
-                    if (entry.Value.Errors.Any())
-                    {
-                        Debug.WriteLine($"?? Error en el campo: {entry.Key}");
-                        foreach (var error in entry.Value.Errors)
-                        {
-                            Debug.WriteLine($"    ? {error.ErrorMessage}");
-                        }
-                    }
-                }
-
-                MensajeError = "Formulario inválido.";
+                await CargarRoles();
                 return Page();
             }
 
             try
             {
-                using var sha1 = SHA1.Create();
-                Usuario.pass = sha1.ComputeHash(Encoding.UTF8.GetBytes(PasswordInicial));
-                Usuario.DefaultPassw = ForzarCambio ? 1 : 0;
-                Usuario.CambioPass = null;
-                Usuario.TokenRecuperacion = null;
+                // Verificar que el usuario no exista
+                var usuarioExistente = await _context.TblUsuarios
+                    .AnyAsync(u => u.UsuarioNombre == Usuario.UsuarioNombre);
 
-                _context.TblUsuarios.Add(Usuario);
-                var filas = await _context.SaveChangesAsync();
-
-                if (filas == 0)
+                if (usuarioExistente)
                 {
-                    MensajeError = "No se guardó ningún registro.";
+                    MensajeError = "Ya existe un usuario con ese nombre.";
+                    await CargarRoles();
                     return Page();
                 }
 
+                // Verificar que el rol existe
+                var rolExiste = await _context.TblRolusuario
+                    .AnyAsync(r => r.idRol == Usuario.idRol);
+
+                if (!rolExiste)
+                {
+                    MensajeError = "El rol seleccionado no existe.";
+                    await CargarRoles();
+                    return Page();
+                }
+
+                // Hashear la contraseña
+                Usuario.pass = HashPassword(PasswordInicial);
+                Usuario.DefaultPassw = ForzarCambio ? 1 : 0;
+                Usuario.CambioPass = DateTime.Now;
+
+                _context.TblUsuarios.Add(Usuario);
+                await _context.SaveChangesAsync();
+
+                TempData["Success"] = $"Usuario {Usuario.UsuarioNombre} creado exitosamente.";
                 return RedirectToPage("/IT/Usuarios");
             }
             catch (Exception ex)
             {
-                MensajeError = "Error al guardar: " + ex.Message;
+                MensajeError = $"Error al crear usuario: {ex.Message}";
+                await CargarRoles();
                 return Page();
             }
         }
 
-
-        private async Task LoadRolesAsync()
+        private async Task CargarRoles()
         {
-            Roles = await _context.TblRolusuario
-                .Select(r => new SelectListItem
-                {
-                    Value = r.idRol.ToString(),
-                    Text = r.RolNombre
-                })
+            var roles = await _context.TblRolusuario
+                .OrderBy(r => r.RolNombre)
                 .ToListAsync();
+
+            Roles = roles.Select(r => new SelectListItem
+            {
+                Value = r.idRol.ToString(),
+                Text = r.RolNombre
+            }).ToList();
+
+            // Agregar opción por defecto
+            Roles.Insert(0, new SelectListItem
+            {
+                Value = "",
+                Text = "Seleccione un rol"
+            });
         }
-        private bool EsContraseñaSegura(string contraseña)
+
+        private byte[] HashPassword(string password)
         {
-            if (string.IsNullOrEmpty(contraseña)) return false;
-
-            bool tieneLetra = contraseña.Any(char.IsLetter);
-            bool tieneNumero = contraseña.Any(char.IsDigit);
-            bool tieneSimbolo = contraseña.Any(c => !char.IsLetterOrDigit(c));
-            bool longitudValida = contraseña.Length >= 8;
-
-            return tieneLetra && tieneNumero && tieneSimbolo && longitudValida;
+            using (SHA256 sha256Hash = SHA256.Create())
+            {
+                byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(password));
+                return bytes;
+            }
         }
-
     }
 }

@@ -418,6 +418,113 @@
     .lazy-image:not([data-sharepoint-url]) {
         opacity: 1 !important;
     }
+    /* BOTONES DE SUSTITUCIÓN */
+    .image-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        z-index: 15;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .image-container:hover .image-overlay {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .overlay-btn {
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255,255,255,0.3);
+        font-size: 0.8rem;
+        min-width: 100px;
+    }
+    /* MODAL DE SUSTITUCIÓN */
+    .modal-sustitucion {
+        display: none;
+        position: fixed;
+        z-index: 11000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(5px);
+    }
+
+    .modal-content-sustitucion {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        border-radius: 15px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .modal-header-sustitucion {
+        background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+        color: white;
+        padding: 20px;
+        border-radius: 15px 15px 0 0;
+        position: relative;
+    }
+
+    .btn-close-sustitucion {
+        position: absolute;
+        top: 15px;
+        right: 20px;
+        background: rgba(255,255,255,0.2);
+        border: none;
+        color: white;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        cursor: pointer;
+    }
+
+    .modal-body-sustitucion {
+        padding: 30px;
+    }
+
+    .info-actual {
+        background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+        border: 1px solid #2196f3;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 25px;
+    }
+
+    .upload-area {
+        border: 2px dashed #007bff;
+        border-radius: 10px;
+        padding: 30px;
+        text-align: center;
+        background: #f8f9fa;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+        .upload-area:hover {
+            border-color: #0056b3;
+            background: #e3f2fd;
+            transform: translateY(-2px);
+        }
+
+    .file-input-hidden {
+        display: none;
+    }
 </style>
 
 <!-- ESTILOS RESPONSIVOS MOVIDOS AL FINAL DEL SCRIPT -->
@@ -535,7 +642,15 @@
                     <div class="image-container @(evidencia.IsFromSharePoint ? "sharepoint-image" : "")"
                          data-evidencia-id="@evidencia.EvidenciaID"
                          data-is-sharepoint="@evidencia.IsFromSharePoint.ToString().ToLower()">
-
+                        <!-- NUEVO: Overlay para botones -->
+                        <div class="image-overlay">
+                            <button class="btn btn-light btn-sm overlay-btn" onclick="ampliarImagen(this)" title="Ver imagen completa">
+                                <i class="fas fa-search-plus"></i> Ampliar
+                            </button>
+                            <button class="btn btn-warning btn-sm overlay-btn" onclick="abrirModalSustitucion(@evidencia.EvidenciaID, '@evidencia.FileName', @evidencia.IsFromSharePoint.ToString().ToLower())" title="Sustituir archivo">
+                                <i class="fas fa-exchange-alt"></i> Sustituir
+                            </button>
+                        </div>
                         <!-- Overlay para imágenes de SharePoint -->
                         @if (evidencia.IsFromSharePoint)
                         {
@@ -744,6 +859,55 @@
     <!-- Navegación por galería -->
     <div class="image-gallery-nav" id="galleryNav">
         <!-- Se llenarán dinámicamente -->
+    </div>
+</div>
+<!-- MODAL DE SUSTITUCIÓN -->
+<div id="modalSustitucion" class="modal-sustitucion">
+    <div class="modal-content-sustitucion">
+        <!-- HEADER -->
+        <div class="modal-header-sustitucion">
+            <h5><i class="fas fa-exchange-alt me-2"></i>Sustituir Imagen/PDF</h5>
+            <button type="button" class="btn-close-sustitucion" onclick="cerrarModalSustitucion()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- BODY -->
+        <div class="modal-body-sustitucion">
+            <!-- INFO ACTUAL -->
+            <div class="info-actual">
+                <h6><i class="fas fa-info-circle me-2"></i>Archivo Actual</h6>
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <img id="imagenActualPreview" style="max-width: 150px; max-height: 120px; border-radius: 8px;" src="" alt="Imagen actual">
+                    </div>
+                    <div class="col-md-8">
+                        <div><strong>Nombre:</strong> <span id="nombreActual">-</span></div>
+                        <div><strong>Origen:</strong> <span id="origenActual">-</span></div>
+                        <div><strong>Fecha:</strong> <span id="fechaActual">-</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUBIDA -->
+            <div id="uploadArea" class="upload-area" onclick="document.getElementById('archivoInput').click()">
+                <i class="fas fa-cloud-upload-alt" style="font-size: 3rem; color: #007bff; margin-bottom: 15px;"></i>
+                <h5>Seleccionar nuevo archivo</h5>
+                <p class="mb-0">JPG, PNG, GIF, PDF - Máximo 10 MB</p>
+            </div>
+
+            <input type="file" id="archivoInput" class="file-input-hidden" accept=".jpg,.jpeg,.png,.gif,.pdf">
+        </div>
+
+        <!-- FOOTER -->
+        <div style="padding: 20px 30px; border-top: 1px solid #eee; display: flex; justify-content: space-between;">
+            <button type="button" onclick="cerrarModalSustitucion()" class="btn btn-secondary">
+                Cancelar
+            </button>
+            <button type="button" id="btnSustituir" onclick="alert('Próximamente: handler del servidor')" disabled class="btn btn-success">
+                <i class="fas fa-exchange-alt me-1"></i> Sustituir Archivo
+            </button>
+        </div>
     </div>
 </div>
 
@@ -1127,4 +1291,42 @@ document.addEventListener('DOMContentLoaded', function() {
 
     console.log('Página cargada - Sistema de imágenes iniciado');
 });
+    // Función temporal para ampliar imagen
+    function ampliarImagen(boton) {
+        const container = boton.closest('.image-container');
+        const imagen = container.querySelector('.lazy-image');
+        if (imagen) {
+            imagen.click(); // Usar el sistema existente de zoom
+        }
+    }
+
+        // FUNCIONES DEL MODAL
+    let datosActuales = {};
+
+    function abrirModalSustitucion(evidenciaId, nombreArchivo, esSharePoint) {
+        console.log('Abriendo modal:', {evidenciaId, nombreArchivo, esSharePoint});
+
+        datosActuales = {evidenciaId, nombreArchivo, esSharePoint};
+
+        // Actualizar info actual
+        document.getElementById('nombreActual').textContent = nombreArchivo;
+        document.getElementById('origenActual').textContent = esSharePoint ? 'SharePoint' : 'Base de Datos';
+        document.getElementById('fechaActual').textContent = 'Cargando...';
+
+        // Mostrar modal
+        document.getElementById('modalSustitucion').style.display = 'block';
+    }
+
+    function cerrarModalSustitucion() {
+        document.getElementById('modalSustitucion').style.display = 'none';
+        document.getElementById('btnSustituir').disabled = true;
+    }
+
+    // Detectar archivo seleccionado
+    document.getElementById('archivoInput').addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+            document.getElementById('btnSustituir').disabled = false;
+            console.log('Archivo seleccionado:', e.target.files[0].name);
+        }
+    });
 </script>

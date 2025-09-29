@@ -165,12 +165,6 @@ C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\R
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\staticwebassets.build.json
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\staticwebassets.development.json
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\staticwebassets.build.endpoints.json
-C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\staticwebassets\msbuild.ProyectoRH2025.Microsoft.AspNetCore.StaticWebAssets.props
-C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\staticwebassets\msbuild.ProyectoRH2025.Microsoft.AspNetCore.StaticWebAssetEndpoints.props
-C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\staticwebassets\msbuild.build.ProyectoRH2025.props
-C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\staticwebassets\msbuild.buildMultiTargeting.ProyectoRH2025.props
-C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\staticwebassets\msbuild.buildTransitive.ProyectoRH2025.props
-C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\staticwebassets.pack.json
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\staticwebassets.upToDateCheck.txt
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\Proyecto.ED745D68.Up2Date
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\ProyectoRH2025.dll
@@ -197,3 +191,8 @@ C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\bin\R
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\bin\Release\net8.0\Microsoft.Kiota.Serialization.Multipart.dll
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\bin\Release\net8.0\Microsoft.Kiota.Serialization.Text.dll
 C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\bin\Release\net8.0\Std.UriTemplate.dll
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\rpswa.dswa.cache.json
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\rjimswa.dswa.cache.json
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\rjsmrazor.dswa.cache.json
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\rjsmcshtml.dswa.cache.json
+C:\Users\jdelarosa\Desktop\Desarrollos Local\ProyectoRH2025\ProyectoRH2025\obj\Release\net8.0\staticwebassets.build.json.cache

@@ -38,10 +38,11 @@
                     <span class="badge bg-info">@((item.TipoAsignacion == 1 ? "Comboy" : "Individual"))</span>
                 </td>
                 <td>
-                    <button class="btn btn-success btn-sm me-1" data-bs-toggle="modal" data-bs-target="#modalHuellas" data-id="@item.id" data-accion="entregar">
+                    <!-- CAMBIO IMPORTANTE: Quité data-bs-toggle y data-bs-target -->
+                    <button class="btn btn-success btn-sm me-1 btn-accion-modal" data-id="@item.id" data-accion="entregar">
                         <i class="fas fa-hand-holding"></i> Entregar
                     </button>
-                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalHuellas" data-id="@item.id" data-accion="recibir">
+                    <button class="btn btn-primary btn-sm btn-accion-modal" data-id="@item.id" data-accion="recibir">
                         <i class="fas fa-undo-alt"></i> Recibir
                     </button>
                 </td>
@@ -50,6 +51,7 @@
     </tbody>
 </table>
 
+<!-- El resto del código del modal permanece igual -->
 <div class="modal fade" id="modalHuellas" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content shadow">
@@ -61,21 +63,20 @@
             </div>
             <div class="modal-body">
                 <p><strong>Acción:</strong> <span id="accionTitulo" class="text-capitalize"></span></p>
-                <p id="indicadorLectura"></p>
+                <p id="indicadorLectura">Presiona "Confirmar" para iniciar la validación</p>
                 <div id="resultadoValidacion" class="alert alert-info">Esperando validación...</div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                     <i class="fas fa-times-circle"></i> Cancelar
                 </button>
-                <button class="btn btn-success" id="btnConfirmarAccion" data-id="">
+                <button type="button" class="btn btn-success" id="btnConfirmarAccion" data-id="">
                     <i class="fas fa-check-circle"></i> Confirmar
                 </button>
             </div>
         </div>
     </div>
 </div>
-
 
 <div class="modal fade" id="modalRegistrarHuella" tabindex="-1" aria-labelledby="modalRegistroLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
@@ -97,15 +98,11 @@
                             <div class="mano-container">
                                 <img src="/img/mano_seleccion_dedos.png" class="img-fluid mano-imagen" alt="Mano Izquierda">
                                 <div class="dedos-botones-overlay">
-                                    <button type="button" class="btn btn-dedo" data-mano="izquierda" data-dedo="Pulgar Izquierdo" style="top: 35%; left: 15%; /* <- TU AJUSTA ESTO */"></button>
-
-                                    <button type="button" class="btn btn-dedo" data-mano="izquierda" data-dedo="Índice Izquierdo" style="top: 12%; left: 30%; /* <- TU AJUSTA ESTO */"></button>
-
-                                    <button type="button" class="btn btn-dedo" data-mano="izquierda" data-dedo="Medio Izquierdo" style="top: 8%;  left: 48%; /* <- TU AJUSTA ESTO */"></button>
-
-                                    <button type="button" class="btn btn-dedo" data-mano="izquierda" data-dedo="Anular Izquierdo" style="top: 12%; left: 65%; /* <- TU AJUSTA ESTO */"></button>
-
-                                    <button type="button" class="btn btn-dedo" data-mano="izquierda" data-dedo="Meñique Izquierdo" style="top: 25%; left: 78%; /* <- TU AJUSTA ESTO */"></button>
+                                    <button type="button" class="btn btn-dedo" data-mano="izquierda" data-dedo="Pulgar Izquierdo" style="top: 35%; left: 15%;"></button>
+                                    <button type="button" class="btn btn-dedo" data-mano="izquierda" data-dedo="Índice Izquierdo" style="top: 12%; left: 30%;"></button>
+                                    <button type="button" class="btn btn-dedo" data-mano="izquierda" data-dedo="Medio Izquierdo" style="top: 8%;  left: 48%;"></button>
+                                    <button type="button" class="btn btn-dedo" data-mano="izquierda" data-dedo="Anular Izquierdo" style="top: 12%; left: 65%;"></button>
+                                    <button type="button" class="btn btn-dedo" data-mano="izquierda" data-dedo="Meñique Izquierdo" style="top: 25%; left: 78%;"></button>
                                 </div>
                             </div>
                         </div>
@@ -115,15 +112,11 @@
                             <div class="mano-container">
                                 <img src="/img/mano_derecha.png" class="img-fluid mano-imagen" alt="Mano Derecha">
                                 <div class="dedos-botones-overlay">
-                                    <button type="button" class="btn btn-dedo" data-mano="derecha" data-dedo="Meñique Derecho" style="top: 25%; left: 15%; /* <- TU AJUSTA ESTO */"></button>
-
-                                    <button type="button" class="btn btn-dedo" data-mano="derecha" data-dedo="Anular Derecho" style="top: 12%; left: 30%; /* <- TU AJUSTA ESTO */"></button>
-
-                                    <button type="button" class="btn btn-dedo" data-mano="derecha" data-dedo="Medio Derecho" style="top: 8%;  left: 48%; /* <- TU AJUSTA ESTO */"></button>
-
-                                    <button type="button" class="btn btn-dedo" data-mano="derecha" data-dedo="Índice Derecho" style="top: 12%; left: 65%; /* <- TU AJUSTA ESTO */"></button>
-
-                                    <button type="button" class="btn btn-dedo" data-mano="derecha" data-dedo="Pulgar Derecho" style="top: 35%; left: 78%; /* <- TU AJUSTA ESTO */"></button>
+                                    <button type="button" class="btn btn-dedo" data-mano="derecha" data-dedo="Meñique Derecho" style="top: 25%; left: 15%;"></button>
+                                    <button type="button" class="btn btn-dedo" data-mano="derecha" data-dedo="Anular Derecho" style="top: 12%; left: 30%;"></button>
+                                    <button type="button" class="btn btn-dedo" data-mano="derecha" data-dedo="Medio Derecho" style="top: 8%;  left: 48%;"></button>
+                                    <button type="button" class="btn btn-dedo" data-mano="derecha" data-dedo="Índice Derecho" style="top: 12%; left: 65%;"></button>
+                                    <button type="button" class="btn btn-dedo" data-mano="derecha" data-dedo="Pulgar Derecho" style="top: 35%; left: 78%;"></button>
                                 </div>
                             </div>
                         </div>
@@ -142,14 +135,12 @@
     </div>
 </div>
 
-
 @section Scripts {
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
     <style>
-        /* Estilos para DataTable (existentes) */
         div.dataTables_filter input {
             padding-left: 2rem;
             background-image: url('https://cdn-icons-png.flaticon.com/512/622/622669.png');
@@ -163,15 +154,14 @@
             border-radius: 0.375rem;
         }
 
-        /* Estilos para la selección de dedos con botones */
         .mano-container {
             position: relative;
             display: inline-block;
-            max-width: 300px; /* Ajusta según el tamaño de tus imágenes */
+            max-width: 300px;
             margin: 0 auto;
-            border: 1px solid #eee; /* Borde para depuración */
-            min-height: 200px; /* Altura mínima para depuración */
-            background-color: #f8f9fa; /* Fondo para depuración */
+            border: 1px solid #eee;
+            min-height: 200px;
+            background-color: #f8f9fa;
         }
 
         .mano-imagen {
@@ -190,10 +180,10 @@
 
         .btn-dedo {
             position: absolute;
-            width: 35px; /* Aumenté un poco el tamaño para mejor clic */
-            height: 35px; /* Aumenté un poco el tamaño para mejor clic */
+            width: 35px;
+            height: 35px;
             border-radius: 50%;
-            background-color: rgba(0, 123, 255, 0.4); /* Un poco más opaco */
+            background-color: rgba(0, 123, 255, 0.4);
             border: 2px solid rgba(0, 123, 255, 0.8);
             padding: 0;
             transform: translate(-50%, -50%);
@@ -212,7 +202,7 @@
             }
 
             .btn-dedo.seleccionado {
-                background-color: rgba(220, 53, 69, 0.7); /* Rojo Bootstrap 'danger' */
+                background-color: rgba(220, 53, 69, 0.7);
                 border-color: #b02a37;
                 box-shadow: 0 0 12px 3px rgba(220, 53, 69, 0.6);
                 transform: translate(-50%, -50%) scale(1.15);
@@ -223,12 +213,38 @@
                 font-size: 0.8rem;
             }
 
+        /* FIX CRÍTICO: Modal sin backdrop oscuro */
+        .modal {
+            z-index: 1050 !important;
+            background-color: rgba(0,0,0,0.1) !important; /* Fondo muy sutil */
+        }
+
+        .modal-dialog {
+            z-index: 1060 !important;
+            margin: 50px auto !important;
+        }
+
+        /* Contenido del modal bien visible */
+        .modal-content {
+            z-index: 1070 !important;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3) !important;
+            border: 2px solid #007bff !important;
+        }
+
+        /* Asegurar que no haya backdrop problemático */
+        .modal-backdrop {
+            display: none !important;
+        }
     </style>
 
     <script>
-        let dedoActualmenteSeleccionado = null;
+        var dedoActualmenteSeleccionado = null;
 
         $(document).ready(function () {
+            console.log("Página cargada, inicializando...");
+
+            // Inicializar DataTable
             $('#tablaSellos').DataTable({
                 language: {
                     search: "",
@@ -242,24 +258,84 @@
                 pageLength: 10
             });
 
-            $('#modalHuellas').on('show.bs.modal', function (event) {
-                const button = $(event.relatedTarget);
-                const idSeleccionado = button.data('id');
-                const accion = button.data('accion');
+            // CAMBIO IMPORTANTE: Manejador manual para abrir modal SIN BACKDROP
+            $('.btn-accion-modal').on('click', function(e) {
+                e.preventDefault();
+                console.log("Botón clickeado");
 
+                var idSeleccionado = $(this).data('id');
+                var accion = $(this).data('accion');
+
+                console.log("ID:", idSeleccionado, "Acción:", accion);
+
+                // Configurar el modal
                 $('#accionTitulo').text(accion.charAt(0).toUpperCase() + accion.slice(1));
                 $('#btnConfirmarAccion').data('id', idSeleccionado);
                 $('#resultadoValidacion').removeClass().addClass('alert alert-info').text('Esperando validación...');
-                $('#indicadorLectura').text('');
+                $('#indicadorLectura').text('Presiona "Confirmar" para iniciar la validación');
+
+                // Limpiar cualquier backdrop previo
+                $('.modal-backdrop').remove();
+
+                // Abrir modal manualmente SIN backdrop oscuro
+                console.log("Abriendo modal...");
+                var modalElement = document.getElementById('modalHuellas');
+
+                // Método directo sin Bootstrap y SIN backdrop
+                modalElement.style.display = 'block';
+                modalElement.classList.add('show');
+                modalElement.setAttribute('aria-hidden', 'false');
+                modalElement.setAttribute('aria-modal', 'true');
+                modalElement.setAttribute('role', 'dialog');
+
+                // NO agregamos modal-open al body para evitar el oscurecimiento
+                // document.body.classList.add('modal-open');
+
+                // NO creamos backdrop - modal sin fondo oscuro
+                console.log("Modal abierto sin backdrop oscuro");
             });
 
-             $('#btnConfirmarAccion').on('click', async function () {
-                const id = $(this).data('id');
-                const requestToken = $('#requestVerificationToken').val();
+            // Función para cerrar el modal correctamente
+            $(document).on('click', '[data-bs-dismiss="modal"], .btn-close', function() {
+                console.log("Cerrando modal...");
+                var modalElement = document.getElementById('modalHuellas');
+
+                if (modalElement) {
+                    modalElement.style.display = 'none';
+                    modalElement.classList.remove('show');
+                    modalElement.setAttribute('aria-hidden', 'true');
+                    modalElement.removeAttribute('aria-modal');
+                    modalElement.removeAttribute('role');
+
+                    // Remover cualquier backdrop que pueda existir
+                    var allBackdrops = document.querySelectorAll('.modal-backdrop');
+                    allBackdrops.forEach(function(backdrop) {
+                        backdrop.remove();
+                    });
+
+                    // Asegurar que el body no tenga clases de modal
+                    document.body.classList.remove('modal-open');
+
+                    console.log("Modal cerrado correctamente");
+                }
+            });
+
+            // Cerrar modal con Escape
+            $(document).on('keydown', function(e) {
+                if (e.key === 'Escape' || e.keyCode === 27) {
+                    if ($('#modalHuellas').hasClass('show')) {
+                        console.log("Cerrando modal con Escape");
+                        $('[data-bs-dismiss="modal"]').first().click();
+                    }
+                }
+            });
+            $('#btnConfirmarAccion').on('click', async function () {
+                var id = $(this).data('id');
+                var requestToken = $('#requestVerificationToken').val();
 
                 $('#indicadorLectura').html('Coloque la huella del <strong>OPERADOR</strong>.');
                 $('#resultadoValidacion').text('Leyendo huella del operador...');
-                const huellaOperador = await capturarHuella();
+                var huellaOperador = await capturarHuella();
                 if (!huellaOperador) {
                     $('#resultadoValidacion').removeClass().addClass('alert alert-danger').text('Error al leer huella del operador.');
                     return;
@@ -267,14 +343,14 @@
 
                 $('#indicadorLectura').html('Coloque la huella del <strong>COORDINADOR</strong>.');
                 $('#resultadoValidacion').text('Leyendo huella del coordinador...');
-                const huellaCoordinador = await capturarHuella();
+                var huellaCoordinador = await capturarHuella();
                 if (!huellaCoordinador) {
                     $('#resultadoValidacion').removeClass().addClass('alert alert-danger').text('Error al leer huella del coordinador.');
                     return;
                 }
                 $('#resultadoValidacion').text('Validando huellas...');
 
-                fetch(`?handler=ActualizarEstado`, {
+                fetch('?handler=ActualizarEstado', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -286,11 +362,11 @@
                         huellaCoordinador: huellaCoordinador
                     })
                 })
-                .then(res => res.json())
-                .then(data => {
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
                     if (data.success) {
                         $('#resultadoValidacion').removeClass().addClass('alert alert-success').text('Huellas válidas. Estado actualizado.');
-                        setTimeout(() => location.reload(), 1500);
+                        setTimeout(function() { location.reload(); }, 1500);
                     } else if (data.registrar) {
                         $('#modalHuellas').modal('hide');
                         $('#modalRegistrarHuella').data('persona', data.registrar);
@@ -300,73 +376,56 @@
                         $('#resultadoValidacion').removeClass().addClass('alert alert-danger').text(data.error || 'Las huellas no coinciden.');
                     }
                 })
-                .catch(() => {
+                .catch(function() {
                     $('#resultadoValidacion').removeClass().addClass('alert alert-danger').text('Error en la validación del servidor.');
                 });
             });
 
-            const botonesDedo = $('.btn-dedo');
-            const infoDedoSeleccionadoDiv = $('#dedoSeleccionadoInfo');
-            const nombreDedoSpan = $('#nombreDedoSeleccionado');
-
-            botonesDedo.on('click', function() {
-                const botonClickeado = $(this);
-                const nombreDedo = botonClickeado.data('dedo');
-                const mano = botonClickeado.data('mano');
+            // Manejo de selección de dedos
+            $('.btn-dedo').on('click', function() {
+                var botonClickeado = $(this);
+                var nombreDedo = botonClickeado.data('dedo');
 
                 if (botonClickeado.hasClass('seleccionado')) {
-                    // Si se hace clic en el mismo botón, no hacer nada o permitir deselección
-                    // Para deseleccionar, descomenta las siguientes líneas:
-                    // botonClickeado.removeClass('seleccionado');
-                    // dedoActualmenteSeleccionado = null;
-                    // infoDedoSeleccionadoDiv.hide();
-                    // nombreDedoSpan.text('');
-                    // console.log('Dedo deseleccionado');
                     return;
                 }
 
-                botonesDedo.removeClass('seleccionado');
+                $('.btn-dedo').removeClass('seleccionado');
                 botonClickeado.addClass('seleccionado');
                 dedoActualmenteSeleccionado = nombreDedo;
 
-                nombreDedoSpan.text(dedoActualmenteSeleccionado);
-                infoDedoSeleccionadoDiv.show();
+                $('#nombreDedoSeleccionado').text(dedoActualmenteSeleccionado);
+                $('#dedoSeleccionadoInfo').show();
 
-                console.log('Botón clickeado: Mano', mano, '| Dedo:', dedoActualmenteSeleccionado, '| Estilos aplicados (aprox): top:', botonClickeado.css('top'), 'left:', botonClickeado.css('left'));
+                console.log('Dedo seleccionado:', dedoActualmenteSeleccionado);
             });
 
+            // Modal de registro de huella
             $('#modalRegistrarHuella').on('show.bs.modal', function (event) {
-                const persona = $(this).data('persona');
+                var persona = $(this).data('persona');
                 $('#tipoPersonaHuella').text(persona ? persona.toUpperCase() : 'N/A');
 
-                botonesDedo.removeClass('seleccionado');
+                $('.btn-dedo').removeClass('seleccionado');
                 dedoActualmenteSeleccionado = null;
-                infoDedoSeleccionadoDiv.hide();
-                nombreDedoSpan.text('');
+                $('#dedoSeleccionadoInfo').hide();
+                $('#nombreDedoSeleccionado').text('');
             });
 
             $('#btnRegistrarHuella').on('click', async function () {
-                const persona = $('#modalRegistrarHuella').data('persona');
-                const idPersona = $('#modalRegistrarHuella').data('idpersona');
-                const requestToken = $('#requestVerificationToken').val();
+                var persona = $('#modalRegistrarHuella').data('persona');
+                var idPersona = $('#modalRegistrarHuella').data('idpersona');
+                var requestToken = $('#requestVerificationToken').val();
 
                 if (!dedoActualmenteSeleccionado) {
                     alert("Por favor selecciona un dedo antes de registrar.");
                     return;
                 }
 
-                const huella = await capturarHuella();
+                var huella = await capturarHuella();
                 if (!huella) {
                     alert("Error al capturar la huella. Asegúrate que el dispositivo está conectado y la huella fue leída.");
                     return;
                 }
-
-                console.log("Enviando para registro:", {
-                    huella: huella,
-                    dedo: dedoActualmenteSeleccionado,
-                    idEmpleado: persona === 'operador' ? idPersona : null,
-                    idUsuario: persona === 'coordinador' ? idPersona : null
-                });
 
                 fetch('/api/Huellas/Guardar', {
                     method: 'POST',
@@ -381,50 +440,49 @@
                         idUsuario: persona === 'coordinador' ? idPersona : null
                     })
                 })
-                .then(async res => {
+                .then(async function(res) {
                     if (!res.ok) {
-                        const errorData = await res.json().catch(() => ({ error: "Error desconocido del servidor." }));
-                        throw new Error(errorData.error || `Error del servidor: ${res.status}`);
+                        var errorData = await res.json().catch(function() {
+                            return { error: "Error desconocido del servidor." };
+                        });
+                        throw new Error(errorData.error || "Error del servidor: " + res.status);
                     }
                     return res.json();
                 })
-                .then(data => {
+                .then(function(data) {
                     if (data.success) {
                         alert("Huella registrada correctamente.");
                         $('#modalRegistrarHuella').modal('hide');
                     } else {
-                        alert(data.error || "Error al registrar huella (respuesta del servidor).");
+                        alert(data.error || "Error al registrar huella.");
                     }
                 })
-                .catch((error) => {
-                    console.error("Error en fetch /api/Huellas/Guardar:", error);
-                    alert(`Error al enviar la huella al servidor: ${error.message}`);
+                .catch(function(error) {
+                    console.error("Error en registro:", error);
+                    alert("Error al enviar la huella al servidor: " + error.message);
                 });
             });
         });
 
         async function capturarHuella() {
             try {
-                const requestToken = $('#requestVerificationToken').val();
-                const response = await fetch("?handler=LeerHuella", {
+                var requestToken = $('#requestVerificationToken').val();
+                var response = await fetch("?handler=LeerHuella", {
                     method: "POST",
                     headers: {
                         "RequestVerificationToken": requestToken
                     }
                 });
                 if (!response.ok) {
-                    const errorData = await response.json().catch(() => null);
+                    var errorData = await response.json().catch(function() { return null; });
                     console.error("Error en LeerHuella:", response.status, errorData);
-                    let errorMessage = `Error ${response.status} al leer la huella.`;
-                    if (errorData && errorData.error) errorMessage = errorData.error;
-                    else if (errorData && errorData.message) errorMessage = errorData.message;
                     return null;
                 }
-                const data = await response.json();
+                var data = await response.json();
                 if (data.success && data.template) {
                     return data.template;
                 } else {
-                    console.error("LeerHuella no tuvo éxito o no devolvió template:", data.error);
+                    console.error("LeerHuella no tuvo éxito:", data.error);
                     return null;
                 }
             } catch (error) {
