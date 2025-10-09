@@ -1,4 +1,4 @@
-﻿// Services/SharePointTestService.cs - VERSIÓN COMPLETA CON NUEVOS MÉTODOS
+﻿// Services/SharePointTestService.cs - VERSIÓN COMPLETA CON MÉTODOS DE SUSTITUCIÓN
 using Azure.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.Graph;
@@ -200,7 +200,6 @@ namespace ProyectoRH2025.Services
             return files;
         }
 
-        // NUEVO MÉTODO: Obtener TODOS los elementos sin límite
         public async Task<List<SharePointFileInfo>> GetAllFolderContentsAsync(string folderPath = "")
         {
             var allFiles = new List<SharePointFileInfo>();
@@ -248,7 +247,6 @@ namespace ProyectoRH2025.Services
             return allFiles;
         }
 
-        // NUEVO MÉTODO: Buscar una carpeta específica por nombre
         public async Task<SharePointFileInfo?> GetFolderByNameAsync(string folderPath, string folderName)
         {
             try
@@ -287,7 +285,6 @@ namespace ProyectoRH2025.Services
             }
         }
 
-        // NUEVO MÉTODO: Buscar carpetas por patrón
         public async Task<List<SharePointFileInfo>> SearchFoldersAsync(string folderPath, string searchPattern)
         {
             var matchingFolders = new List<SharePointFileInfo>();
@@ -316,7 +313,6 @@ namespace ProyectoRH2025.Services
             return matchingFolders;
         }
 
-        // MÉTODO AUXILIAR: Buscar carpeta específica usando Graph API con PAGINACIÓN
         private async Task<SharePointFileInfo?> SearchSpecificFolderAsync(string siteId, string driveId, string folderPath, string folderName)
         {
             try
@@ -330,7 +326,6 @@ namespace ProyectoRH2025.Services
                 var encodedPath = Uri.EscapeDataString(folderPath);
                 var encodedFolderName = Uri.EscapeDataString(folderName);
 
-                // PRIMERO: Intentar búsqueda directa con filtro (rápida)
                 var filterUrl = $"https://graph.microsoft.com/v1.0/sites/{siteId}/drives/{driveId}/root:/{encodedPath}:/children?$filter=name eq '{encodedFolderName}' and folder ne null";
                 var filterResponse = await httpClient.GetAsync(filterUrl);
 
@@ -347,7 +342,6 @@ namespace ProyectoRH2025.Services
                     }
                 }
 
-                // SEGUNDO: Si el filtro no funciona, usar paginación completa
                 _logger.LogInformation($"🔍 Filtro directo no encontró '{folderName}', usando paginación completa...");
 
                 var baseUrl = $"https://graph.microsoft.com/v1.0/sites/{siteId}/drives/{driveId}/root:/{encodedPath}:/children?$top=999";
@@ -368,7 +362,6 @@ namespace ProyectoRH2025.Services
 
                         if (result.TryGetProperty("value", out var items))
                         {
-                            // Buscar la carpeta específica en esta página
                             foreach (var item in items.EnumerateArray())
                             {
                                 var itemName = item.TryGetProperty("name", out var nameEl) ? nameEl.GetString() : "";
@@ -382,7 +375,6 @@ namespace ProyectoRH2025.Services
                             }
                         }
 
-                        // Buscar siguiente página
                         nextLink = null;
                         if (result.TryGetProperty("@odata.nextLink", out var nextLinkEl))
                         {
@@ -394,7 +386,6 @@ namespace ProyectoRH2025.Services
                         break;
                     }
 
-                    // Límite de seguridad para evitar loops infinitos
                     if (pageCount > 20)
                     {
                         _logger.LogWarning($"⚠️ Deteniendo búsqueda después de {pageCount} páginas");
@@ -412,7 +403,6 @@ namespace ProyectoRH2025.Services
             }
         }
 
-        // MÉTODO AUXILIAR: Parsear elemento de SharePoint
         private SharePointFileInfo ParseSharePointItem(JsonElement item)
         {
             var name = item.TryGetProperty("name", out var nameEl) ? nameEl.GetString() : "Sin nombre";
@@ -445,7 +435,6 @@ namespace ProyectoRH2025.Services
             };
         }
 
-        // MÉTODO AUXILIAR: Obtener TODOS los contenidos con paginación
         private async Task<List<SharePointFileInfo>> GetAllRealFolderContentsAsync(string siteId, string driveId, string folderPath)
         {
             var allFiles = new List<SharePointFileInfo>();
@@ -533,7 +522,6 @@ namespace ProyectoRH2025.Services
         {
             try
             {
-                // ✅ CORRECCIÓN: No depender de _graphClient, usar directamente HTTP client
                 var credential = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
                 var token = await credential.GetTokenAsync(new TokenRequestContext(new[] { "https://graph.microsoft.com/.default" }));
 
@@ -578,6 +566,7 @@ namespace ProyectoRH2025.Services
                 return "";
             }
         }
+
         private async Task<List<SharePointFileInfo>> GetRealFolderContentsAsync(string siteId, string driveId, string folderPath)
         {
             var files = new List<SharePointFileInfo>();
@@ -764,17 +753,16 @@ namespace ProyectoRH2025.Services
                 return false;
             }
         }
+
         public async Task<byte[]> GetFileBytesAsync(string carpeta, string fileName)
         {
             try
             {
                 _logger.LogInformation("🔍 Buscando archivo: {FileName} en carpeta: {Carpeta}", fileName, carpeta);
 
-                // ✅ CORRECCIÓN: Asegurar que _graphClient esté inicializado
                 if (_graphClient == null)
                 {
-                    var credential = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
-                    _graphClient = new GraphServiceClient(credential);
+                    var credential = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret); _graphClient = new GraphServiceClient(credential);
                 }
 
                 var siteId = await GetSiteIdAsync();
@@ -800,7 +788,6 @@ namespace ProyectoRH2025.Services
 
                 _logger.LogInformation("🔍 Buscando en ruta: {SearchPath}", searchPath);
 
-                // Buscar archivo recursivamente en todas las subcarpetas
                 var foundFile = await SearchFileRecursivelyAsync(siteId, documentDrive.Id, searchPath, fileName);
 
                 if (foundFile != null)
@@ -818,6 +805,7 @@ namespace ProyectoRH2025.Services
                 return null;
             }
         }
+
         private async Task<SharePointFileResult> SearchFileRecursivelyAsync(string siteId, string driveId, string folderPath, string targetFileName)
         {
             try
@@ -858,7 +846,6 @@ namespace ProyectoRH2025.Services
 
                 if (!isFolder)
                 {
-                    // Buscar archivos que coincidan con el patrón
                     if (FileMatchesPattern(itemName, targetFileName))
                     {
                         return new SharePointFileResult
@@ -870,7 +857,6 @@ namespace ProyectoRH2025.Services
                 }
                 else
                 {
-                    // Buscar recursivamente en subcarpetas
                     var subfolderPath = $"{currentPath}/{itemName}";
                     var foundInSubfolder = await SearchInFolderAsync(httpClient, siteId, driveId, subfolderPath, targetFileName);
                     if (foundInSubfolder != null)
@@ -885,17 +871,16 @@ namespace ProyectoRH2025.Services
 
         private bool FileMatchesPattern(string fileName, string targetPattern)
         {
-            // Buscar patrones flexibles
             var patterns = new[]
             {
-        targetPattern,                              // POD_14077
-        $"{targetPattern}.jpg",                     // POD_14077.jpg
-        $"{targetPattern}.jpeg",                    // POD_14077.jpeg
-        $"{targetPattern}.png",                     // POD_14077.png
-        $"{targetPattern}_1",                       // POD_14077_1
-        $"{targetPattern}_1.jpg",                   // POD_14077_1.jpg
-        targetPattern.Replace("POD_", "POD"),       // POD14077
-    };
+                targetPattern,
+                $"{targetPattern}.jpg",
+                $"{targetPattern}.jpeg",
+                $"{targetPattern}.png",
+                $"{targetPattern}_1",
+                $"{targetPattern}_1.jpg",
+                targetPattern.Replace("POD_", "POD"),
+            };
 
             return patterns.Any(pattern =>
                 fileName.StartsWith(pattern, StringComparison.OrdinalIgnoreCase) ||
@@ -923,13 +908,6 @@ namespace ProyectoRH2025.Services
             return null;
         }
 
-        // Clase auxiliar
-        public class SharePointFileResult
-        {
-            public string FullPath { get; set; }
-            public string FileName { get; set; }
-        }
-
         public async Task<string> GetSiteInfoAsync()
         {
             try
@@ -940,6 +918,294 @@ namespace ProyectoRH2025.Services
             {
                 return $"Error: {ex.Message}";
             }
+        }
+
+        // ========================================================================
+        // NUEVOS MÉTODOS PARA SUBIR, REEMPLAZAR Y ELIMINAR ARCHIVOS
+        // ========================================================================
+
+        public async Task<bool> UploadFileAsync(string folderPath, string fileName, byte[] fileContent)
+        {
+            try
+            {
+                _logger.LogInformation("📤 UPLOAD - Subiendo: {File} a {Folder} ({Size} KB)",
+                    fileName, folderPath, fileContent.Length / 1024);
+
+                if (_graphClient == null)
+                {
+                    var credential = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
+                    _graphClient = new GraphServiceClient(credential);
+                }
+
+                var siteId = await GetSiteIdAsync();
+                if (string.IsNullOrEmpty(siteId))
+                {
+                    _logger.LogError("❌ No se pudo obtener Site ID");
+                    return false;
+                }
+
+                var drives = await _graphClient.Sites[siteId].Drives.GetAsync();
+                var documentDrive = drives?.Value?.FirstOrDefault(d =>
+                    d.Name?.Contains("Documents", StringComparison.OrdinalIgnoreCase) == true ||
+                    d.Name?.Contains("Documentos", StringComparison.OrdinalIgnoreCase) == true);
+
+                if (documentDrive == null)
+                {
+                    _logger.LogError("❌ No se encontró la biblioteca de documentos");
+                    return false;
+                }
+
+                var basePath = _config.LiquidacionesFolder ?? "POD AKNA/POD AKNA 2025/POD QUIOSCO";
+                var fullPath = string.IsNullOrEmpty(folderPath) ? basePath : $"{basePath}/{folderPath}";
+
+                _logger.LogInformation("📂 Ruta completa: {FullPath}/{FileName}", fullPath, fileName);
+
+                await EnsureFolderExistsAsync(siteId, documentDrive.Id, fullPath);
+
+                var encodedPath = Uri.EscapeDataString($"{fullPath}/{fileName}");
+                var uploadUrl = $"https://graph.microsoft.com/v1.0/sites/{siteId}/drives/{documentDrive.Id}/root:/{encodedPath}:/content";
+
+                var credential2 = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
+                var token = await credential2.GetTokenAsync(new TokenRequestContext(new[] { "https://graph.microsoft.com/.default" }));
+
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Token);
+
+                var content = new ByteArrayContent(fileContent);
+                content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
+
+                var response = await httpClient.PutAsync(uploadUrl, content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("✅ Archivo subido exitosamente: {File}", fileName);
+                    return true;
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("❌ Error subiendo archivo. Status: {Status}, Error: {Error}",
+                        response.StatusCode, errorContent);
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Excepción subiendo archivo {File} a {Folder}", fileName, folderPath);
+                return false;
+            }
+        }
+
+        public async Task<bool> ReplaceFileAsync(string folderPath, string fileName, byte[] newContent)
+        {
+            try
+            {
+                _logger.LogInformation("🔄 REPLACE - Reemplazando: {File} en {Folder} ({Size} KB)",
+                    fileName, folderPath, newContent.Length / 1024);
+
+                var exists = await FileExistsAsync(folderPath, fileName);
+
+                if (!exists)
+                {
+                    _logger.LogWarning("⚠️ Archivo no existe, creando uno nuevo");
+                    return await UploadFileAsync(folderPath, fileName, newContent);
+                }
+
+                var result = await UploadFileAsync(folderPath, fileName, newContent);
+
+                if (result)
+                {
+                    _logger.LogInformation("✅ Archivo reemplazado exitosamente: {File}", fileName);
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error reemplazando archivo {File}", fileName);
+                return false;
+            }
+        }
+
+        public async Task<bool> DeleteFileAsync(string folderPath, string fileName)
+        {
+            try
+            {
+                _logger.LogInformation("🗑️ DELETE - Eliminando: {File} de {Folder}", fileName, folderPath);
+
+                if (_graphClient == null)
+                {
+                    var credential = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
+                    _graphClient = new GraphServiceClient(credential);
+                }
+
+                var siteId = await GetSiteIdAsync();
+                if (string.IsNullOrEmpty(siteId))
+                {
+                    _logger.LogError("❌ No se pudo obtener Site ID");
+                    return false;
+                }
+
+                var drives = await _graphClient.Sites[siteId].Drives.GetAsync();
+                var documentDrive = drives?.Value?.FirstOrDefault(d =>
+                    d.Name?.Contains("Documents", StringComparison.OrdinalIgnoreCase) == true ||
+                    d.Name?.Contains("Documentos", StringComparison.OrdinalIgnoreCase) == true);
+
+                if (documentDrive == null)
+                {
+                    _logger.LogError("❌ No se encontró la biblioteca de documentos");
+                    return false;
+                }
+
+                var basePath = _config.LiquidacionesFolder ?? "POD AKNA/POD AKNA 2025/POD QUIOSCO";
+                var fullPath = string.IsNullOrEmpty(folderPath) ? basePath : $"{basePath}/{folderPath}";
+
+                var encodedPath = Uri.EscapeDataString($"{fullPath}/{fileName}");
+                var deleteUrl = $"https://graph.microsoft.com/v1.0/sites/{siteId}/drives/{documentDrive.Id}/root:/{encodedPath}";
+
+                var credential2 = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
+                var token = await credential2.GetTokenAsync(new TokenRequestContext(new[] { "https://graph.microsoft.com/.default" }));
+
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Token);
+
+                var response = await httpClient.DeleteAsync(deleteUrl);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("✅ Archivo eliminado: {File}", fileName);
+                    return true;
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ No se pudo eliminar. Status: {Status}", response.StatusCode);
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error eliminando archivo {File}", fileName);
+                return false;
+            }
+        }
+
+        private async Task<bool> FileExistsAsync(string folderPath, string fileName)
+        {
+            try
+            {
+                if (_graphClient == null)
+                {
+                    var credential = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
+                    _graphClient = new GraphServiceClient(credential);
+                }
+
+                var siteId = await GetSiteIdAsync();
+                if (string.IsNullOrEmpty(siteId)) return false;
+
+                var drives = await _graphClient.Sites[siteId].Drives.GetAsync();
+                var documentDrive = drives?.Value?.FirstOrDefault(d =>
+                    d.Name?.Contains("Documents", StringComparison.OrdinalIgnoreCase) == true ||
+                    d.Name?.Contains("Documentos", StringComparison.OrdinalIgnoreCase) == true);
+
+                if (documentDrive == null) return false;
+
+                var basePath = _config.LiquidacionesFolder ?? "POD AKNA/POD AKNA 2025/POD QUIOSCO";
+                var fullPath = string.IsNullOrEmpty(folderPath) ? basePath : $"{basePath}/{folderPath}";
+
+                var encodedPath = Uri.EscapeDataString($"{fullPath}/{fileName}");
+                var fileUrl = $"https://graph.microsoft.com/v1.0/sites/{siteId}/drives/{documentDrive.Id}/root:/{encodedPath}";
+
+                var credential2 = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
+                var token = await credential2.GetTokenAsync(new TokenRequestContext(new[] { "https://graph.microsoft.com/.default" }));
+
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Token);
+
+                var response = await httpClient.GetAsync(fileUrl);
+
+                return response.IsSuccessStatusCode;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private async Task EnsureFolderExistsAsync(string siteId, string driveId, string folderPath)
+        {
+            try
+            {
+                _logger.LogInformation("📁 Verificando carpetas: {Path}", folderPath);
+
+                var folders = folderPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                var currentPath = "";
+
+                var credential = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
+                var token = await credential.GetTokenAsync(new TokenRequestContext(new[] { "https://graph.microsoft.com/.default" }));
+
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Token);
+
+                foreach (var folderName in folders)
+                {
+                    var parentPath = string.IsNullOrEmpty(currentPath) ? "" : currentPath;
+                    currentPath = string.IsNullOrEmpty(currentPath) ? folderName : $"{currentPath}/{folderName}";
+
+                    var encodedPath = Uri.EscapeDataString(currentPath);
+                    var checkUrl = $"https://graph.microsoft.com/v1.0/sites/{siteId}/drives/{driveId}/root:/{encodedPath}";
+
+                    var checkResponse = await httpClient.GetAsync(checkUrl);
+
+                    if (!checkResponse.IsSuccessStatusCode)
+                    {
+                        _logger.LogInformation("📁 Creando carpeta: {Folder}", folderName);
+
+                        var createUrl = string.IsNullOrEmpty(parentPath)
+                            ? $"https://graph.microsoft.com/v1.0/sites/{siteId}/drives/{driveId}/root/children"
+                            : $"https://graph.microsoft.com/v1.0/sites/{siteId}/drives/{driveId}/root:/{Uri.EscapeDataString(parentPath)}:/children";
+
+                        var createBody = new
+                        {
+                            name = folderName,
+                            folder = new { },
+                            AdditionalData = new Dictionary<string, object>
+                            {
+                                { "@microsoft.graph.conflictBehavior", "rename" }
+                            }
+                        };
+
+                        var jsonContent = JsonSerializer.Serialize(createBody);
+                        var content = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
+
+                        var createResponse = await httpClient.PostAsync(createUrl, content);
+
+                        if (!createResponse.IsSuccessStatusCode)
+                        {
+                            var errorContent = await createResponse.Content.ReadAsStringAsync();
+                            _logger.LogWarning("⚠️ No se pudo crear carpeta {Folder}: {Error}", folderName, errorContent);
+                        }
+                        else
+                        {
+                            _logger.LogInformation("✅ Carpeta creada: {Folder}", folderName);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error asegurando carpetas");
+                throw;
+            }
+        }
+
+        public class SharePointFileResult
+        {
+            public string FullPath { get; set; }
+            public string FileName { get; set; }
         }
     }
 }

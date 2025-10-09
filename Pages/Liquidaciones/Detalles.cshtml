@@ -530,6 +530,7 @@
 <!-- ESTILOS RESPONSIVOS MOVIDOS AL FINAL DEL SCRIPT -->
 
 <div class="details-container">
+    @Html.AntiForgeryToken()
     <div class="details-header">
         <h2>
             @ViewData["Title"]: Folio @Model.LiquidacionDetalle?.Folio
@@ -647,7 +648,9 @@
                             <button class="btn btn-light btn-sm overlay-btn" onclick="ampliarImagen(this)" title="Ver imagen completa">
                                 <i class="fas fa-search-plus"></i> Ampliar
                             </button>
-                            <button class="btn btn-warning btn-sm overlay-btn" onclick="abrirModalSustitucion(@evidencia.EvidenciaID, '@evidencia.FileName', @evidencia.IsFromSharePoint.ToString().ToLower())" title="Sustituir archivo">
+                            <button class="btn btn-warning btn-sm overlay-btn"
+                                    onclick="abrirModalSustitucion(@evidencia.EvidenciaID, '@evidencia.FileName', @evidencia.IsFromSharePoint.ToString().ToLower(), '@evidencia.CarpetaSharePoint', @Model.LiquidacionDetalle.POD_ID)"
+                                    title="Sustituir archivo">
                                 <i class="fas fa-exchange-alt"></i> Sustituir
                             </button>
                         </div>
@@ -1300,33 +1303,167 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-        // FUNCIONES DEL MODAL
+    // ========================================================================
+    // SISTEMA DE SUSTITUCIÓN DE IMÁGENES
+    // ========================================================================
+
     let datosActuales = {};
+    let archivoSeleccionado = null;
 
-    function abrirModalSustitucion(evidenciaId, nombreArchivo, esSharePoint) {
-        console.log('Abriendo modal:', {evidenciaId, nombreArchivo, esSharePoint});
+        function abrirModalSustitucion(evidenciaId, nombreArchivo, esSharePoint, carpetaSharePoint, podId) 
+        {
+        console.log('Abriendo modal:', {evidenciaId, nombreArchivo, esSharePoint, carpetaSharePoint, podId});
 
-        datosActuales = {evidenciaId, nombreArchivo, esSharePoint};
+        datosActuales = {
+            evidenciaId: evidenciaId,
+            nombreArchivo: nombreArchivo,
+            esSharePoint: esSharePoint,
+            carpetaSharePoint: carpetaSharePoint || '',
+            podId: podId || 0
+        };
 
-        // Actualizar info actual
         document.getElementById('nombreActual').textContent = nombreArchivo;
         document.getElementById('origenActual').textContent = esSharePoint ? 'SharePoint' : 'Base de Datos';
-        document.getElementById('fechaActual').textContent = 'Cargando...';
 
-        // Mostrar modal
+        const imgPreview = document.getElementById('imagenActualPreview');
+        if (esSharePoint && carpetaSharePoint) {
+            const encodedCarpeta = encodeURIComponent(carpetaSharePoint);
+            const encodedFileName = encodeURIComponent(nombreArchivo);
+            imgPreview.src = `?handler=SharePointImage&carpeta=${encodedCarpeta}&fileName=${encodedFileName}`;
+        } else if (evidenciaId > 0) {
+            imgPreview.src = `?handler=Image&evidenciaId=${evidenciaId}`;
+        }
+
+        document.getElementById('archivoInput').value = '';
+        document.getElementById('btnSustituir').disabled = true;
+        archivoSeleccionado = null;
+
+        document.getElementById('uploadArea').innerHTML = `
+            <i class="fas fa-cloud-upload-alt" style="font-size: 3rem; color: #007bff; margin-bottom: 15px;"></i>
+            <h5>Seleccionar nuevo archivo</h5>
+            <p class="mb-0">JPG, PNG, GIF, PDF - Máximo 10 MB</p>
+        `;
+
         document.getElementById('modalSustitucion').style.display = 'block';
     }
-
     function cerrarModalSustitucion() {
         document.getElementById('modalSustitucion').style.display = 'none';
         document.getElementById('btnSustituir').disabled = true;
+        archivoSeleccionado = null;
     }
 
-    // Detectar archivo seleccionado
     document.getElementById('archivoInput').addEventListener('change', function(e) {
         if (e.target.files.length > 0) {
+            archivoSeleccionado = e.target.files[0];
+
+            if (archivoSeleccionado.size > 10 * 1024 * 1024) {
+                alert('❌ El archivo no debe superar 10 MB');
+                e.target.value = '';
+                archivoSeleccionado = null;
+                return;
+            }
+
+            const extensionesPermitidas = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'bmp'];
+            const extension = archivoSeleccionado.name.split('.').pop().toLowerCase();
+
+            if (!extensionesPermitidas.includes(extension)) {
+                alert('❌ Tipo de archivo no permitido. Use: JPG, PNG, GIF, PDF o BMP');
+                e.target.value = '';
+                archivoSeleccionado = null;
+                return;
+            }
+
             document.getElementById('btnSustituir').disabled = false;
-            console.log('Archivo seleccionado:', e.target.files[0].name);
+
+            document.getElementById('uploadArea').innerHTML = `
+                <i class="fas fa-check-circle" style="font-size: 3rem; color: #28a745; margin-bottom: 15px;"></i>
+                <h5>${archivoSeleccionado.name}</h5>
+                <p class="mb-0">${(archivoSeleccionado.size / 1024).toFixed(2)} KB</p>
+            `;
+
+            console.log('Archivo seleccionado:', archivoSeleccionado.name);
         }
     });
+
+        async function sustituirArchivo() {
+        if (!archivoSeleccionado) {
+            alert('❌ Debe seleccionar un archivo primero');
+            return;
+        }
+
+        if (!confirm(`¿Está seguro de sustituir "${datosActuales.nombreArchivo}"?\n\nEsta acción no se puede deshacer.`)) {
+            return;
+        }
+
+        const btnSustituir = document.getElementById('btnSustituir');
+        btnSustituir.disabled = true;
+        btnSustituir.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Sustituyendo...';
+
+        try {
+            const formData = new FormData();
+            formData.append('evidenciaId', datosActuales.evidenciaId);
+            formData.append('archivoNuevo', archivoSeleccionado);
+            formData.append('esSharePoint', datosActuales.esSharePoint);
+
+            // ⬇️ NUEVOS PARÁMETROS PARA SHAREPOINT
+            if (datosActuales.carpetaSharePoint) {
+                formData.append('carpetaSharePoint', datosActuales.carpetaSharePoint);
+            }
+            if (datosActuales.nombreArchivo) {
+                formData.append('nombreArchivoActual', datosActuales.nombreArchivo);
+            }
+            if (datosActuales.podId) {
+                formData.append('podIdFk', datosActuales.podId);
+            }
+
+            const tokenElem = document.querySelector('input[name="__RequestVerificationToken"]');
+            if (!tokenElem) {
+                alert('No se encontró el token antiforgery. Por favor, recarga la página.');
+                btnSustituir.disabled = false;
+                btnSustituir.innerHTML = '<i class="fas fa-exchange-alt me-1"></i> Sustituir Archivo';
+                return;
+            }
+
+            console.log('Enviando petición con datos:', {
+                evidenciaId: datosActuales.evidenciaId,
+                carpetaSharePoint: datosActuales.carpetaSharePoint,
+                podId: datosActuales.podId
+            });
+
+            const response = await fetch('?handler=SustituirImagen', {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': tokenElem.value
+                },
+                body: formData
+            });
+
+            console.log('Respuesta recibida:', response.status);
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert(`✅ ${result.resultado.mensaje}\n\nBD: ${result.resultado.actualizadaEnBD ? 'Sí' : 'No'}\nSharePoint: ${result.resultado.actualizadaEnSharePoint ? 'Sí' : 'No'}`);
+                cerrarModalSustitucion();
+                location.reload();
+            } else {
+                alert(`❌ Error: ${result.error}`);
+                btnSustituir.disabled = false;
+                btnSustituir.innerHTML = '<i class="fas fa-exchange-alt me-1"></i> Sustituir Archivo';
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert(`❌ Error de conexión: ${error.message}`);
+            btnSustituir.disabled = false;
+            btnSustituir.innerHTML = '<i class="fas fa-exchange-alt me-1"></i> Sustituir Archivo';
+        }
+    }
+
+    document.getElementById('btnSustituir').onclick = sustituirArchivo;
+
+    document.getElementById('modalSustitucion').onclick = function(event) {
+        if (event.target === this) {
+            cerrarModalSustitucion();
+        }
+    };
 </script>
