@@ -895,11 +895,12 @@
             <!-- SUBIDA -->
             <div id="uploadArea" class="upload-area" onclick="document.getElementById('archivoInput').click()">
                 <i class="fas fa-cloud-upload-alt" style="font-size: 3rem; color: #007bff; margin-bottom: 15px;"></i>
-                <h5>Seleccionar nuevo archivo</h5>
-                <p class="mb-0">JPG, PNG, GIF, PDF - Máximo 10 MB</p>
+                <h5>Seleccionar nueva imagen</h5>
+                <p class="mb-0">📷 Solo imágenes: JPG, PNG, GIF, BMP</p>
+                <p class="mb-0"><small class="text-muted">Máximo 10 MB</small></p>
             </div>
 
-            <input type="file" id="archivoInput" class="file-input-hidden" accept=".jpg,.jpeg,.png,.gif,.pdf">
+            <input type="file" id="archivoInput" class="file-input-hidden" accept=".jpg,.jpeg,.png">
         </div>
 
         <!-- FOOTER -->
@@ -1356,6 +1357,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.target.files.length > 0) {
             archivoSeleccionado = e.target.files[0];
 
+            // ✅ VALIDAR TAMAÑO
             if (archivoSeleccionado.size > 10 * 1024 * 1024) {
                 alert('❌ El archivo no debe superar 10 MB');
                 e.target.value = '';
@@ -1363,11 +1365,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            const extensionesPermitidas = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'bmp'];
+            // ✅ VALIDAR TIPO DE ARCHIVO - SOLO IMÁGENES
+            const extensionesPermitidas = ['jpg', 'jpeg', 'png', 'gif', 'bmp'];
             const extension = archivoSeleccionado.name.split('.').pop().toLowerCase();
 
             if (!extensionesPermitidas.includes(extension)) {
-                alert('❌ Tipo de archivo no permitido. Use: JPG, PNG, GIF, PDF o BMP');
+                alert('❌ Solo se permiten imágenes.\n\nFormatos permitidos: JPG, PNG, GIF, BMP\n\n⚠️ No se permiten archivos PDF');
                 e.target.value = '';
                 archivoSeleccionado = null;
                 return;
@@ -1384,7 +1387,6 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Archivo seleccionado:', archivoSeleccionado.name);
         }
     });
-
         async function sustituirArchivo() {
         if (!archivoSeleccionado) {
             alert('❌ Debe seleccionar un archivo primero');

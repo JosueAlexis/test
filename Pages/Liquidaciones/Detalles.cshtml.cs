@@ -680,13 +680,17 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                     return new JsonResult(new { success = false, error = "El archivo no debe superar 10 MB" });
                 }
 
-                // VALIDACIÓN: Extensión
-                var extensionesPermitidas = new[] { ".jpg", ".jpeg", ".png", ".gif", ".pdf", ".bmp" };
+                // ✅ VALIDACIÓN: Extensión - SOLO IMÁGENES
+                var extensionesPermitidas = new[] { ".jpg", ".jpeg", ".png" };
                 var extension = Path.GetExtension(archivoNuevo.FileName).ToLowerInvariant();
 
                 if (!extensionesPermitidas.Contains(extension))
                 {
-                    return new JsonResult(new { success = false, error = "Tipo de archivo no permitido" });
+                    return new JsonResult(new
+                    {
+                        success = false,
+                        error = "⚠️ Solo se permiten archivos de imagen.\n\nFormatos permitidos: JPG, PNG\n\n❌ No se permiten archivos PDF"
+                    });
                 }
 
                 // Leer contenido

@@ -11,10 +11,6 @@ namespace ProyectoRH2025.Data
             : base(options)
         {
         }
-
-        // Tus DbSets existentes
-        // Asegúrate que los tipos aquí (Empleado, ImagenEmpleado, etc.) estén correctamente definidos
-        // en los namespaces referenciados por tus directivas 'using' (Models o MODELS).
         public DbSet<Empleado> Empleados { get; set; }
         public DbSet<ImagenEmpleado> ImagenesEmpleados { get; set; }
         public DbSet<PuestoEmpleado> PuestoEmpleados { get; set; } = null!;

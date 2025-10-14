@@ -400,22 +400,38 @@
                                                     var totalEvidencias = item.Evidencias.Count;
                                                     var evidenciasConImagen = item.Evidencias.Count(e => e.HasImageData);
 
-                                                    <span class="badge bg-info text-dark">
-                                                        <i class="fas fa-file"></i> @totalEvidencias evidencias
-                                                    </span>
-                                                    @if (evidenciasConImagen > 0)
+                                                    @* ✅ CASO ESPECIAL: Placeholder de SharePoint *@
+                                                    @if (totalEvidencias == 1 &&
+                                                                                            item.Evidencias.First().EvidenciaId == -1 &&
+                                                                                            item.Evidencias.First().FileName == "SHAREPOINT_PLACEHOLDER")
                                                     {
+                                                        <span class="badge bg-primary text-white">
+                                                            <i class="fab fa-microsoft"></i> Verificar en Detalles
+                                                        </span>
                                                         <br>
-                                                        <small class="text-success">
-                                                            <i class="fas fa-camera"></i> @evidenciasConImagen con imagen
+                                                        <small class="text-info">
+                                                            <i class="fas fa-cloud"></i> Posibles evidencias en SharePoint
                                                         </small>
                                                     }
-                                                    @if (totalEvidencias > evidenciasConImagen)
+                                                    else
                                                     {
-                                                        <br>
-                                                        <small class="text-muted">
-                                                            <i class="fas fa-file-alt"></i> @(totalEvidencias - evidenciasConImagen) sin imagen
-                                                        </small>
+                                                        <span class="badge bg-info text-dark">
+                                                            <i class="fas fa-file"></i> @totalEvidencias evidencias
+                                                        </span>
+                                                        @if (evidenciasConImagen > 0)
+                                                        {
+                                                            <br>
+                                                            <small class="text-success">
+                                                                <i class="fas fa-camera"></i> @evidenciasConImagen con imagen
+                                                            </small>
+                                                        }
+                                                        @if (totalEvidencias > evidenciasConImagen)
+                                                        {
+                                                            <br>
+                                                            <small class="text-muted">
+                                                                <i class="fas fa-file-alt"></i> @(totalEvidencias - evidenciasConImagen) sin imagen
+                                                            </small>
+                                                        }
                                                     }
                                                 }
                                                 else

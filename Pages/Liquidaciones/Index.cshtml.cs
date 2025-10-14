@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+Ôªøusing Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Data.SqlClient;
 using ProyectoRH2025.Data;
@@ -25,7 +25,7 @@ namespace ProyectoRH2025.Pages.Liquidaciones
         [BindProperty(SupportsGet = true)]
         public string? SearchString { get; set; }
 
-        // NUEVO: Filtro especÌfico para Remolque
+        // NUEVO: Filtro espec√≠fico para Remolque
         [BindProperty(SupportsGet = true)]
         public string? Remolque { get; set; }
 
@@ -58,7 +58,7 @@ namespace ProyectoRH2025.Pages.Liquidaciones
         public string StatusFiltroTexto { get; set; } = "";
         public string EvidenciasFiltroTexto { get; set; } = "";
 
-        // DIAGN”STICO
+        // DIAGN√ìSTICO
         public string DiagnosticoTiempos { get; set; } = "";
 
         public async Task<IActionResult> OnGetAsync()
@@ -66,7 +66,7 @@ namespace ProyectoRH2025.Pages.Liquidaciones
             var stopwatchTotal = Stopwatch.StartNew();
             var diagnostico = new List<string>();
 
-            // ---- VERIFICACI”N DE ROL ----
+            // ---- VERIFICACI√ìN DE ROL ----
             var rolId = HttpContext.Session.GetInt32("idRol");
             var rolesITPermitidos = new[] { 5, 7, 1007 };
             var idRolLiquidacionesPermitido = 1009;
@@ -89,11 +89,11 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                 sw0.Stop();
                 diagnostico.Add($"Opciones filtros: {sw0.ElapsedMilliseconds}ms");
 
-                // STORED PROCEDURE 1: EstadÌsticas r·pidas
+                // STORED PROCEDURE 1: Estad√≠sticas r√°pidas
                 var sw1 = Stopwatch.StartNew();
                 await GetEstadisticasRapidoAsync(connectionString);
                 sw1.Stop();
-                diagnostico.Add($"EstadÌsticas: {sw1.ElapsedMilliseconds}ms");
+                diagnostico.Add($"Estad√≠sticas: {sw1.ElapsedMilliseconds}ms");
 
                 // IMPORTANTE: NO sobrescribir fechas si vienen de la URL
                 // Solo establecer fechas por defecto si NO se especificaron Y NO es "Todos los registros"
@@ -105,7 +105,7 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                     MostrandoSoloEstaSemana = false;
                 }
 
-                // DEBUGGING: Agregar informaciÛn de las fechas que se est·n usando
+                // DEBUGGING: Agregar informaci√≥n de las fechas que se est√°n usando
                 diagnostico.Add($"Fechas usadas: {FechaInicio?.ToString("yyyy-MM-dd")} a {FechaFin?.ToString("yyyy-MM-dd")}");
 
                 // Si viene TodosLosRegistros, no aplicar fechas por defecto
@@ -186,7 +186,7 @@ namespace ProyectoRH2025.Pages.Liquidaciones
             }
             else
             {
-                // Si no hay datos, usar valores por defecto din·micos
+                // Si no hay datos, usar valores por defecto din√°micos
                 TotalRegistros = 0;
                 FechaMinimaDisponible = DateTime.Today.AddDays(-30);
                 FechaMaximaDisponible = DateTime.Today;
@@ -205,13 +205,13 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                 CommandTimeout = 30  // Aumentado para consultas grandes
             };
 
-            // NUEVA L”GICA: LÌmites m·s generosos para todos los roles
-            int maxRecords = 50000; // Por defecto, lÌmite muy alto
+            // NUEVA L√ìGICA: L√≠mites m√°s generosos para todos los roles
+            int maxRecords = 50000; // Por defecto, l√≠mite muy alto
 
-            // Solo aplicar lÌmites restrictivos si NO hay filtros de fecha especÌficos
+            // Solo aplicar l√≠mites restrictivos si NO hay filtros de fecha espec√≠ficos
             if (!FechaInicio.HasValue && !FechaFin.HasValue && !TodosLosRegistros)
             {
-                // Sin filtros de fecha = consulta por defecto = lÌmite moderado
+                // Sin filtros de fecha = consulta por defecto = l√≠mite moderado
                 maxRecords = 1000;
             }
             else if (TodosLosRegistros)
@@ -222,34 +222,34 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                     TempData["Error"] = "No tiene permisos para ver todos los registros.";
                     return;
                 }
-                maxRecords = 100000; // LÌmite muy alto para "todos"
+                maxRecords = 100000; // L√≠mite muy alto para "todos"
             }
             else
             {
-                // Si hay filtros de fecha especÌficos, permitir muchos registros
-                // para que vean TODOS los del perÌodo solicitado
+                // Si hay filtros de fecha espec√≠ficos, permitir muchos registros
+                // para que vean TODOS los del per√≠odo solicitado
                 if (FechaInicio.HasValue && FechaFin.HasValue)
                 {
                     var diasDiferencia = (FechaFin.Value - FechaInicio.Value).Days;
 
-                    if (diasDiferencia <= 1)      // 1 dÌa = TODOS los registros del dÌa
-                        maxRecords = 10000;       // Muy alto para cubrir cualquier dÌa
+                    if (diasDiferencia <= 1)      // 1 d√≠a = TODOS los registros del d√≠a
+                        maxRecords = 10000;       // Muy alto para cubrir cualquier d√≠a
                     else if (diasDiferencia <= 7) // 1 semana = TODOS los de la semana  
                         maxRecords = 25000;       // Muy alto para cubrir cualquier semana
                     else if (diasDiferencia <= 31) // 1 mes = TODOS los del mes
                         maxRecords = 50000;       // Muy alto para cubrir cualquier mes
-                    else                          // M·s de 1 mes
+                    else                          // M√°s de 1 mes
                         maxRecords = 75000;       // Para rangos muy amplios
                 }
             }
 
-            // Par·metros b·sicos
+            // Par√°metros b√°sicos
             command.Parameters.Add(new SqlParameter("@SearchString", SqlDbType.NVarChar, 255)
             {
                 Value = string.IsNullOrEmpty(SearchString) ? DBNull.Value : SearchString
             });
 
-            // NUEVO: Par·metro especÌfico para Remolque
+            // NUEVO: Par√°metro espec√≠fico para Remolque
             command.Parameters.Add(new SqlParameter("@RemolqueFiltro", SqlDbType.NVarChar, 255)
             {
                 Value = string.IsNullOrEmpty(Remolque) ? DBNull.Value : Remolque
@@ -265,10 +265,10 @@ namespace ProyectoRH2025.Pages.Liquidaciones
             });
             command.Parameters.Add(new SqlParameter("@MaxRecords", SqlDbType.Int) { Value = maxRecords });
 
-            // NUEVO: Par·metro para todos los registros
+            // NUEVO: Par√°metro para todos los registros
             command.Parameters.Add(new SqlParameter("@TodosLosRegistros", SqlDbType.Bit) { Value = TodosLosRegistros });
 
-            // PAR¡METROS DE FILTROS (ajustados a tu SP actual)
+            // PAR√ÅMETROS DE FILTROS (ajustados a tu SP actual)
             command.Parameters.Add(new SqlParameter("@StatusFiltro", SqlDbType.TinyInt)
             {
                 Value = StatusFiltro.HasValue ? StatusFiltro.Value : DBNull.Value
@@ -318,20 +318,36 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                     PodRecordImageUrl = reader.IsDBNull("ImageUrl") ? null : reader.GetString("ImageUrl"),
                     Evidencias = new List<EvidenciaViewModel>()
                 };
-
                 // Agregar evidencias simplificadas (solo conteos)
                 var totalEvidencias = reader.GetInt32("TotalEvidencias");
                 var evidenciasConImagen = reader.GetInt32("EvidenciasConImagen");
 
-                // Crear evidencias "fake" solo para que la vista funcione
-                for (int i = 0; i < totalEvidencias && i < 5; i++)
+                // ‚úÖ NUEVA L√ìGICA: Si NO hay evidencias en BD, crear placeholder
+                if (totalEvidencias == 0)
                 {
+                    // Crear evidencia placeholder para SharePoint
                     liquidacion.Evidencias.Add(new EvidenciaViewModel
                     {
-                        EvidenciaId = 0,
-                        FileName = $"Evidencia {i + 1}",
-                        HasImageData = i < evidenciasConImagen
+                        EvidenciaId = -1,  // ID especial
+                        FileName = "SHAREPOINT_PLACEHOLDER",
+                        HasImageData = true
+                        // ‚ùå ELIMINAR: CaptureDate = liquidacion.FechaSalida
                     });
+                }
+                else
+                {
+                    // Crear evidencias normales de BD
+                    for (int i = 0; i < totalEvidencias && i < 5; i++)
+                    {
+                        liquidacion.Evidencias.Add(new EvidenciaViewModel
+                        {
+                            EvidenciaId = 0,
+                            FileName = i < evidenciasConImagen
+                                ? $"Evidencia BD {i + 1}"
+                                : $"Evidencia SP {i + 1}",
+                            HasImageData = true
+                        });
+                    }
                 }
 
                 liquidaciones.Add(liquidacion);
@@ -348,7 +364,7 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                 return RedirectToPage();
             }
 
-            // Redirigir a la p·gina de GenerarPDF con los IDs seleccionados
+            // Redirigir a la p√°gina de GenerarPDF con los IDs seleccionados
             var idsString = string.Join(",", selectedIds);
             return RedirectToPage("./GenerarPDF", new { ids = idsString });
         }
@@ -359,7 +375,7 @@ namespace ProyectoRH2025.Pages.Liquidaciones
             {
                 StatusFiltroTexto = StatusFiltro.Value switch
                 {
-                    0 => "En Tr·nsito",
+                    0 => "En Tr√°nsito",
                     1 => "Entregado",
                     2 => "Pendiente",
                     _ => "Desconocido"
@@ -372,7 +388,7 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                 {
                     "sin_evidencias" => "Sin evidencias",
                     "con_evidencias" => "Con evidencias",
-                    "solo_imagenes" => "Solo con im·genes",
+                    "solo_imagenes" => "Solo con im√°genes",
                     _ => EvidenciasFiltro
                 };
             }
@@ -383,10 +399,10 @@ namespace ProyectoRH2025.Pages.Liquidaciones
             if (!statusValue.HasValue) return "Desconocido";
             return statusValue.Value switch
             {
-                0 => "En Tr·nsito",
+                0 => "En Tr√°nsito",
                 1 => "Entregado",
                 2 => "Pendiente",
-                _ => $"CÛdigo: {statusValue.Value}"
+                _ => $"C√≥digo: {statusValue.Value}"
             };
         }
     }
