@@ -13,12 +13,14 @@ namespace ProyectoRH2025.Services
     {
         private readonly SharePointConfig _config;
         private readonly ILogger<SharePointTestService> _logger;
+        private readonly IHttpClientFactory _httpClientFactory;
         private GraphServiceClient? _graphClient;
 
-        public SharePointTestService(IOptions<SharePointConfig> config, ILogger<SharePointTestService> logger)
+        public SharePointTestService(IOptions<SharePointConfig> config, ILogger<SharePointTestService> logger, IHttpClientFactory httpClientFactory)
         {
             _config = config.Value;
             _logger = logger;
+            _httpClientFactory = httpClientFactory;
         }
 
         public async Task<SharePointTestResult> TestConnectionAsync()
@@ -320,7 +322,7 @@ namespace ProyectoRH2025.Services
                 var credential = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
                 var token = await credential.GetTokenAsync(new TokenRequestContext(new[] { "https://graph.microsoft.com/.default" }));
 
-                using var httpClient = new HttpClient();
+                var httpClient = _httpClientFactory.CreateClient("SharePointClient");
                 httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Token);
 
                 var encodedPath = Uri.EscapeDataString(folderPath);
@@ -444,7 +446,7 @@ namespace ProyectoRH2025.Services
                 var credential = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
                 var token = await credential.GetTokenAsync(new TokenRequestContext(new[] { "https://graph.microsoft.com/.default" }));
 
-                using var httpClient = new HttpClient();
+                var httpClient = _httpClientFactory.CreateClient("SharePointClient");
                 httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Token);
 
                 var encodedPath = Uri.EscapeDataString(folderPath);
@@ -525,7 +527,7 @@ namespace ProyectoRH2025.Services
                 var credential = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
                 var token = await credential.GetTokenAsync(new TokenRequestContext(new[] { "https://graph.microsoft.com/.default" }));
 
-                using var httpClient = new HttpClient();
+                var httpClient = _httpClientFactory.CreateClient("SharePointClient");
                 httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Token);
 
                 if (string.IsNullOrEmpty(_config.SiteUrl))
@@ -576,7 +578,7 @@ namespace ProyectoRH2025.Services
                 var credential = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
                 var token = await credential.GetTokenAsync(new TokenRequestContext(new[] { "https://graph.microsoft.com/.default" }));
 
-                using var httpClient = new HttpClient();
+                var httpClient = _httpClientFactory.CreateClient("SharePointClient");
                 httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Token);
 
                 var encodedPath = Uri.EscapeDataString(folderPath);
@@ -813,7 +815,7 @@ namespace ProyectoRH2025.Services
                 var credential = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
                 var token = await credential.GetTokenAsync(new TokenRequestContext(new[] { "https://graph.microsoft.com/.default" }));
 
-                using var httpClient = new HttpClient();
+                var httpClient = _httpClientFactory.CreateClient("SharePointClient");
                 httpClient.DefaultRequestHeaders.Authorization =
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Token);
 
@@ -892,14 +894,14 @@ namespace ProyectoRH2025.Services
             var credential = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
             var token = await credential.GetTokenAsync(new TokenRequestContext(new[] { "https://graph.microsoft.com/.default" }));
 
-            using var httpClient = new HttpClient();
+            var httpClient = _httpClientFactory.CreateClient("SharePointClient");
             httpClient.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Token);
 
             var encodedPath = Uri.EscapeDataString(filePath);
             var url = $"https://graph.microsoft.com/v1.0/sites/{siteId}/drives/{driveId}/root:/{encodedPath}:/content";
 
-            using var response = await httpClient.GetAsync(url);
+            var response = await httpClient.GetAsync(url);
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadAsByteArrayAsync();
@@ -968,7 +970,7 @@ namespace ProyectoRH2025.Services
                 var credential2 = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
                 var token = await credential2.GetTokenAsync(new TokenRequestContext(new[] { "https://graph.microsoft.com/.default" }));
 
-                using var httpClient = new HttpClient();
+                var httpClient = _httpClientFactory.CreateClient("SharePointClient");
                 httpClient.DefaultRequestHeaders.Authorization =
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Token);
 
@@ -1067,7 +1069,7 @@ namespace ProyectoRH2025.Services
                 var credential2 = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
                 var token = await credential2.GetTokenAsync(new TokenRequestContext(new[] { "https://graph.microsoft.com/.default" }));
 
-                using var httpClient = new HttpClient();
+                var httpClient = _httpClientFactory.CreateClient("SharePointClient");
                 httpClient.DefaultRequestHeaders.Authorization =
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Token);
 
@@ -1120,7 +1122,7 @@ namespace ProyectoRH2025.Services
                 var credential2 = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
                 var token = await credential2.GetTokenAsync(new TokenRequestContext(new[] { "https://graph.microsoft.com/.default" }));
 
-                using var httpClient = new HttpClient();
+                var httpClient = _httpClientFactory.CreateClient("SharePointClient");
                 httpClient.DefaultRequestHeaders.Authorization =
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Token);
 

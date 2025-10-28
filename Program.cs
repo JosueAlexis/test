@@ -4,8 +4,8 @@ using ProyectoRH2025.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ===== DIAGNÓSTICO DE CONFIGURACIÓN =====
-Console.WriteLine("=== DIAGNÓSTICO DE CONFIGURACIÓN ===");
+// ===== DIAGNï¿½STICO DE CONFIGURACIï¿½N =====
+Console.WriteLine("=== DIAGNï¿½STICO DE CONFIGURACIï¿½N ===");
 Console.WriteLine($"Environment: {builder.Environment.EnvironmentName}");
 
 // Verificar variables de entorno directamente
@@ -20,24 +20,24 @@ Console.WriteLine($"IConfiguration ConnectionString: {(!string.IsNullOrEmpty(con
 var sharePointSiteUrl = builder.Configuration["SharePoint:SiteUrl"];
 Console.WriteLine($"SharePoint SiteUrl: {(!string.IsNullOrEmpty(sharePointSiteUrl) ? "? ENCONTRADA" : "? NO ENCONTRADA")}");
 
-// ===== CONFIGURACIÓN DE SERVICIOS =====
+// ===== CONFIGURACIï¿½N DE SERVICIOS =====
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 
-// CONFIGURACIÓN DE BASE DE DATOS CON VALIDACIÓN Y FALLBACK
+// CONFIGURACIï¿½N DE BASE DE DATOS CON VALIDACIï¿½N Y FALLBACK
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 if (string.IsNullOrEmpty(connectionString))
 {
-    Console.WriteLine("? No se encontró cadena de conexión en variables de entorno");
+    Console.WriteLine("? No se encontrï¿½ cadena de conexiï¿½n en variables de entorno");
 
     // SOLO EN DESARROLLO: Usar appsettings.json como fallback
     if (builder.Environment.IsDevelopment())
     {
         Console.WriteLine("?? Entorno de desarrollo: Intentando usar appsettings.json...");
 
-        // Recargar configuración para asegurar que se lean los appsettings
+        // Recargar configuraciï¿½n para asegurar que se lean los appsettings
         builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
         builder.Configuration.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true);
 
@@ -45,24 +45,24 @@ if (string.IsNullOrEmpty(connectionString))
 
         if (!string.IsNullOrEmpty(connectionString))
         {
-            Console.WriteLine("? Usando cadena de conexión desde appsettings.json");
+            Console.WriteLine("? Usando cadena de conexiï¿½n desde appsettings.json");
         }
         else
         {
-            throw new InvalidOperationException("? No se encontró cadena de conexión ni en variables de entorno ni en appsettings.json");
+            throw new InvalidOperationException("? No se encontrï¿½ cadena de conexiï¿½n ni en variables de entorno ni en appsettings.json");
         }
     }
     else
     {
-        throw new InvalidOperationException("? ERROR: No se encontró la cadena de conexión 'DefaultConnection'. Verifica las variables de entorno en IIS.");
+        throw new InvalidOperationException("? ERROR: No se encontrï¿½ la cadena de conexiï¿½n 'DefaultConnection'. Verifica las variables de entorno en IIS.");
     }
 }
 else
 {
-    Console.WriteLine("? Usando cadena de conexión desde variables de entorno");
+    Console.WriteLine("? Usando cadena de conexiï¿½n desde variables de entorno");
 }
 
-Console.WriteLine($"? Cadena de conexión configurada. Longitud: {connectionString.Length} caracteres");
+Console.WriteLine($"? Cadena de conexiï¿½n configurada. Longitud: {connectionString.Length} caracteres");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
@@ -80,6 +80,24 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.Configure<SharePointConfig>(
     builder.Configuration.GetSection("SharePoint"));
 builder.Services.AddScoped<ISharePointTestService, SharePointTestService>();
+builder.Services.AddScoped<ISharePointBatchService, SharePointBatchService>();
+
+// HTTP CLIENT FACTORY para SharePoint (con timeout y pooling)
+builder.Services.AddHttpClient("SharePointClient", client =>
+{
+    client.Timeout = TimeSpan.FromMinutes(5); // Timeout de 5 minutos para archivos grandes
+    client.DefaultRequestHeaders.Add("User-Agent", "ProyectoRH2025-SharePoint-Client/1.0");
+})
+.ConfigureHttpMessageHandlerBuilder(builder =>
+{
+    // Configurar pool de conexiones
+    builder.PrimaryHandler = new SocketsHttpHandler
+    {
+        PooledConnectionLifetime = TimeSpan.FromMinutes(10), // Reciclar conexiones cada 10 min
+        PooledConnectionIdleTimeout = TimeSpan.FromMinutes(5),
+        MaxConnectionsPerServer = 20 // MÃ¡ximo 20 conexiones por servidor
+    };
+});
 
 // HEALTH CHECKS
 builder.Services.AddHealthChecks()
@@ -95,7 +113,7 @@ builder.Services.AddSession(options =>
 
 var app = builder.Build();
 
-// ===== CONFIGURACIÓN DEL PIPELINE =====
+// ===== CONFIGURACIï¿½N DEL PIPELINE =====
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -121,12 +139,12 @@ app.MapRazorPages();
 // HEALTH CHECK ENDPOINT
 app.MapHealthChecks("/health");
 
-// Redirección inicial
+// Redirecciï¿½n inicial
 app.MapGet("/", context =>
 {
     context.Response.Redirect("/Index");
     return Task.CompletedTask;
 });
 
-Console.WriteLine("? Aplicación iniciada correctamente");
+Console.WriteLine("? Aplicaciï¿½n iniciada correctamente");
 app.Run();
