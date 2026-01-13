@@ -1,43 +1,46 @@
-using Microsoft.EntityFrameworkCore;
+Ôªøusing Microsoft.EntityFrameworkCore;
 using ProyectoRH2025.Data;
 using ProyectoRH2025.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ===== DIAGN”STICO DE CONFIGURACI”N =====
-Console.WriteLine("=== DIAGN”STICO DE CONFIGURACI”N ===");
+// ===== DIAGN√ìSTICO DE CONFIGURACI√ìN =====
+Console.WriteLine("=== DIAGN√ìSTICO DE CONFIGURACI√ìN ===");
 Console.WriteLine($"Environment: {builder.Environment.EnvironmentName}");
 
 // Verificar variables de entorno directamente
 var envConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
-Console.WriteLine($"Variable de entorno ConnectionStrings__DefaultConnection: {(!string.IsNullOrEmpty(envConnectionString) ? "? ENCONTRADA" : "? NO ENCONTRADA")}");
+Console.WriteLine($"Variable de entorno ConnectionStrings__DefaultConnection: {(!string.IsNullOrEmpty(envConnectionString) ? "‚úÖ ENCONTRADA" : "‚ùå NO ENCONTRADA")}");
 
 // Verificar en IConfiguration
 var configConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-Console.WriteLine($"IConfiguration ConnectionString: {(!string.IsNullOrEmpty(configConnectionString) ? "? ENCONTRADA" : "? NO ENCONTRADA")}");
+Console.WriteLine($"IConfiguration ConnectionString: {(!string.IsNullOrEmpty(configConnectionString) ? "‚úÖ ENCONTRADA" : "‚ùå NO ENCONTRADA")}");
 
 // Verificar SharePoint config
 var sharePointSiteUrl = builder.Configuration["SharePoint:SiteUrl"];
-Console.WriteLine($"SharePoint SiteUrl: {(!string.IsNullOrEmpty(sharePointSiteUrl) ? "? ENCONTRADA" : "? NO ENCONTRADA")}");
+Console.WriteLine($"SharePoint SiteUrl: {(!string.IsNullOrEmpty(sharePointSiteUrl) ? "‚úÖ ENCONTRADA" : "‚ùå NO ENCONTRADA")}");
 
-// ===== CONFIGURACI”N DE SERVICIOS =====
+// ===== CONFIGURACI√ìN DE SERVICIOS =====
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 
-// CONFIGURACI”N DE BASE DE DATOS CON VALIDACI”N Y FALLBACK
+// üî• AGREGAR ESTA L√çNEA PARA SOPORTAR CONTROLADORES API
+builder.Services.AddControllers();
+
+// CONFIGURACI√ìN DE BASE DE DATOS CON VALIDACI√ìN Y FALLBACK
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 if (string.IsNullOrEmpty(connectionString))
 {
-    Console.WriteLine("? No se encontrÛ cadena de conexiÛn en variables de entorno");
+    Console.WriteLine("‚ö† No se encontr√≥ cadena de conexi√≥n en variables de entorno");
 
     // SOLO EN DESARROLLO: Usar appsettings.json como fallback
     if (builder.Environment.IsDevelopment())
     {
-        Console.WriteLine("?? Entorno de desarrollo: Intentando usar appsettings.json...");
+        Console.WriteLine("üîß Entorno de desarrollo: Intentando usar appsettings.json...");
 
-        // Recargar configuraciÛn para asegurar que se lean los appsettings
+        // Recargar configuraci√≥n para asegurar que se lean los appsettings
         builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
         builder.Configuration.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true);
 
@@ -45,24 +48,24 @@ if (string.IsNullOrEmpty(connectionString))
 
         if (!string.IsNullOrEmpty(connectionString))
         {
-            Console.WriteLine("? Usando cadena de conexiÛn desde appsettings.json");
+            Console.WriteLine("‚úÖ Usando cadena de conexi√≥n desde appsettings.json");
         }
         else
         {
-            throw new InvalidOperationException("? No se encontrÛ cadena de conexiÛn ni en variables de entorno ni en appsettings.json");
+            throw new InvalidOperationException("‚ùå No se encontr√≥ cadena de conexi√≥n ni en variables de entorno ni en appsettings.json");
         }
     }
     else
     {
-        throw new InvalidOperationException("? ERROR: No se encontrÛ la cadena de conexiÛn 'DefaultConnection'. Verifica las variables de entorno en IIS.");
+        throw new InvalidOperationException("‚ùå ERROR: No se encontr√≥ la cadena de conexi√≥n 'DefaultConnection'. Verifica las variables de entorno en IIS.");
     }
 }
 else
 {
-    Console.WriteLine("? Usando cadena de conexiÛn desde variables de entorno");
+    Console.WriteLine("‚úÖ Usando cadena de conexi√≥n desde variables de entorno");
 }
 
-Console.WriteLine($"? Cadena de conexiÛn configurada. Longitud: {connectionString.Length} caracteres");
+Console.WriteLine($"üìä Cadena de conexi√≥n configurada. Longitud: {connectionString.Length} caracteres");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
@@ -95,7 +98,7 @@ builder.Services.AddSession(options =>
 
 var app = builder.Build();
 
-// ===== CONFIGURACI”N DEL PIPELINE =====
+// ===== CONFIGURACI√ìN DEL PIPELINE =====
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -118,15 +121,18 @@ app.UseAuthorization();
 
 app.MapRazorPages();
 
+// üî• AGREGAR ESTA L√çNEA PARA MAPEAR CONTROLADORES API
+app.MapControllers();
+
 // HEALTH CHECK ENDPOINT
 app.MapHealthChecks("/health");
 
-// RedirecciÛn inicial
+// Redirecci√≥n inicial
 app.MapGet("/", context =>
 {
     context.Response.Redirect("/Index");
     return Task.CompletedTask;
 });
 
-Console.WriteLine("? AplicaciÛn iniciada correctamente");
+Console.WriteLine("‚úÖ Aplicaci√≥n iniciada correctamente");
 app.Run();

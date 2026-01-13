@@ -1,0 +1,59 @@
+{
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:7040",
+      "sslPort": 44373
+    }
+  },
+  "profiles": {
+    "http": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "http://localhost:5030",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ConnectionStrings__DefaultConnection": "Data Source=NVLSTILFS01\\SQLSERVER,1433;Initial Catalog=EmpleadosDB;User ID=uss_prueba;Password=8fEhBK!C;Encrypt=Optional;TrustServerCertificate=True;",
+        "SharePoint__SiteUrl": "https://akna2024.sharepoint.com/sites/PublicServices",
+        "SharePoint__ClientId": "888436ff-4b77-4e89-a8be-f844fb190e2b",
+        "SharePoint__ClientSecret": "wTe8Q~vb4YMJS7P6YRYg_DR6JZkQkDOlTQL5-aYz",
+        "SharePoint__TenantId": "36e83ccb-3581-4890-b345-577250b8a1d4",
+        "SharePoint__DocumentLibrary": "Documentos",
+        "SharePoint__LiquidacionesFolder": "POD AKNA/POD AKNA 2025/POD QUIOSCO"
+      }
+    },
+    "https": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "https://localhost:7187;http://localhost:5030",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ConnectionStrings__DefaultConnection": "Data Source=NVLSTILFS01\\SQLSERVER,1433;Initial Catalog=EmpleadosDB;User ID=uss_prueba;Password=8fEhBK!C;Encrypt=Optional;TrustServerCertificate=True;",
+        "SharePoint__SiteUrl": "https://akna2024.sharepoint.com/sites/PublicServices",
+        "SharePoint__ClientId": "888436ff-4b77-4e89-a8be-f844fb190e2b",
+        "SharePoint__ClientSecret": "wTe8Q~vb4YMJS7P6YRYg_DR6JZkQkDOlTQL5-aYz",
+        "SharePoint__TenantId": "36e83ccb-3581-4890-b345-577250b8a1d4",
+        "SharePoint__DocumentLibrary": "Documentos",
+        "SharePoint__LiquidacionesFolder": "POD AKNA/POD AKNA 2025/POD QUIOSCO"
+      }
+    },
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ConnectionStrings__DefaultConnection": "Data Source=NVLSTILFS01\\SQLSERVER,1433;Initial Catalog=EmpleadosDB;User ID=uss_prueba;Password=8fEhBK!C;Encrypt=Optional;TrustServerCertificate=True;",
+        "SharePoint__SiteUrl": "https://akna2024.sharepoint.com/sites/PublicServices",
+        "SharePoint__ClientId": "888436ff-4b77-4e89-a8be-f844fb190e2b",
+        "SharePoint__ClientSecret": "wTe8Q~vb4YMJS7P6YRYg_DR6JZkQkDOlTQL5-aYz",
+        "SharePoint__TenantId": "36e83ccb-3581-4890-b345-577250b8a1d4",
+        "SharePoint__DocumentLibrary": "Documentos",
+        "SharePoint__LiquidacionesFolder": "POD AKNA/POD AKNA 2025/POD QUIOSCO"
+      }
+    }
+  }
+}

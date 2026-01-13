@@ -1,0 +1,706 @@
+﻿@page
+@model ProyectoRH2025.Pages.Cartelera.AdminModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Administración - Cartelera Digital";
+}
+
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        --shadow-sm: 0 2px 8px rgba(0,0,0,0.1);
+        --shadow-md: 0 4px 16px rgba(0,0,0,0.15);
+        --shadow-lg: 0 8px 32px rgba(0,0,0,0.2);
+    }
+
+    body {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+    }
+
+    .admin-header {
+        background: var(--primary-gradient);
+        color: white;
+        padding: 2rem;
+        border-radius: 16px;
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-lg);
+    }
+
+        .admin-header h1 {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+    .stats-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: var(--shadow-sm);
+        text-align: center;
+        transition: transform 0.2s;
+    }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+        }
+
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .stat-label {
+        color: #666;
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+    }
+
+    .config-section {
+        background: white;
+        padding: 2rem;
+        border-radius: 16px;
+        box-shadow: var(--shadow-md);
+        margin-bottom: 2rem;
+    }
+
+        .config-section h2 {
+            margin-top: 0;
+            color: #333;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 3px solid #667eea;
+        }
+
+    .config-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 0.5rem;
+        }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.3s;
+    }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-primary {
+        background: var(--primary-gradient);
+        color: white;
+        box-shadow: var(--shadow-sm);
+    }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+    .btn-success {
+        background: var(--success-gradient);
+        color: white;
+    }
+
+    .btn-danger {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+    }
+
+    .upload-section {
+        background: white;
+        padding: 2rem;
+        border-radius: 16px;
+        box-shadow: var(--shadow-md);
+        margin-bottom: 2rem;
+    }
+
+    .upload-zone {
+        border: 3px dashed #667eea;
+        border-radius: 12px;
+        padding: 3rem;
+        text-align: center;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+        .upload-zone:hover {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-color: #764ba2;
+        }
+
+        .upload-zone.dragover {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+            border-color: #764ba2;
+            transform: scale(1.02);
+        }
+
+    .upload-icon {
+        font-size: 3rem;
+        color: #667eea;
+        margin-bottom: 1rem;
+    }
+
+    .content-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .content-card {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.3s;
+        position: relative;
+    }
+
+        .content-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+        }
+
+    .content-preview {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        background: #f0f0f0;
+    }
+
+    .content-info {
+        padding: 1rem;
+    }
+
+    .content-name {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.5rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .content-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85rem;
+        color: #666;
+        margin-bottom: 0.5rem;
+    }
+
+    .content-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+
+    .status-badge {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        backdrop-filter: blur(10px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .status-active {
+        background: rgba(76, 175, 80, 0.9);
+        color: white;
+    }
+
+    .status-inactive {
+        background: rgba(158, 158, 158, 0.9);
+        color: white;
+    }
+
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 1000;
+        backdrop-filter: blur(5px);
+    }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+    .modal-content {
+        background: white;
+        padding: 2rem;
+        border-radius: 16px;
+        max-width: 600px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: var(--shadow-lg);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #333;
+        }
+
+    .close-btn {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #999;
+        padding: 0;
+        width: 2rem;
+        height: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: all 0.3s;
+    }
+
+        .close-btn:hover {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+    .floating-tv-link {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        padding: 1rem 2rem;
+        background: var(--success-gradient);
+        color: white;
+        border-radius: 50px;
+        text-decoration: none;
+        font-weight: 600;
+        box-shadow: var(--shadow-lg);
+        transition: all 0.3s;
+        z-index: 999;
+    }
+
+        .floating-tv-link:hover {
+            transform: scale(1.05);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+        }
+
+    .loading {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 1s ease-in-out infinite;
+    }
+
+    @@keyframes spin {
+        to
+
+    {
+        transform: rotate(360deg);
+    }
+
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #999;
+    }
+
+    .empty-state-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+</style>
+
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="admin-header">
+        <h1>📺 Cartelera Digital - Administración</h1>
+        <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">Gestiona el contenido que se muestra en las pantallas</p>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="stats-container">
+        <div class="stat-card">
+            <div class="stat-value" id="totalItems">@Model.TotalItems</div>
+            <div class="stat-label">Total de Items</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="activeItems">@Model.ActiveItems</div>
+            <div class="stat-label">Items Activos</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">@Model.DefaultDuration s</div>
+            <div class="stat-label">Duración por Defecto</div>
+        </div>
+    </div>
+
+    <!-- Configuración Global -->
+    <div class="config-section">
+        <h2>⚙️ Configuración Global</h2>
+        <form method="post" asp-page-handler="UpdateConfig">
+            <div class="config-grid">
+                <div class="form-group">
+                    <label for="defaultDuration">Duración por Defecto (segundos)</label>
+                    <input type="number" class="form-control" id="defaultDuration" name="defaultDuration"
+                           value="@Model.DefaultDuration" min="1" max="300" required>
+                </div>
+                <div class="form-group">
+                    <label for="transitionType">Tipo de Transición</label>
+                    <select class="form-control" id="transitionType" name="transitionType">
+                        <option value="fade" selected="@(Model.TransitionType == "fade")">Fade</option>
+                        <option value="slide" selected="@(Model.TransitionType == "slide")">Slide</option>
+                        <option value="zoom" selected="@(Model.TransitionType == "zoom")">Zoom</option>
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary mt-3">
+                💾 Guardar Configuración
+            </button>
+        </form>
+    </div>
+
+    <!-- Zona de Carga -->
+    <div class="upload-section">
+        <h2>📤 Subir Nuevo Contenido</h2>
+        <form method="post" asp-page-handler="Upload" enctype="multipart/form-data" id="uploadForm">
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-icon">📁</div>
+                <h3>Arrastra archivos aquí o haz clic para seleccionar</h3>
+                <p>Soporta: Imágenes (JPG, PNG, GIF), Videos (MP4, WebM), PDFs</p>
+                <p style="color: #999; font-size: 0.9rem;">Tamaño máximo: 50 MB</p>
+                <input type="file" id="fileInput" name="file" accept="image/*,video/mp4,video/webm,application/pdf"
+                       style="display: none;" required>
+            </div>
+
+            <div class="form-group mt-3">
+                <label for="description">Descripción (opcional)</label>
+                <input type="text" class="form-control" id="description" name="description"
+                       placeholder="Ej: Anuncio de evento especial">
+            </div>
+
+            <div class="config-grid mt-2">
+                <div class="form-group">
+                    <label for="duration">Duración (segundos)</label>
+                    <input type="number" class="form-control" id="duration" name="duration"
+                           value="@Model.DefaultDuration" min="1" max="300">
+                </div>
+                <div class="form-group">
+                    <label for="category">Categoría/Tag</label>
+                    <input type="text" class="form-control" id="category" name="category"
+                           placeholder="Ej: Eventos, Noticias, Promociones">
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-success mt-3" id="uploadBtn">
+                ⬆️ Subir Archivo
+            </button>
+        </form>
+    </div>
+
+    <!-- Grid de Contenido -->
+    <div class="config-section">
+        <h2>🎬 Contenido de Cartelera</h2>
+        <div class="content-grid" id="contentGrid">
+            @if (Model.Items == null || !Model.Items.Any())
+            {
+                <div class="empty-state" style="grid-column: 1 / -1;">
+                    <div class="empty-state-icon">📭</div>
+                    <h3>No hay contenido todavía</h3>
+                    <p>Sube tu primer archivo para comenzar</p>
+                </div>
+            }
+            else
+            {
+                @foreach (var item in Model.Items.OrderBy(i => i.DisplayOrder))
+                {
+                    <div class="content-card" data-id="@item.Id">
+                        <span class="status-badge status-@(item.IsActive ? "active" : "inactive")">
+                            @(item.IsActive ? "✓ Activo" : "⏸ Inactivo")
+                        </span>
+
+                        @if (item.ContentType == "image")
+                        {
+                            <img src="@item.SharePointUrl" class="content-preview" alt="@item.FileName">
+                        }
+                        else if (item.ContentType == "video")
+                        {
+                            <video class="content-preview" muted>
+                                <source src="@item.SharePointUrl" type="@item.MimeType">
+                            </video>
+                        }
+                        else if (item.ContentType == "pdf")
+                        {
+                            <div class="content-preview" style="display: flex; align-items: center; justify-content: center; font-size: 4rem;">
+                                📄
+                            </div>
+                        }
+
+                        <div class="content-info">
+                            <div class="content-name" title="@item.FileName">@item.FileName</div>
+                            <div class="content-meta">
+                                <span>⏱️ @item.DurationSeconds s</span>
+                                <span>📏 @((item.FileSize / 1024.0 / 1024.0).ToString("F2")) MB</span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(item.Description))
+                            {
+                                <p style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">@item.Description</p>
+                            }
+                            @if (!string.IsNullOrEmpty(item.Category))
+                            {
+                                <span style="background: #e3f2fd; color: #1976d2; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.75rem;">
+                                    🏷️ @item.Category
+                                </span>
+                            }
+
+                            <div class="content-actions">
+                                <button class="btn btn-sm btn-primary" onclick="toggleActive(@item.Id, @item.IsActive.ToString().ToLower())">
+                                    @(item.IsActive ? "⏸️ Desactivar" : "▶️ Activar")
+                                </button>
+                                <button class="btn btn-sm btn-primary" onclick="editItem(@item.Id)">
+                                    ✏️ Editar
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteItem(@item.Id, '@item.FileName')">
+                                    🗑️ Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    <!-- Link Flotante a TV Display -->
+    <a href="/Cartelera/Display" target="_blank" class="floating-tv-link">
+        📺 Abrir Vista TV
+    </a>
+</div>
+
+<!-- Modal para Editar -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>✏️ Editar Contenido</h3>
+            <button class="close-btn" onclick="closeEditModal()">&times;</button>
+        </div>
+        <form method="post" asp-page-handler="UpdateItem" id="editForm">
+            <input type="hidden" id="editId" name="id">
+
+            <div class="form-group">
+                <label for="editDescription">Descripción</label>
+                <input type="text" class="form-control" id="editDescription" name="description">
+            </div>
+
+            <div class="form-group">
+                <label for="editDuration">Duración (segundos)</label>
+                <input type="number" class="form-control" id="editDuration" name="duration" min="1" max="300">
+            </div>
+
+            <div class="form-group">
+                <label for="editDisplayOrder">Orden de Visualización</label>
+                <input type="number" class="form-control" id="editDisplayOrder" name="displayOrder" min="0">
+            </div>
+
+            <div class="form-group">
+                <label for="editCategory">Categoría/Tag</label>
+                <input type="text" class="form-control" id="editCategory" name="category">
+            </div>
+
+            <div class="config-grid">
+                <div class="form-group">
+                    <label for="editStartDate">Fecha Inicio (opcional)</label>
+                    <input type="datetime-local" class="form-control" id="editStartDate" name="startDate">
+                </div>
+                <div class="form-group">
+                    <label for="editEndDate">Fecha Fin (opcional)</label>
+                    <input type="datetime-local" class="form-control" id="editEndDate" name="endDate">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                <button type="submit" class="btn btn-primary" style="flex: 1;">
+                    💾 Guardar Cambios
+                </button>
+                <button type="button" class="btn btn-danger" onclick="closeEditModal()" style="flex: 1;">
+                    ❌ Cancelar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Drag & Drop Upload
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                const fileName = e.dataTransfer.files[0].name;
+                uploadZone.querySelector('h3').textContent = `📄 ${fileName}`;
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                const fileName = e.target.files[0].name;
+                uploadZone.querySelector('h3').textContent = `📄 ${fileName}`;
+            }
+        });
+
+        // Toggle Active/Inactive
+        async function toggleActive(id, currentState) {
+            try {
+                const response = await fetch(`/Cartelera/Admin?handler=ToggleActive&id=${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    }
+                });
+
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    alert('Error al cambiar estado');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al cambiar estado');
+            }
+        }
+
+        // Edit Item
+        function editItem(id) {
+            // Cargar datos del item
+            const card = document.querySelector(`[data-id="${id}"]`);
+            // Aquí cargarías los datos reales desde el servidor
+
+            document.getElementById('editId').value = id;
+            document.getElementById('editModal').classList.add('show');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('show');
+        }
+
+        // Delete Item
+        async function deleteItem(id, fileName) {
+            if (!confirm(`¿Eliminar "${fileName}"?`)) return;
+
+            try {
+                const response = await fetch(`/Cartelera/Admin?handler=Delete&id=${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    }
+                });
+
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    alert('Error al eliminar');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al eliminar');
+            }
+        }
+
+        // Form Submit Animation
+        document.getElementById('uploadForm').addEventListener('submit', function() {
+            const btn = document.getElementById('uploadBtn');
+            btn.innerHTML = '<span class="loading"></span> Subiendo...';
+            btn.disabled = true;
+        });
+    </script>
+}

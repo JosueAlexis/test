@@ -1,0 +1,398 @@
+﻿@page
+@model ProyectoRH2025.Pages.Cartelera.DisplayModel
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cartelera Digital</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        #slideshow-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .slide {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+
+            .slide.active {
+                opacity: 1;
+                z-index: 1;
+            }
+
+            .slide img {
+                max-width: 100%;
+                max-height: 100%;
+                object-fit: contain;
+            }
+
+            .slide video {
+                max-width: 100%;
+                max-height: 100%;
+                object-fit: contain;
+            }
+
+            .slide iframe {
+                width: 90%;
+                height: 90%;
+                border: none;
+            }
+
+        #footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+
+        #current-info {
+            font-size: 1.2rem;
+        }
+
+        #current-name {
+            font-weight: 600;
+        }
+
+        #progress-info {
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        #datetime {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 2rem;
+            text-align: center;
+            z-index: 200;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid white;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @@keyframes spin {
+            0%
+
+        {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+
+        }
+
+        #no-content {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 2rem;
+            text-align: center;
+            display: none;
+        }
+
+        /* Video invisible para prevenir sleep */
+        #keep-awake-video {
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Slideshow Container -->
+    <div id="slideshow-container"></div>
+
+    <!-- Footer con información -->
+    <div id="footer">
+        <div id="current-info">
+            <div id="current-name">Cargando...</div>
+            <div id="progress-info"></div>
+        </div>
+        <div id="datetime"></div>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loading">
+        <div class="spinner"></div>
+        <div>Cargando contenido...</div>
+    </div>
+
+    <!-- No Content Message -->
+    <div id="no-content">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">📭</div>
+        <div>No hay contenido para mostrar</div>
+        <div style="font-size: 1rem; opacity: 0.7; margin-top: 1rem;">
+            Agrega contenido desde el panel de administración
+        </div>
+    </div>
+
+    <!-- Video invisible para prevenir sleep -->
+    <video id="keep-awake-video" loop muted playsinline>
+        <source src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAu1tZGF0AAACrgYF//+q3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE1MiByMjg1NCBlOWE1OTAzIC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAxNyAtIGh0dHA6Ly93d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4MzoweDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0tMiB0aHJlYWRzPTEgbG9va2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0zIGJfcHlyYW1pZD0yIGJfYWRhcHQ9MSBiX2JpYXM9MCBkaXJlY3Q9MSB3ZWlnaHRiPTEgb3Blbl9nb3A9MCB3ZWlnaHRwPTIga2V5aW50PTI1MCBrZXlpbnRfbWluPTI1IHNjZW5lY3V0PTQwIGludHJhX3JlZnJlc2g9MCByY19sb29rYWhlYWQ9NDAgcmM9Y3JmIG1idHJlZT0xIGNyZj0yMy4wIHFjb21wPTAuNjAgcXBtaW49MCBxcG1heD02OSBxcHN0ZXA9NCBpcF9yYXRpbz0xLjQwIGFxPTE6MS4wMACAAAAAwWWIhAAV/72Vw+TpPgBa7sRXIjBLAAAAAwAAAwAAD0yV+HUDABcm8FSwPPDBUIBsqQ+4g4AAAAMA4oivhfFYGV7o4EBAQH3+vv38L+O/PO73//2Rf4/tnwxf7f+PD9+Xxr+Pf/ff6X/f+///AAAAAA=" type="video/mp4">
+    </video>
+
+    <script>
+        let slides = [];
+        let currentSlideIndex = 0;
+        let slideTimer = null;
+        let slideContainer = document.getElementById('slideshow-container');
+        let loadingDiv = document.getElementById('loading');
+        let noContentDiv = document.getElementById('no-content');
+        let currentNameDiv = document.getElementById('current-name');
+        let progressInfoDiv = document.getElementById('progress-info');
+        let datetimeDiv = document.getElementById('datetime');
+
+        // Configuración
+        const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutos
+        const DEFAULT_DURATION = 10000; // 10 segundos
+
+        // Función para cargar contenido desde el API
+        async function loadContent() {
+            try {
+                const response = await fetch('/api/Cartelera/GetActive');
+                const data = await response.json();
+
+                if (data && data.length > 0) {
+                    slides = data;
+                    buildSlideshow();
+                    startSlideshow();
+                    loadingDiv.style.display = 'none';
+                    noContentDiv.style.display = 'none';
+                } else {
+                    loadingDiv.style.display = 'none';
+                    noContentDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error cargando contenido:', error);
+                loadingDiv.style.display = 'none';
+                noContentDiv.style.display = 'block';
+            }
+        }
+
+        // Construir slideshow con contenido
+        function buildSlideshow() {
+            slideContainer.innerHTML = '';
+
+            slides.forEach((item, index) => {
+                const slide = document.createElement('div');
+                slide.className = 'slide';
+                slide.dataset.index = index;
+                slide.dataset.duration = item.durationSeconds * 1000;
+                slide.dataset.name = item.fileName;
+
+                if (item.contentType === 'image') {
+                    const img = document.createElement('img');
+                    img.src = `/api/Cartelera/GetImage/${item.id}`;
+                    img.alt = item.description || item.fileName;
+                    slide.appendChild(img);
+                } else if (item.contentType === 'video') {
+                    const video = document.createElement('video');
+                    video.src = `/api/Cartelera/GetImage/${item.id}`;
+                    video.muted = true;
+                    video.autoplay = true;
+                    video.loop = false;
+
+                    // Avanzar al siguiente slide cuando el video termine
+                    video.addEventListener('ended', () => {
+                        nextSlide();
+                    });
+
+                    slide.appendChild(video);
+                } else if (item.contentType === 'pdf') {
+                    const iframe = document.createElement('iframe');
+                    iframe.src = item.sharePointUrl;
+                    slide.appendChild(iframe);
+                }
+
+                slideContainer.appendChild(slide);
+            });
+        }
+
+        // Iniciar slideshow
+        function startSlideshow() {
+            if (slides.length === 0) return;
+
+            currentSlideIndex = 0;
+            showSlide(currentSlideIndex);
+        }
+
+        // Mostrar slide específico
+        function showSlide(index) {
+            // Ocultar todos los slides
+            document.querySelectorAll('.slide').forEach(s => {
+                s.classList.remove('active');
+                const video = s.querySelector('video');
+                if (video) {
+                    video.pause();
+                    video.currentTime = 0;
+                }
+            });
+
+            // Mostrar slide actual
+            const slide = document.querySelector(`.slide[data-index="${index}"]`);
+            if (!slide) return;
+
+            slide.classList.add('active');
+
+            const video = slide.querySelector('video');
+            const duration = parseInt(slide.dataset.duration) || DEFAULT_DURATION;
+            const name = slide.dataset.name;
+
+            // Actualizar footer
+            currentNameDiv.textContent = name;
+            progressInfoDiv.textContent = `${index + 1} / ${slides.length}`;
+
+            // Reproducir video si es video
+            if (video) {
+                video.play();
+                // No establecer timer para videos, se avanza automáticamente con 'ended'
+            } else {
+                // Para imágenes y PDFs, avanzar después de la duración
+                clearTimeout(slideTimer);
+                slideTimer = setTimeout(() => {
+                    nextSlide();
+                }, duration);
+            }
+        }
+
+        // Siguiente slide
+        function nextSlide() {
+            currentSlideIndex = (currentSlideIndex + 1) % slides.length;
+            showSlide(currentSlideIndex);
+        }
+
+        // Slide anterior
+        function previousSlide() {
+            currentSlideIndex = (currentSlideIndex - 1 + slides.length) % slides.length;
+            showSlide(currentSlideIndex);
+        }
+
+        // Actualizar fecha y hora
+        function updateDateTime() {
+            const now = new Date();
+            const options = {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            };
+            datetimeDiv.textContent = now.toLocaleDateString('es-MX', options);
+        }
+
+        // Controles de teclado
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                previousSlide();
+            } else if (e.key === 'r' || e.key === 'R') {
+                e.preventDefault();
+                location.reload();
+            } else if (e.key === 'f' || e.key === 'F') {
+                e.preventDefault();
+                toggleFullscreen();
+            }
+        });
+
+        // Toggle fullscreen
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Auto fullscreen al cargar
+        setTimeout(() => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log('No se pudo activar fullscreen automáticamente');
+                });
+            }
+        }, 1000);
+
+        // Prevenir sleep de la pantalla
+        const keepAwakeVideo = document.getElementById('keep-awake-video');
+        keepAwakeVideo.play();
+        setInterval(() => {
+            if (keepAwakeVideo.paused) {
+                keepAwakeVideo.play();
+            }
+        }, 30000);
+
+        // Inicializar
+        loadContent();
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+
+        // Refrescar contenido periódicamente
+        setInterval(() => {
+            console.log('Refrescando contenido...');
+            loadContent();
+        }, REFRESH_INTERVAL);
+    </script>
+</body>
+</html>

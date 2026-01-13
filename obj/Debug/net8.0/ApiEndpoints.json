@@ -1,1 +1,54 @@
-[]
+[
+  {
+    "ContainingType": "ProyectoRH2025.Controllers.CarteleraController",
+    "Method": "GetActive",
+    "RelativePath": "api/Cartelera/GetActive",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ProyectoRH2025.Controllers.CarteleraController",
+    "Method": "GetImage",
+    "RelativePath": "api/Cartelera/GetImage/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ProyectoRH2025.Controllers.CarteleraController",
+    "Method": "GetItem",
+    "RelativePath": "api/Cartelera/GetItem/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ProyectoRH2025.Controllers.CarteleraController",
+    "Method": "GetStats",
+    "RelativePath": "api/Cartelera/GetStats",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  }
+]

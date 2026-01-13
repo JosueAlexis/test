@@ -1,4 +1,4 @@
-﻿// Services/SharePointTestService.cs - VERSIÓN COMPLETA CON MÉTODOS DE SUSTITUCIÓN
+﻿// Services/SharePointTestService.cs - VERSIÓN COMPLETA CON MÉTODOS DE CARTELERA DIGITAL
 using Azure.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.Graph;
@@ -14,6 +14,11 @@ namespace ProyectoRH2025.Services
         private readonly SharePointConfig _config;
         private readonly ILogger<SharePointTestService> _logger;
         private GraphServiceClient? _graphClient;
+
+        // --- CONSTANTES PARA CARTELERA DIGITAL ---
+        private const string CARTELERA_ROOT_FOLDER = "Cartelera Digital";
+        private const string CARTELERA_ACTIVOS_FOLDER = "Cartelera Digital/Activos";
+        private const string CARTELERA_ARCHIVO_FOLDER = "Cartelera Digital/Archivo";
 
         public SharePointTestService(IOptions<SharePointConfig> config, ILogger<SharePointTestService> logger)
         {
@@ -921,7 +926,7 @@ namespace ProyectoRH2025.Services
         }
 
         // ========================================================================
-        // NUEVOS MÉTODOS PARA SUBIR, REEMPLAZAR Y ELIMINAR ARCHIVOS
+        // MÉTODOS PARA SUBIR, REEMPLAZAR Y ELIMINAR ARCHIVOS (POD AKNA)
         // ========================================================================
 
         public async Task<bool> UploadFileAsync(string folderPath, string fileName, byte[] fileContent)
@@ -1199,6 +1204,521 @@ namespace ProyectoRH2025.Services
             {
                 _logger.LogError(ex, "❌ Error asegurando carpetas");
                 throw;
+            }
+        }
+
+        // ========================================================================
+        // MÉTODOS PARA CARTELERA DIGITAL
+        // ========================================================================
+
+        /// <summary>
+        /// Sube un archivo a la carpeta Activos de Cartelera Digital
+        /// </summary>
+        public async Task<string> UploadCarteleraFileAsync(Stream fileStream, string fileName, string contentType)
+        {
+            try
+            {
+                _logger.LogInformation("📤 CARTELERA - Subiendo: {File} ({Size} KB)",
+                    fileName, fileStream.Length / 1024);
+
+                if (_graphClient == null)
+                {
+                    var credential = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
+                    _graphClient = new GraphServiceClient(credential);
+                }
+
+                var siteId = await GetSiteIdAsync();
+                if (string.IsNullOrEmpty(siteId))
+                {
+                    _logger.LogError("❌ No se pudo obtener Site ID");
+                    return null;
+                }
+
+                var drives = await _graphClient.Sites[siteId].Drives.GetAsync();
+                var documentDrive = drives?.Value?.FirstOrDefault(d =>
+                    d.Name?.Contains("Documents", StringComparison.OrdinalIgnoreCase) == true ||
+                    d.Name?.Contains("Documentos", StringComparison.OrdinalIgnoreCase) == true);
+
+                if (documentDrive == null)
+                {
+                    _logger.LogError("❌ No se encontró la biblioteca de documentos");
+                    return null;
+                }
+
+                // Asegurar que existe la estructura de carpetas
+                await EnsureCarteleraFolderStructureAsync(siteId, documentDrive.Id);
+
+                // Subir archivo a carpeta Activos
+                var encodedPath = Uri.EscapeDataString($"{CARTELERA_ACTIVOS_FOLDER}/{fileName}");
+                var uploadUrl = $"https://graph.microsoft.com/v1.0/sites/{siteId}/drives/{documentDrive.Id}/root:/{encodedPath}:/content";
+
+                var credential2 = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
+                var token = await credential2.GetTokenAsync(new TokenRequestContext(new[] { "https://graph.microsoft.com/.default" }));
+
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Token);
+
+                // Convertir Stream a byte array
+                using var memoryStream = new MemoryStream();
+                await fileStream.CopyToAsync(memoryStream);
+                var fileContent = memoryStream.ToArray();
+
+                var content = new ByteArrayContent(fileContent);
+                content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+
+                var response = await httpClient.PutAsync(uploadUrl, content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseContent = await response.Content.ReadAsStringAsync();
+                    var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
+
+                    var webUrl = result.TryGetProperty("webUrl", out var urlEl) ? urlEl.GetString() : "";
+
+                    _logger.LogInformation("✅ CARTELERA - Archivo subido: {File}", fileName);
+                    return webUrl;
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("❌ Error subiendo archivo a Cartelera. Status: {Status}, Error: {Error}",
+                        response.StatusCode, errorContent);
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Excepción subiendo archivo a Cartelera: {File}", fileName);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Obtiene la lista de archivos activos en la Cartelera Digital
+        /// </summary>
+        public async Task<List<CarteleraFileInfo>> GetCarteleraActivosAsync()
+        {
+            try
+            {
+                _logger.LogInformation("📋 CARTELERA - Obteniendo archivos activos...");
+
+                if (_graphClient == null)
+                {
+                    var credential = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
+                    _graphClient = new GraphServiceClient(credential);
+                }
+
+                var siteId = await GetSiteIdAsync();
+                if (string.IsNullOrEmpty(siteId))
+                {
+                    _logger.LogError("❌ No se pudo obtener Site ID");
+                    return new List<CarteleraFileInfo>();
+                }
+
+                var drives = await _graphClient.Sites[siteId].Drives.GetAsync();
+                var documentDrive = drives?.Value?.FirstOrDefault(d =>
+                    d.Name?.Contains("Documents", StringComparison.OrdinalIgnoreCase) == true ||
+                    d.Name?.Contains("Documentos", StringComparison.OrdinalIgnoreCase) == true);
+
+                if (documentDrive == null)
+                {
+                    _logger.LogError("❌ No se encontró la biblioteca de documentos");
+                    return new List<CarteleraFileInfo>();
+                }
+
+                var encodedPath = Uri.EscapeDataString(CARTELERA_ACTIVOS_FOLDER);
+                var url = $"https://graph.microsoft.com/v1.0/sites/{siteId}/drives/{documentDrive.Id}/root:/{encodedPath}:/children";
+
+                var credential2 = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
+                var token = await credential2.GetTokenAsync(new TokenRequestContext(new[] { "https://graph.microsoft.com/.default" }));
+
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Token);
+
+                var response = await httpClient.GetAsync(url);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("⚠️ No se pudo acceder a carpeta Activos. Status: {Status}", response.StatusCode);
+                    return new List<CarteleraFileInfo>();
+                }
+
+                var content = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<JsonElement>(content);
+
+                var fileList = new List<CarteleraFileInfo>();
+
+                if (result.TryGetProperty("value", out var items))
+                {
+                    foreach (var item in items.EnumerateArray())
+                    {
+                        // Solo agregar archivos, no carpetas
+                        var isFolder = item.TryGetProperty("folder", out _);
+                        if (isFolder) continue;
+
+                        var fileName = item.TryGetProperty("name", out var nameEl) ? nameEl.GetString() : "";
+                        var size = item.TryGetProperty("size", out var sizeEl) ? sizeEl.GetInt64() : 0;
+                        var webUrl = item.TryGetProperty("webUrl", out var urlEl) ? urlEl.GetString() : "";
+                        var mimeType = "";
+
+                        if (item.TryGetProperty("file", out var fileEl) &&
+                            fileEl.TryGetProperty("mimeType", out var mimeEl))
+                        {
+                            mimeType = mimeEl.GetString() ?? "";
+                        }
+
+                        var created = DateTime.Now;
+                        if (item.TryGetProperty("createdDateTime", out var createdEl))
+                        {
+                            DateTime.TryParse(createdEl.GetString(), out created);
+                        }
+
+                        // Obtener URL de descarga directa
+                        var downloadUrl = webUrl;
+                        if (item.TryGetProperty("@microsoft.graph.downloadUrl", out var downloadEl))
+                        {
+                            downloadUrl = downloadEl.GetString() ?? webUrl;
+                        }
+
+                        fileList.Add(new CarteleraFileInfo
+                        {
+                            FileName = fileName,
+                            SharePointUrl = webUrl,
+                            WebUrl = webUrl,
+                            CreatedDateTime = created,
+                            Size = size,
+                            ContentType = mimeType,
+                            DownloadUrl = downloadUrl
+                        });
+                    }
+                }
+
+                _logger.LogInformation("✅ CARTELERA - {Count} archivos activos obtenidos", fileList.Count);
+                return fileList;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error obteniendo archivos activos de Cartelera");
+                return new List<CarteleraFileInfo>();
+            }
+        }
+
+        /// <summary>
+        /// Mueve un archivo de Activos a Archivo (archivar)
+        /// </summary>
+        public async Task<bool> ArchivarCarteleraItemAsync(string fileName)
+        {
+            try
+            {
+                _logger.LogInformation("📦 CARTELERA - Archivando: {File}", fileName);
+
+                if (_graphClient == null)
+                {
+                    var credential = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
+                    _graphClient = new GraphServiceClient(credential);
+                }
+
+                var siteId = await GetSiteIdAsync();
+                if (string.IsNullOrEmpty(siteId))
+                {
+                    _logger.LogError("❌ No se pudo obtener Site ID");
+                    return false;
+                }
+
+                var drives = await _graphClient.Sites[siteId].Drives.GetAsync();
+                var documentDrive = drives?.Value?.FirstOrDefault(d =>
+                    d.Name?.Contains("Documents", StringComparison.OrdinalIgnoreCase) == true ||
+                    d.Name?.Contains("Documentos", StringComparison.OrdinalIgnoreCase) == true);
+
+                if (documentDrive == null)
+                {
+                    _logger.LogError("❌ No se encontró la biblioteca de documentos");
+                    return false;
+                }
+
+                // Asegurar que existe la carpeta Archivo
+                await EnsureCarteleraFolderStructureAsync(siteId, documentDrive.Id);
+
+                var encodedPath = Uri.EscapeDataString($"{CARTELERA_ACTIVOS_FOLDER}/{fileName}");
+                var moveUrl = $"https://graph.microsoft.com/v1.0/sites/{siteId}/drives/{documentDrive.Id}/root:/{encodedPath}";
+
+                var credential2 = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
+                var token = await credential2.GetTokenAsync(new TokenRequestContext(new[] { "https://graph.microsoft.com/.default" }));
+
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Token);
+
+                // Crear el payload para mover el archivo
+                var movePayload = new
+                {
+                    parentReference = new
+                    {
+                        path = $"/drives/{documentDrive.Id}/root:/{CARTELERA_ARCHIVO_FOLDER}"
+                    }
+                };
+
+                var jsonContent = JsonSerializer.Serialize(movePayload);
+                var content = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
+
+                var request = new HttpRequestMessage(new HttpMethod("PATCH"), moveUrl)
+                {
+                    Content = content
+                };
+
+                var response = await httpClient.SendAsync(request);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("✅ CARTELERA - Archivo archivado: {File}", fileName);
+                    return true;
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("❌ Error archivando archivo. Status: {Status}, Error: {Error}",
+                        response.StatusCode, errorContent);
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error archivando archivo: {File}", fileName);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Elimina un archivo de SharePoint (de Activos o Archivo)
+        /// </summary>
+        public async Task<bool> DeleteCarteleraFileAsync(string fileName, bool isArchived = false)
+        {
+            try
+            {
+                var folderName = isArchived ? "Archivo" : "Activos";
+                _logger.LogInformation("🗑️ CARTELERA - Eliminando: {File} de {Folder}", fileName, folderName);
+
+                if (_graphClient == null)
+                {
+                    var credential = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
+                    _graphClient = new GraphServiceClient(credential);
+                }
+
+                var siteId = await GetSiteIdAsync();
+                if (string.IsNullOrEmpty(siteId))
+                {
+                    _logger.LogError("❌ No se pudo obtener Site ID");
+                    return false;
+                }
+
+                var drives = await _graphClient.Sites[siteId].Drives.GetAsync();
+                var documentDrive = drives?.Value?.FirstOrDefault(d =>
+                    d.Name?.Contains("Documents", StringComparison.OrdinalIgnoreCase) == true ||
+                    d.Name?.Contains("Documentos", StringComparison.OrdinalIgnoreCase) == true);
+
+                if (documentDrive == null)
+                {
+                    _logger.LogError("❌ No se encontró la biblioteca de documentos");
+                    return false;
+                }
+
+                var folderPath = isArchived ? CARTELERA_ARCHIVO_FOLDER : CARTELERA_ACTIVOS_FOLDER;
+                var encodedPath = Uri.EscapeDataString($"{folderPath}/{fileName}");
+                var deleteUrl = $"https://graph.microsoft.com/v1.0/sites/{siteId}/drives/{documentDrive.Id}/root:/{encodedPath}";
+
+                var credential2 = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
+                var token = await credential2.GetTokenAsync(new TokenRequestContext(new[] { "https://graph.microsoft.com/.default" }));
+
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Token);
+
+                var response = await httpClient.DeleteAsync(deleteUrl);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("✅ CARTELERA - Archivo eliminado: {File}", fileName);
+                    return true;
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ No se pudo eliminar. Status: {Status}", response.StatusCode);
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error eliminando archivo: {File}", fileName);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Obtiene la URL de descarga directa de un archivo
+        /// </summary>
+        public async Task<string> GetCarteleraFileDownloadUrlAsync(string fileName, bool isArchived = false)
+        {
+            try
+            {
+                _logger.LogInformation("🔗 CARTELERA - Obteniendo URL de descarga: {File}", fileName);
+
+                if (_graphClient == null)
+                {
+                    var credential = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
+                    _graphClient = new GraphServiceClient(credential);
+                }
+
+                var siteId = await GetSiteIdAsync();
+                if (string.IsNullOrEmpty(siteId))
+                {
+                    _logger.LogError("❌ No se pudo obtener Site ID");
+                    return null;
+                }
+
+                var drives = await _graphClient.Sites[siteId].Drives.GetAsync();
+                var documentDrive = drives?.Value?.FirstOrDefault(d =>
+                    d.Name?.Contains("Documents", StringComparison.OrdinalIgnoreCase) == true ||
+                    d.Name?.Contains("Documentos", StringComparison.OrdinalIgnoreCase) == true);
+
+                if (documentDrive == null)
+                {
+                    _logger.LogError("❌ No se encontró la biblioteca de documentos");
+                    return null;
+                }
+
+                var folderPath = isArchived ? CARTELERA_ARCHIVO_FOLDER : CARTELERA_ACTIVOS_FOLDER;
+                var encodedPath = Uri.EscapeDataString($"{folderPath}/{fileName}");
+                var fileUrl = $"https://graph.microsoft.com/v1.0/sites/{siteId}/drives/{documentDrive.Id}/root:/{encodedPath}";
+
+                var credential2 = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
+                var token = await credential2.GetTokenAsync(new TokenRequestContext(new[] { "https://graph.microsoft.com/.default" }));
+
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Token);
+
+                var response = await httpClient.GetAsync(fileUrl);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var result = JsonSerializer.Deserialize<JsonElement>(content);
+
+                    // Intentar obtener URL de descarga directa
+                    if (result.TryGetProperty("@microsoft.graph.downloadUrl", out var downloadEl))
+                    {
+                        var downloadUrl = downloadEl.GetString();
+                        _logger.LogInformation("✅ CARTELERA - URL de descarga obtenida: {File}", fileName);
+                        return downloadUrl;
+                    }
+
+                    // Si no hay downloadUrl, retornar webUrl
+                    if (result.TryGetProperty("webUrl", out var webUrlEl))
+                    {
+                        return webUrlEl.GetString();
+                    }
+                }
+
+                _logger.LogWarning("⚠️ No se pudo obtener URL de descarga. Status: {Status}", response.StatusCode);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error obteniendo URL de descarga: {File}", fileName);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Asegura que existe la estructura completa de carpetas para Cartelera Digital
+        /// </summary>
+        private async Task EnsureCarteleraFolderStructureAsync(string siteId, string driveId)
+        {
+            try
+            {
+                _logger.LogInformation("📁 CARTELERA - Verificando estructura de carpetas...");
+
+                var credential = new ClientSecretCredential(_config.TenantId, _config.ClientId, _config.ClientSecret);
+                var token = await credential.GetTokenAsync(new TokenRequestContext(new[] { "https://graph.microsoft.com/.default" }));
+
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Token);
+
+                // Verificar/crear carpeta raíz "Cartelera Digital"
+                await EnsureCarteleraFolderExistsAsync(httpClient, siteId, driveId, CARTELERA_ROOT_FOLDER, "");
+
+                // Verificar/crear subcarpeta "Activos"
+                await EnsureCarteleraFolderExistsAsync(httpClient, siteId, driveId, "Activos", CARTELERA_ROOT_FOLDER);
+
+                // Verificar/crear subcarpeta "Archivo"
+                await EnsureCarteleraFolderExistsAsync(httpClient, siteId, driveId, "Archivo", CARTELERA_ROOT_FOLDER);
+
+                _logger.LogInformation("✅ CARTELERA - Estructura de carpetas verificada");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error verificando estructura de Cartelera Digital");
+            }
+        }
+
+        /// <summary>
+        /// Verifica si existe una carpeta, si no existe la crea
+        /// </summary>
+        private async Task EnsureCarteleraFolderExistsAsync(HttpClient httpClient, string siteId, string driveId,
+            string folderName, string parentPath)
+        {
+            try
+            {
+                var fullPath = string.IsNullOrEmpty(parentPath) ? folderName : $"{parentPath}/{folderName}";
+                var encodedPath = Uri.EscapeDataString(fullPath);
+                var checkUrl = $"https://graph.microsoft.com/v1.0/sites/{siteId}/drives/{driveId}/root:/{encodedPath}";
+
+                var checkResponse = await httpClient.GetAsync(checkUrl);
+
+                if (checkResponse.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("✅ Carpeta ya existe: {Folder}", fullPath);
+                    return;
+                }
+
+                // Si no existe, crearla
+                _logger.LogInformation("📁 Creando carpeta: {Folder}", folderName);
+
+                var createUrl = string.IsNullOrEmpty(parentPath)
+                    ? $"https://graph.microsoft.com/v1.0/sites/{siteId}/drives/{driveId}/root/children"
+                    : $"https://graph.microsoft.com/v1.0/sites/{siteId}/drives/{driveId}/root:/{Uri.EscapeDataString(parentPath)}:/children";
+
+                var createBody = new
+                {
+                    name = folderName,
+                    folder = new { },
+                    AdditionalData = new Dictionary<string, object>
+                    {
+                        { "@microsoft.graph.conflictBehavior", "rename" }
+                    }
+                };
+
+                var jsonContent = JsonSerializer.Serialize(createBody);
+                var content = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
+
+                var createResponse = await httpClient.PostAsync(createUrl, content);
+
+                if (createResponse.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("✅ Carpeta creada: {Folder}", folderName);
+                }
+                else
+                {
+                    var errorContent = await createResponse.Content.ReadAsStringAsync();
+                    _logger.LogWarning("⚠️ No se pudo crear carpeta {Folder}: {Error}", folderName, errorContent);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error verificando/creando carpeta: {Folder}", folderName);
             }
         }
 
