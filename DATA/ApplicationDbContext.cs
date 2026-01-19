@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using ProyectoRH2025.Models; // Para tus modelos existentes si están en este namespace (ej. Empleado, Usuario)
-using ProyectoRH2025.MODELS;   // Para los nuevos modelos PodRecord, PodEvidenciaImagen
-// Asegúrate que el namespace sea exactamente "ProyectoRH2025.Data"
+using ProyectoRH2025.Models;
+using ProyectoRH2025.MODELS;
+
 namespace ProyectoRH2025.Data
 {
     public class ApplicationDbContext : DbContext
@@ -10,6 +10,8 @@ namespace ProyectoRH2025.Data
             : base(options)
         {
         }
+
+        // DbSets existentes
         public DbSet<Empleado> Empleados { get; set; }
         public DbSet<ImagenEmpleado> ImagenesEmpleados { get; set; }
         public DbSet<PuestoEmpleado> PuestoEmpleados { get; set; } = null!;
@@ -22,44 +24,30 @@ namespace ProyectoRH2025.Data
         public DbSet<TblTipoAsignacion> TblTipoAsignacion { get; set; }
         public DbSet<ViviendaEmpleado> tblViviendaEmple { get; set; }
         public DbSet<TblHuellasEmpleados> TblHuellasEmpleados { get; set; }
-        // public DbSet<ImagenAsignacion> ImagenAsignacion { get; set; } // Verifica si esta entidad es parte de tu contexto
-
-        // --- DBSETS PARA LIQUIDACIONES ---
-        // Estas entidades (PodRecord, PodEvidenciaImagen) deben estar definidas en el namespace ProyectoRH2025.MODELS
+        public DbSet<TblImagenAsigSellos> TblImagenAsigSellos { get; set; }
         public DbSet<PodRecord> PodRecords { get; set; }
         public DbSet<PodEvidenciaImagen> PodEvidenciasImagenes { get; set; }
-
-        // --- NUEVOS DBSETS PARA CARTELERA DIGITAL ---
         public DbSet<CarteleraItem> CarteleraItems { get; set; }
         public DbSet<CarteleraConfig> CarteleraConfigs { get; set; }
-        // ---------------------------------------------
+        public DbSet<TblSellosHistorial> TblSellosHistorial { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<TblAsigSellos>(entity =>
+            {
+                entity.ToTable(tb => tb.HasTrigger("Trigger_Generico"));
+            });
 
-            // Tu configuración existente
+            // Configuración existente
             modelBuilder.Entity<PuestoEmpleado>()
                 .ToTable("tblPuestoEmpleados");
 
-            // Configuraciones para nuevos modelos (si son necesarias en el futuro)
-            // modelBuilder.Entity<PodRecord>()
-            // .HasMany(p => p.PodEvidenciasImagenes)
-            // .WithOne(e => e.PodRecord)
-            // .HasForeignKey(e => e.POD_ID_FK);
-            // modelBuilder.Entity<PodEvidenciaImagen>()
-            // .HasOne(e => e.PodRecord)
-            // .WithMany(p => p.PodEvidenciasImagenes)
-            // .HasForeignKey(e => e.POD_ID_FK);
-
-            // --- CONFIGURACIONES PARA CARTELERA DIGITAL ---
-
-            // Configuración para CarteleraConfig - ConfigKey debe ser único
+            // Configuraciones para Cartelera Digital
             modelBuilder.Entity<CarteleraConfig>()
                 .HasIndex(c => c.ConfigKey)
                 .IsUnique();
 
-            // Configuración para CarteleraItem - Índices para mejorar rendimiento
             modelBuilder.Entity<CarteleraItem>()
                 .HasIndex(c => c.DisplayOrder);
 
@@ -69,7 +57,73 @@ namespace ProyectoRH2025.Data
             modelBuilder.Entity<CarteleraItem>()
                 .HasIndex(c => c.UploadDate);
 
-            // -----------------------------------------------
+            // Configuración de TblImagenAsigSellos
+            modelBuilder.Entity<TblImagenAsigSellos>(entity =>
+            {
+                entity.ToTable("tblImagenAsigSellos");
+                entity.HasKey(e => e.id);
+
+                entity.Property(e => e.Imagen)
+                    .IsRequired()
+                    .HasMaxLength(500);
+
+                entity.Property(e => e.FSubidaEvidencia)
+                    .HasDefaultValueSql("GETDATE()");
+            });
+
+            // Configuración para TblSellosHistorial
+            modelBuilder.Entity<TblSellosHistorial>(entity =>
+            {
+                entity.ToTable("TblSellosHistorial");
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.NumeroSello)
+                      .IsRequired()
+                      .HasMaxLength(50);
+
+                entity.Property(e => e.TipoMovimiento)
+                      .IsRequired()
+                      .HasMaxLength(50);
+
+                entity.Property(e => e.SupervisorNombreAnterior)
+                      .HasMaxLength(200);
+
+                entity.Property(e => e.SupervisorNombreNuevo)
+                      .HasMaxLength(200);
+
+                entity.Property(e => e.UsuarioNombre)
+                      .HasMaxLength(200);
+
+                entity.Property(e => e.Comentario)
+                      .HasMaxLength(500);
+
+                entity.Property(e => e.IP)
+                      .HasMaxLength(50);
+
+                entity.Property(e => e.FechaMovimiento)
+                      .HasDefaultValueSql("GETDATE()");
+
+                entity.HasOne(e => e.Sello)
+                      .WithMany()
+                      .HasForeignKey(e => e.SelloId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                // Índices
+                entity.HasIndex(e => e.SelloId)
+                      .HasDatabaseName("IX_TblSellosHistorial_SelloId");
+
+                entity.HasIndex(e => e.FechaMovimiento)
+                      .HasDatabaseName("IX_TblSellosHistorial_FechaMovimiento");
+
+                entity.HasIndex(e => e.SupervisorIdNuevo)
+                      .HasDatabaseName("IX_TblSellosHistorial_SupervisorIdNuevo");
+
+                entity.HasIndex(e => e.TipoMovimiento)
+                      .HasDatabaseName("IX_TblSellosHistorial_TipoMovimiento");
+
+                entity.HasIndex(e => e.UsuarioId)
+                      .HasDatabaseName("IX_TblSellosHistorial_UsuarioId");
+            });
         }
     }
 }

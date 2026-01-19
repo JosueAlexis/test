@@ -1,0 +1,699 @@
+﻿@page
+@model ProyectoRH2025.Pages.Sellos.DashboardModel
+@{
+    ViewData["Title"] = "Dashboard de Sellos";
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+<style>
+    .stat-card {
+        border-radius: 10px;
+        padding: 20px;
+        color: white;
+        transition: transform 0.3s, box-shadow 0.3s;
+        min-height: 120px;
+    }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+
+    .bg-disponible {
+        background: linear-gradient(135deg, #28a745, #20c997);
+    }
+
+    .bg-asignado-sup {
+        background: linear-gradient(135deg, #17a2b8, #20c997);
+    }
+
+    .bg-tramite {
+        background: linear-gradient(135deg, #ffc107, #fd7e14);
+    }
+
+    .bg-en-uso {
+        background: linear-gradient(135deg, #007bff, #0056b3);
+    }
+
+    .bg-utilizado {
+        background: linear-gradient(135deg, #6c757d, #495057);
+    }
+
+    .bg-defectuoso {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+    }
+
+    .bg-planta {
+        background: linear-gradient(135deg, #fd7e14, #e8590c);
+    }
+
+    .bg-extraviado {
+        background: linear-gradient(135deg, #343a40, #23272b);
+    }
+
+    .bg-orange {
+        background-color: #fd7e14 !important;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 350px;
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .badge-status {
+        padding: 0.5em 0.8em;
+        border-radius: 5px;
+        font-size: 0.85rem;
+    }
+
+    .timeline-item {
+        border-left: 3px solid #007bff;
+        padding-left: 20px;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -7px;
+            top: 0;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #007bff;
+        }
+</style>
+
+<div class="container-fluid mt-4">
+    <!-- HEADER -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="mb-0">
+                <i class="fas fa-chart-line text-primary"></i> Dashboard de Control - Gestión de Sellos
+            </h2>
+            <p class="text-muted">Vista general del sistema de sellos</p>
+        </div>
+    </div>
+
+    <!-- CARDS DE ESTADÍSTICAS -->
+    <div class="row g-3 mb-4">
+        <!-- Total de Sellos -->
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-label">TOTAL SELLOS</div>
+                        <div class="stat-value">@Model.TotalSellos</div>
+                    </div>
+                    <i class="fas fa-boxes fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Disponibles -->
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card bg-disponible">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-label">DISPONIBLES</div>
+                        <div class="stat-value">@Model.SellosDisponibles</div>
+                    </div>
+                    <i class="fas fa-check-circle fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Asignados a Supervisor -->
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card bg-asignado-sup">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-label">ASIGNADOS A SUP.</div>
+                        <div class="stat-value">@Model.SellosAsignadosSupervisor</div>
+                    </div>
+                    <i class="fas fa-user-tie fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- En Trámite -->
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card bg-tramite">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-label">EN TRÁMITE</div>
+                        <div class="stat-value">@Model.SellosEnTramite</div>
+                    </div>
+                    <i class="fas fa-clock fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- En Uso -->
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card bg-en-uso">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-label">EN USO</div>
+                        <div class="stat-value">@Model.SellosEnUso</div>
+                    </div>
+                    <i class="fas fa-truck fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Utilizados -->
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card bg-utilizado">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-label">UTILIZADOS</div>
+                        <div class="stat-value">@Model.SellosUtilizados</div>
+                    </div>
+                    <i class="fas fa-check-double fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Defectuosos -->
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card bg-defectuoso">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-label">DEFECTUOSOS</div>
+                        <div class="stat-value">@Model.SellosDefectuosos</div>
+                    </div>
+                    <i class="fas fa-exclamation-triangle fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- En Planta -->
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card bg-planta">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-label">EN PLANTA</div>
+                        <div class="stat-value">@Model.SellosEnPlanta</div>
+                    </div>
+                    <i class="fas fa-warehouse fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GRÁFICA Y FILTROS -->
+    <div class="row mb-4">
+        <!-- Gráfica -->
+        <div class="col-lg-6 mb-3">
+            <div class="chart-container">
+                <h5 class="mb-3"><i class="fas fa-chart-pie text-primary"></i> Distribución de Sellos</h5>
+                <canvas id="chartDistribucion"></canvas>
+            </div>
+        </div>
+
+        <!-- Acciones Rápidas -->
+        <div class="col-lg-6 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-filter"></i> Filtros y Acciones</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="mb-3">
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label class="form-label small">Buscar Sello</label>
+                                <input type="text" name="FiltroBusqueda" class="form-control"
+                                       value="@Model.FiltroBusqueda" placeholder="Número de sello...">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Filtrar por Estado</label>
+                                <select name="FiltroEstado" class="form-select">
+                                    <option value="">Todos los estados</option>
+                                    <option value="1" selected="@(Model.FiltroEstado == "1")">Disponibles</option>
+                                    <option value="14" selected="@(Model.FiltroEstado == "14")">Asignados a Supervisor</option>
+                                    <option value="4" selected="@(Model.FiltroEstado == "4")">En Trámite</option>
+                                    <option value="3" selected="@(Model.FiltroEstado == "3")">En Uso</option>
+                                    <option value="12" selected="@(Model.FiltroEstado == "12")">Utilizados</option>
+                                    <option value="6" selected="@(Model.FiltroEstado == "6")">Defectuosos</option>
+                                    <option value="11" selected="@(Model.FiltroEstado == "11")">En Planta</option>
+                                    <option value="8" selected="@(Model.FiltroEstado == "8")">Extraviados</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-search"></i> Buscar
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <hr>
+
+                    <div class="d-grid gap-2">
+                        <a href="/Sellos/GestionSellos" class="btn btn-outline-primary">
+                            <i class="fas fa-cog"></i> Gestión de Sellos
+                        </a>
+                        <a href="/Sellos/InventarioCoordinador" class="btn btn-outline-success">
+                            <i class="fas fa-box"></i> Inventario Coordinador
+                        </a>
+                        <a href="/Sellos/HistorialSellos" class="btn btn-outline-info">
+                            <i class="fas fa-history"></i> Historial Completo
+                        </a>
+                        <button class="btn btn-outline-secondary" onclick="exportarExcel()">
+                            <i class="fas fa-file-excel"></i> Exportar a Excel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABLA DE SELLOS -->
+    <div class="card shadow">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="fas fa-table"></i> Listado Completo de Sellos</h5>
+        </div>
+        <div class="card-body">
+            <table id="tablaSellos" class="table table-striped table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Sello</th>
+                        <th>Estado</th>
+                        <th>Supervisor</th>
+                        <th>Operador</th>
+                        <th>Unidad</th>
+                        <th>Última Actualización</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var sello in Model.TodosLosSellos)
+                    {
+                        <tr>
+                            <td>@sello.Id</td>
+                            <td class="fw-bold">@sello.NumeroSello</td>
+                            <td>
+                                @{
+                                    var badgeClass = sello.Status switch
+                                    {
+                                        1 => "bg-success",
+                                        14 => "bg-info",
+                                        4 => "bg-warning text-dark",
+                                        3 => "bg-primary",
+                                        12 => "bg-secondary",
+                                        6 => "bg-danger",
+                                        11 => "bg-orange",
+                                        8 => "bg-dark",
+                                        _ => "bg-secondary"
+                                    };
+                                }
+                                <span class="badge @badgeClass">@sello.StatusTexto</span>
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(sello.SupervisorNombre))
+                                {
+                                    <small>@sello.SupervisorNombre</small>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                @if (sello.AsignacionActual != null && sello.AsignacionActual.Operador != null)
+                                {
+                                    <small>
+                                        @sello.AsignacionActual.Operador.Names @sello.AsignacionActual.Operador.Apellido
+                                        @if (sello.AsignacionActual.Operador2 != null)
+                                        {
+                                            <br />
+                                            <span class="text-muted">+ @sello.AsignacionActual.Operador2.Names</span>
+                                        }
+                                    </small>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                @if (sello.AsignacionActual?.Unidad != null)
+                                {
+                                    <span class="badge bg-secondary">@sello.AsignacionActual.Unidad.NumUnidad</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                <small>@(sello.FechaAsignacionSupervisor?.ToString("dd/MM/yyyy") ?? "-")</small>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary"
+                                        onclick="verDetalleSello(@sello.Id)"
+                                        title="Ver Detalle">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: DETALLE DE SELLO -->
+<div class="modal fade" id="modalDetalleSello" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle"></i> Detalle Completo del Sello
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalDetalleBody">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        // ==========================================
+        // INICIALIZAR DATATABLES
+        // ==========================================
+        $(document).ready(function() {
+            $('#tablaSellos').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+                },
+                order: [[0, 'desc']],
+                pageLength: 25,
+                responsive: true
+            });
+        });
+
+        // ==========================================
+        // GRÁFICA DE DISTRIBUCIÓN
+        // ==========================================
+        const estadisticas = @Html.Raw(Model.EstadisticasJSON);
+
+        const ctx = document.getElementById('chartDistribucion').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: estadisticas.labels,
+                datasets: [{
+                    data: estadisticas.data,
+                    backgroundColor: estadisticas.colors,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            font: { size: 11 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // ==========================================
+        // VER DETALLE DE SELLO
+        // ==========================================
+        async function verDetalleSello(idSello) {
+            try {
+                const response = await fetch(`/Sellos/Dashboard?handler=DetalleSello&idSello=${idSello}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    Swal.fire('Error', data.error, 'error');
+                    return;
+                }
+
+                const sello = data.sello || {};
+                const historial = data.historial || [];
+                const asignaciones = data.asignaciones || [];
+                const evidencias = data.evidencias || [];
+
+                let html = `
+                    <div class="row">
+                        <!-- INFORMACIÓN DEL SELLO -->
+                        <div class="col-md-4">
+                            <div class="card mb-3">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0"><i class="fas fa-tag"></i> Información del Sello</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Número:</strong> <span class="badge bg-primary fs-5">${sello.sello || 'N/A'}</span></p>
+                                    <p><strong>ID:</strong> ${sello.id || 'N/A'}</p>
+                                    <p><strong>Estado:</strong> <span class="badge bg-info">${sello.statusTexto || 'N/A'}</span></p>
+                                    <p><strong>Supervisor:</strong> ${sello.supervisor || '-'}</p>
+                                    <p><strong>Fecha Alta:</strong> ${sello.alta ? new Date(sello.alta).toLocaleDateString('es-MX') : '-'}</p>
+                                    <p><strong>Última Asignación:</strong> ${sello.fechaAsignacion ? new Date(sello.fechaAsignacion).toLocaleDateString('es-MX') : '-'}</p>
+                                </div>
+                            </div>
+
+                            <!-- EVIDENCIAS -->
+                            <div class="card">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0"><i class="fas fa-images"></i> Evidencias (${evidencias.length})</h6>
+                                </div>
+                                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                                    ${evidencias.length > 0 ? `
+                                        <div class="row g-2">
+                                            ${evidencias.map(e => {
+                                                const tamaño = e.tamanoComprimido || e.tamanoOriginal || 0;
+                                                const fecha = e.fSubidaEvidencia ? new Date(e.fSubidaEvidencia).toLocaleString('es-MX') : 'Sin fecha';
+                                                const esPDF = e.tipoArchivo === 'pdf';
+                                                const esRutaAntigua = e.tipoArchivo === 'ruta_antigua';
+
+                                                return `
+                                                    <div class="col-12 mb-2">
+                                                        <div class="card">
+                                                            <div class="card-body p-2">
+                                                                ${esPDF ? `
+                                                                    <div class="text-center">
+                                                                        <i class="fas fa-file-pdf fa-4x text-danger mb-2"></i>
+                                                                        <br/>
+                                                                        <a href="data:application/pdf;base64,${e.imagen}"
+                                                                           target="_blank"
+                                                                           download="evidencia_${e.id}.pdf"
+                                                                           class="btn btn-sm btn-danger">
+                                                                            <i class="fas fa-download"></i> Descargar PDF
+                                                                        </a>
+                                                                    </div>
+                                                                ` : esRutaAntigua ? `
+                                                                    <div class="text-center">
+                                                                        <img src="${e.imagen}"
+                                                                             class="img-fluid rounded"
+                                                                             style="max-height: 150px; cursor: pointer;"
+                                                                             onclick="verImagenCompleta('${e.imagen}', ${e.id}, true)"
+                                                                             alt="Evidencia" />
+                                                                    </div>
+                                                                ` : `
+                                                                    <div class="text-center">
+                                                                        <img src="data:image/jpeg;base64,${e.imagenThumbnail || e.imagen}"
+                                                                             class="img-fluid rounded shadow-sm"
+                                                                             style="max-height: 150px; width: 100%; object-fit: cover; cursor: pointer;"
+                                                                             onclick='verImagenCompleta(\`${e.imagen}\`, ${e.id}, false)'
+                                                                             alt="Evidencia"
+                                                                             title="Click para ver en tamaño completo" />
+                                                                    </div>
+                                                                `}
+                                                                <hr class="my-2"/>
+                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                    <small class="text-muted">
+                                                                        <i class="fas fa-clock"></i> ${fecha}
+                                                                    </small>
+                                                                    <small class="text-success">
+                                                                        ${tamaño} KB
+                                                                    </small>
+                                                                </div>
+                                                                ${e.tipoArchivo ? `<span class="badge bg-secondary mt-1">${e.tipoArchivo}</span>` : ''}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                `;
+                                            }).join('')}
+                                        </div>
+                                    ` : '<p class="text-muted text-center">Sin evidencias</p>'}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- HISTORIAL -->
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header bg-warning">
+                                    <h6 class="mb-0"><i class="fas fa-history"></i> Historial (${historial.length})</h6>
+                                </div>
+                                <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                                    ${historial.length > 0 ? historial.map(h => `
+                                        <div class="timeline-item">
+                                            <strong>${h.tipoMovimiento || 'Movimiento'}</strong>
+                                            <br/><small class="text-muted">${h.fechaMovimiento ? new Date(h.fechaMovimiento).toLocaleString('es-MX') : 'Sin fecha'}</small>
+                                            <br/><small>Por: ${h.usuarioNombre || '-'}</small>
+                                            ${h.supervisorNombreAnterior ? `<br/><small class="text-info">De: ${h.supervisorNombreAnterior}</small>` : ''}
+                                            ${h.supervisorNombreNuevo ? `<br/><small class="text-success">A: ${h.supervisorNombreNuevo}</small>` : ''}
+                                            ${h.comentario ? `<br/><small class="text-secondary">${h.comentario}</small>` : ''}
+                                        </div>
+                                    `).join('') : '<p class="text-muted text-center">Sin historial</p>'}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ASIGNACIONES -->
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0"><i class="fas fa-users"></i> Asignaciones (${asignaciones.length})</h6>
+                                </div>
+                                <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                                    ${asignaciones.length > 0 ? asignaciones.map(a => `
+                                        <div class="border-bottom mb-3 pb-2">
+                                            <strong>Estado:</strong> <span class="badge ${
+                                                a.status === 3 ? 'bg-primary' :
+                                                a.status === 4 ? 'bg-warning text-dark' :
+                                                'bg-secondary'
+                                            }">${
+                                                a.status === 3 ? 'En Uso' :
+                                                a.status === 4 ? 'En Trámite' :
+                                                'Finalizado'
+                                            }</span>
+                                            <br/><strong>Operador:</strong> ${a.operador || '-'}
+                                            ${a.operador2 ? `<br/><small class="text-muted">+ ${a.operador2}</small>` : ''}
+                                            <br/><strong>Unidad:</strong> ${a.unidad || '-'}
+                                            <br/><strong>Ruta:</strong> ${a.ruta || '-'}
+                                            <br/><small class="text-muted">Asignado: ${a.fentrega ? new Date(a.fentrega).toLocaleString('es-MX') : '-'}</small>
+                                            ${a.fechaEntrega ? `<br/><small class="text-success">Entregado: ${new Date(a.fechaEntrega).toLocaleString('es-MX')}</small>` : ''}
+                                            ${a.fechaDevolucion ? `<br/><small class="text-info">Devuelto: ${new Date(a.fechaDevolucion).toLocaleString('es-MX')}</small>` : ''}
+                                            ${a.qR_Code ? `<br/><span class="badge bg-primary mt-1"><i class="fas fa-qrcode"></i> QR Generado</span>` : ''}
+                                            ${a.statusEvidencia ? `<br/><span class="badge bg-warning mt-1">${a.statusEvidencia}</span>` : ''}
+                                        </div>
+                                    `).join('') : '<p class="text-muted text-center">Sin asignaciones</p>'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- MODAL PARA VER IMAGEN COMPLETA -->
+                    <div class="modal fade" id="modalImagenCompleta" tabindex="-1">
+                        <div class="modal-dialog modal-xl modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">
+                                        <i class="fas fa-image me-2"></i>Evidencia Completa
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body text-center bg-dark p-4">
+                                    <img id="imagenCompletaDetalle" src="" class="img-fluid" style="max-height: 80vh;" />
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                    <a id="btnDescargarImagenDetalle" href="#" download="evidencia.jpg" class="btn btn-primary">
+                                        <i class="fas fa-download"></i> Descargar
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('modalDetalleBody').innerHTML = html;
+                new bootstrap.Modal(document.getElementById('modalDetalleSello')).show();
+
+            } catch (error) {
+                Swal.fire('Error', 'No se pudo cargar el detalle: ' + error.message, 'error');
+                console.error('Error completo:', error);
+            }
+        }
+
+        // ==========================================
+        // VER IMAGEN COMPLETA
+        // ==========================================
+        function verImagenCompleta(imagenBase64OrUrl, id, esRutaAntigua) {
+            const imgElement = document.getElementById('imagenCompletaDetalle');
+            const downloadBtn = document.getElementById('btnDescargarImagenDetalle');
+
+            if (esRutaAntigua) {
+                imgElement.src = imagenBase64OrUrl;
+                downloadBtn.href = imagenBase64OrUrl;
+                downloadBtn.download = `evidencia_${id}.jpg`;
+            } else {
+                const dataUrl = 'data:image/jpeg;base64,' + imagenBase64OrUrl;
+                imgElement.src = dataUrl;
+                downloadBtn.href = dataUrl;
+                downloadBtn.download = `evidencia_${id}.jpg`;
+            }
+
+            new bootstrap.Modal(document.getElementById('modalImagenCompleta')).show();
+        }
+
+        // ==========================================
+        // EXPORTAR A EXCEL
+        // ==========================================
+        function exportarExcel() {
+            Swal.fire({
+                icon: 'info',
+                title: 'Exportar a Excel',
+                text: 'Esta funcionalidad estará disponible próximamente',
+                confirmButtonText: 'Entendido'
+            });
+        }
+    </script>
+}

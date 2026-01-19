@@ -28,6 +28,10 @@ builder.Services.AddRazorPages();
 // 🔥 AGREGAR ESTA LÍNEA PARA SOPORTAR CONTROLADORES API
 builder.Services.AddControllers();
 
+//AGREGAR SERVICIO DE QR
+builder.Services.AddScoped<QRCodeService>();
+builder.Services.AddScoped<ImagenService>();
+
 // CONFIGURACIÓN DE BASE DE DATOS CON VALIDACIÓN Y FALLBACK
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
@@ -87,7 +91,8 @@ builder.Services.AddScoped<ISharePointTestService, SharePointTestService>();
 // HEALTH CHECKS
 builder.Services.AddHealthChecks()
     .AddCheck<SharePointHealthCheck>("sharepoint");
-
+//SERVICIO DE SELLOS
+builder.Services.AddScoped<SellosAuditoriaService>();
 // Habilitar soporte para sesiones
 builder.Services.AddSession(options =>
 {

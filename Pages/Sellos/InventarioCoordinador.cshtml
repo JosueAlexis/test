@@ -1,494 +1,553 @@
 ﻿@page
 @model ProyectoRH2025.Pages.Sellos.InventarioCoordinadorModel
-@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@inject ProyectoRH2025.Services.QRCodeService qrService
 @{
-    ViewData["Title"] = "Inventario del Coordinador";
-    Layout = "~/Pages/Shared/_Layout.cshtml";
-    var token = Antiforgery.GetAndStoreTokens(HttpContext).RequestToken;
+    ViewData["Title"] = "Inventario - Coordinador";
 }
 
-<h2 class="mb-4">
-    <i class="fas fa-box-open text-primary"></i> Inventario de Sellos Asignados
-</h2>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
-<input type="hidden" id="requestVerificationToken" name="__RequestVerificationToken" value="@token" />
+<div class="container mt-4">
+    <h2 class="mb-4">
+        <i class="fas fa-box-open text-primary"></i> Inventario de Sellos - Coordinador
+    </h2>
 
-<table id="tablaSellos" class="table table-hover table-bordered align-middle shadow-sm">
-    <thead class="table-light text-center">
-        <tr>
-            <th>Sello</th>
-            <th>Operador</th>
-            <th>Unidad</th>
-            <th>Ruta</th>
-            <th>Fecha Asignación</th>
-            <th>Tipo</th>
-            <th>Acciones</th>
-        </tr>
-    </thead>
-    <tbody class="text-center">
-        @foreach (var item in Model.SellosAsignados)
-        {
-            <tr>
-                <td>@item.Sello</td>
-                <td>@item.OperadorNombre</td>
-                <td>@item.Unidad</td>
-                <td>@item.Ruta</td>
-                <td>@item.Fentrega.ToString("dd/MM/yyyy hh:mm tt")</td>
-                <td>
-                    <span class="badge bg-info">@((item.TipoAsignacion == 1 ? "Comboy" : "Individual"))</span>
-                </td>
-                <td>
-                    <!-- CAMBIO IMPORTANTE: Quité data-bs-toggle y data-bs-target -->
-                    <button class="btn btn-success btn-sm me-1 btn-accion-modal" data-id="@item.id" data-accion="entregar">
-                        <i class="fas fa-hand-holding"></i> Entregar
+    @if (!string.IsNullOrEmpty(Model.Mensaje))
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="fas fa-check-circle me-2"></i> @Model.Mensaje
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.MensajeError))
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            <i class="fas fa-exclamation-circle me-2"></i> @Model.MensajeError
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- MOSTRAR QR RECIÉN GENERADO -->
+    @if (TempData["MostrarQR"] != null)
+    {
+        var codigoQR = TempData["MostrarQR"].ToString();
+        var qrBase64 = qrService.GenerarQRBase64(codigoQR);
+
+        <div class="alert alert-success shadow-lg">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h4 class="alert-heading">
+                        <i class="fas fa-check-circle"></i> ¡QR Generado Exitosamente!
+                    </h4>
+                    <p class="mb-2">El código QR ha sido generado. Imprímelo o muéstralo al operador.</p>
+                    <hr />
+                    <p class="mb-0"><strong>Código:</strong> <code>@codigoQR</code></p>
+                </div>
+                <div class="col-md-4 text-center">
+                    <img src="data:image/png;base64,@qrBase64"
+                         alt="Código QR"
+                         class="img-fluid"
+                         style="max-width: 200px; border: 3px solid #198754; padding: 10px; background: white;" />
+                    <button class="btn btn-sm btn-outline-primary mt-2" onclick="window.print()">
+                        <i class="fas fa-print"></i> Imprimir
                     </button>
-                    <button class="btn btn-primary btn-sm btn-accion-modal" data-id="@item.id" data-accion="recibir">
-                        <i class="fas fa-undo-alt"></i> Recibir
-                    </button>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+                </div>
+            </div>
+        </div>
+    }
 
-<!-- El resto del código del modal permanece igual -->
-<div class="modal fade" id="modalHuellas" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="modalLabel">
-                    <i class="fas fa-fingerprint me-2"></i> Validación de Huellas
+    <!-- TABLA DE SELLOS EN TRÁMITE -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0">
+                <i class="fas fa-clock me-2"></i>Sellos en Trámite (Status 4)
+                <span class="badge bg-dark float-end">@Model.SellosEnTramite.Count</span>
+            </h5>
+        </div>
+        <div class="card-body">
+            @if (Model.SellosEnTramite.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Sello</th>
+                                <th>Operador(es)</th>
+                                <th>Unidad</th>
+                                <th>Ruta</th>
+                                <th>Tipo</th>
+                                <th>Supervisor</th>
+                                <th>Fecha Asignación</th>
+                                <th width="200">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.SellosEnTramite)
+                            {
+                                <tr>
+                                    <td class="fw-bold text-primary">@item.Sello?.Sello</td>
+                                    <td>
+                                        <div>@item.Operador?.Names @item.Operador?.Apellido</div>
+                                        @if (item.TipoAsignacion == 1 && item.Operador2 is not null)
+                                        {
+                                            <small class="text-muted">
+                                                <i class="fas fa-user-friends"></i> + @item.Operador2.Names @item.Operador2.Apellido
+                                            </small>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">@item.Unidad?.NumUnidad</span>
+                                    </td>
+                                    <td>@item.Ruta</td>
+                                    <td>
+                                        <span class="badge bg-info">
+                                            @(item.TipoAsignacion == 1 ? "Comboy" : "Individual")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small>@item.Usuario?.UsuarioNombre</small>
+                                    </td>
+                                    <td>
+                                        <small>@item.Fentrega.ToString("dd/MM/yyyy HH:mm")</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button class="btn btn-success"
+                                                    onclick="entregarSello(@item.id)"
+                                                    title="Entregar">
+                                                <i class="fas fa-check-circle"></i>
+                                            </button>
+                                            <button class="btn btn-primary"
+                                                    onclick="modificarAsignacion(@item.id)"
+                                                    title="Modificar">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center text-muted py-5">
+                    <i class="fas fa-inbox fa-3x mb-3 opacity-50"></i>
+                    <p class="mb-0">No hay sellos en trámite</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- TABLA DE SELLOS EN USO -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-truck me-2"></i>Sellos En Uso (Status 3)
+                <span class="badge bg-dark float-end">@Model.SellosEnUso.Count</span>
+            </h5>
+        </div>
+        <div class="card-body">
+            @if (Model.SellosEnUso.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Sello</th>
+                                <th>Operador(es)</th>
+                                <th>Unidad</th>
+                                <th>QR Code</th>
+                                <th>Fecha Entrega</th>
+                                <th>Status Evidencia</th>
+                                <th width="250">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.SellosEnUso)
+                            {
+                                <tr>
+                                    <td class="fw-bold text-success">@item.Sello?.Sello</td>
+                                    <td>
+                                        <div>@item.Operador?.Names @item.Operador?.Apellido</div>
+                                        @if (item.TipoAsignacion == 1 && item.Operador2 is not null)
+                                        {
+                                            <small class="text-muted">
+                                                <i class="fas fa-user-friends"></i> + @item.Operador2.Names @item.Operador2.Apellido
+                                            </small>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">@item.Unidad?.NumUnidad</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-outline-primary"
+                                                onclick="verQR(@item.id)"
+                                                title="Ver QR">
+                                            <i class="fas fa-qrcode"></i>
+                                        </button>
+                                    </td>
+                                    <td>
+                                        <small>@(item.FechaEntrega?.ToString("dd/MM/yyyy HH:mm") ?? "-")</small>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(item.StatusEvidencia))
+                                        {
+                                            <span class="badge bg-info">@item.StatusEvidencia</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button class="btn btn-warning"
+                                                    onclick="devolverSello(@item.id)"
+                                                    title="Devolver">
+                                                <i class="fas fa-undo"></i>
+                                            </button>
+                                            <button class="btn btn-info"
+                                                    onclick="subirEvidencia(@item.id)"
+                                                    title="Evidencia">
+                                                <i class="fas fa-camera"></i>
+                                            </button>
+                                            <button class="btn btn-secondary"
+                                                    onclick="verEvidencias(@item.id)"
+                                                    title="Ver Evidencias">
+                                                <i class="fas fa-images"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center text-muted py-5">
+                    <i class="fas fa-inbox fa-3x mb-3 opacity-50"></i>
+                    <p class="mb-0">No hay sellos en uso</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: ENTREGAR SELLO -->
+<div class="modal fade" id="modalEntregar" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-check-circle me-2"></i>Confirmar Entrega
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                <p><strong>Acción:</strong> <span id="accionTitulo" class="text-capitalize"></span></p>
-                <p id="indicadorLectura">Presiona "Confirmar" para iniciar la validación</p>
-                <div id="resultadoValidacion" class="alert alert-info">Esperando validación...</div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times-circle"></i> Cancelar
-                </button>
-                <button type="button" class="btn btn-success" id="btnConfirmarAccion" data-id="">
-                    <i class="fas fa-check-circle"></i> Confirmar
-                </button>
+            <div class="modal-body" id="modalEntregarBody">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="modal fade" id="modalRegistrarHuella" tabindex="-1" aria-labelledby="modalRegistroLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content shadow">
-            <div class="modal-header bg-warning text-dark">
-                <h5 class="modal-title" id="modalRegistroLabel">
-                    <i class="fas fa-hand-pointer me-2"></i> Registrar Huella Nueva
+<!-- MODAL: MODIFICAR ASIGNACIÓN -->
+<div class="modal fade" id="modalModificar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>Modificar Operador(es)
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body text-center">
-                <p>Selecciona el dedo que deseas registrar:</p>
-                <p>Registrando huella de: <strong id="tipoPersonaHuella" class="text-uppercase text-primary"></strong></p>
+            <form method="post" asp-page-handler="ModificarOperador">
+                <div class="modal-body">
+                    <input type="hidden" id="modIdAsignacion" name="IdAsignacion" />
 
-                <div class="container-fluid">
-                    <div class="row justify-content-center align-items-start">
-                        <div class="col-md-6 col-sm-12 mb-3">
-                            <h5 class="text-muted">Mano Izquierda</h5>
-                            <div class="mano-container">
-                                <img src="/img/mano_seleccion_dedos.png" class="img-fluid mano-imagen" alt="Mano Izquierda">
-                                <div class="dedos-botones-overlay">
-                                    <button type="button" class="btn btn-dedo" data-mano="izquierda" data-dedo="Pulgar Izquierdo" style="top: 35%; left: 15%;"></button>
-                                    <button type="button" class="btn btn-dedo" data-mano="izquierda" data-dedo="Índice Izquierdo" style="top: 12%; left: 30%;"></button>
-                                    <button type="button" class="btn btn-dedo" data-mano="izquierda" data-dedo="Medio Izquierdo" style="top: 8%;  left: 48%;"></button>
-                                    <button type="button" class="btn btn-dedo" data-mano="izquierda" data-dedo="Anular Izquierdo" style="top: 12%; left: 65%;"></button>
-                                    <button type="button" class="btn btn-dedo" data-mano="izquierda" data-dedo="Meñique Izquierdo" style="top: 25%; left: 78%;"></button>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Asignación</label>
+                        <select id="modTipoAsignacion" name="TipoAsignacion" class="form-select">
+                            <option value="0">Individual</option>
+                            <option value="1">Comboy</option>
+                        </select>
+                    </div>
 
-                        <div class="col-md-6 col-sm-12 mb-3">
-                            <h5 class="text-muted">Mano Derecha</h5>
-                            <div class="mano-container">
-                                <img src="/img/mano_derecha.png" class="img-fluid mano-imagen" alt="Mano Derecha">
-                                <div class="dedos-botones-overlay">
-                                    <button type="button" class="btn btn-dedo" data-mano="derecha" data-dedo="Meñique Derecho" style="top: 25%; left: 15%;"></button>
-                                    <button type="button" class="btn btn-dedo" data-mano="derecha" data-dedo="Anular Derecho" style="top: 12%; left: 30%;"></button>
-                                    <button type="button" class="btn btn-dedo" data-mano="derecha" data-dedo="Medio Derecho" style="top: 8%;  left: 48%;"></button>
-                                    <button type="button" class="btn btn-dedo" data-mano="derecha" data-dedo="Índice Derecho" style="top: 12%; left: 65%;"></button>
-                                    <button type="button" class="btn btn-dedo" data-mano="derecha" data-dedo="Pulgar Derecho" style="top: 35%; left: 78%;"></button>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label">Operador Principal</label>
+                        <select id="modOperador1" name="IdOperador" class="form-select operador-select" required></select>
+                    </div>
+
+                    <div class="mb-3" id="modOperador2Container" style="display: none;">
+                        <label class="form-label">Segundo Operador</label>
+                        <select id="modOperador2" name="IdOperador2" class="form-select operador-select"></select>
                     </div>
                 </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-                <div id="dedoSeleccionadoInfo" class="alert alert-info mt-3" style="display: none; max-width: 400px; margin: 15px auto 0 auto;">
-                    Dedo seleccionado: <strong id="nombreDedoSeleccionado"></strong>
+<!-- MODAL: VER QR -->
+<div class="modal fade" id="modalQR" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-qrcode me-2"></i>Código QR
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center" id="modalQRBody">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btnRegistrarHuella">Registrar Huella</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: DEVOLVER SELLO -->
+<div class="modal fade" id="modalDevolver" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title">
+                    <i class="fas fa-undo me-2"></i>Devolver Sello
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" asp-page-handler="DevolverSello">
+                <div class="modal-body">
+                    <input type="hidden" id="devIdAsignacion" name="IdAsignacion" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Escanear o Ingresar Código QR</label>
+                        <input type="text" name="CodigoQR" class="form-control"
+                               placeholder="ASIG-XXX-SELLO-XXX..."
+                               required
+                               autocomplete="off" />
+                        <small class="form-text text-muted">
+                            Formato: ASIG-{id}-SELLO-{numero}-OP-{id}-{timestamp}
+                        </small>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Importante:</strong> El código QR debe coincidir exactamente con el sello y operador asignados.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-check"></i> Procesar Devolución
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: SUBIR EVIDENCIA -->
+<div class="modal fade" id="modalEvidencia" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-camera me-2"></i>Subir Evidencia
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data" asp-page-handler="SubirEvidencia">
+                <div class="modal-body">
+                    <input type="hidden" id="evIdAsignacion" name="IdAsignacion" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Evidencia</label>
+                        <select name="TipoEvidencia" class="form-select" required>
+                            <option value="">-- Seleccionar --</option>
+                            <option value="Utilizado">✅ Sello Utilizado</option>
+                            <option value="Defectuoso">⚠️ Sello Defectuoso</option>
+                            <option value="Planta">🏭 Se quedó en Planta</option>
+                            <option value="Extraviado">❌ Sello Extraviado</option>
+                            <option value="Otro">📝 Otro</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Archivo (Foto/PDF)</label>
+                        <input type="file" name="ArchivoEvidencia" class="form-control"
+                               accept="image/*,application/pdf" required />
+                        <small class="form-text text-muted">
+                            Formatos: JPG, PNG, PDF (Máx. 10MB)
+                        </small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Comentarios</label>
+                        <textarea name="Comentarios" class="form-control" rows="3"
+                                  placeholder="Describe los detalles de la evidencia..."></textarea>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Nota:</strong> El status del sello se actualizará automáticamente según el tipo de evidencia.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-info">
+                        <i class="fas fa-upload"></i> Subir Evidencia
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: VER EVIDENCIAS -->
+<div class="modal fade" id="modalVerEvidencias" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-secondary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-images me-2"></i>Evidencias Registradas
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalVerEvidenciasBody">
+                <div class="text-center">
+                    <div class="spinner-border text-secondary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-
-    <style>
-        div.dataTables_filter input {
-            padding-left: 2rem;
-            background-image: url('https://cdn-icons-png.flaticon.com/512/622/622669.png');
-            background-repeat: no-repeat;
-            background-size: 16px 16px;
-            background-position: 8px center;
-            border-radius: 0.375rem;
-        }
-
-        .dataTables_length select {
-            border-radius: 0.375rem;
-        }
-
-        .mano-container {
-            position: relative;
-            display: inline-block;
-            max-width: 300px;
-            margin: 0 auto;
-            border: 1px solid #eee;
-            min-height: 200px;
-            background-color: #f8f9fa;
-        }
-
-        .mano-imagen {
-            display: block;
-            width: 100%;
-            height: auto;
-        }
-
-        .dedos-botones-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-
-        .btn-dedo {
-            position: absolute;
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            background-color: rgba(0, 123, 255, 0.4);
-            border: 2px solid rgba(0, 123, 255, 0.8);
-            padding: 0;
-            transform: translate(-50%, -50%);
-            transition: all 0.2s ease-in-out;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
-            cursor: pointer;
-        }
-
-            .btn-dedo:hover {
-                background-color: rgba(0, 123, 255, 0.6);
-                border-color: #0056b3;
-                transform: translate(-50%, -50%) scale(1.1);
-            }
-
-            .btn-dedo.seleccionado {
-                background-color: rgba(220, 53, 69, 0.7);
-                border-color: #b02a37;
-                box-shadow: 0 0 12px 3px rgba(220, 53, 69, 0.6);
-                transform: translate(-50%, -50%) scale(1.15);
-            }
-
-            .btn-dedo i {
-                color: white;
-                font-size: 0.8rem;
-            }
-
-        /* FIX CRÍTICO: Modal sin backdrop oscuro */
-        .modal {
-            z-index: 1050 !important;
-            background-color: rgba(0,0,0,0.1) !important; /* Fondo muy sutil */
-        }
-
-        .modal-dialog {
-            z-index: 1060 !important;
-            margin: 50px auto !important;
-        }
-
-        /* Contenido del modal bien visible */
-        .modal-content {
-            z-index: 1070 !important;
-            position: relative;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3) !important;
-            border: 2px solid #007bff !important;
-        }
-
-        /* Asegurar que no haya backdrop problemático */
-        .modal-backdrop {
-            display: none !important;
-        }
-    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        var dedoActualmenteSeleccionado = null;
-
-        $(document).ready(function () {
-            console.log("Página cargada, inicializando...");
-
-            // Inicializar DataTable
-            $('#tablaSellos').DataTable({
-                language: {
-                    search: "",
-                    searchPlaceholder: "Buscar...",
-                    lengthMenu: "Mostrar _MENU_ registros",
-                    info: "Mostrando _START_ a _END_ de _TOTAL_ entradas",
-                    paginate: { previous: "Anterior", next: "Siguiente" },
-                    zeroRecords: "No se encontraron resultados"
-                },
-                lengthMenu: [5, 10, 25, 50, 100],
-                pageLength: 10
-            });
-
-            // CAMBIO IMPORTANTE: Manejador manual para abrir modal SIN BACKDROP
-            $('.btn-accion-modal').on('click', function(e) {
-                e.preventDefault();
-                console.log("Botón clickeado");
-
-                var idSeleccionado = $(this).data('id');
-                var accion = $(this).data('accion');
-
-                console.log("ID:", idSeleccionado, "Acción:", accion);
-
-                // Configurar el modal
-                $('#accionTitulo').text(accion.charAt(0).toUpperCase() + accion.slice(1));
-                $('#btnConfirmarAccion').data('id', idSeleccionado);
-                $('#resultadoValidacion').removeClass().addClass('alert alert-info').text('Esperando validación...');
-                $('#indicadorLectura').text('Presiona "Confirmar" para iniciar la validación');
-
-                // Limpiar cualquier backdrop previo
-                $('.modal-backdrop').remove();
-
-                // Abrir modal manualmente SIN backdrop oscuro
-                console.log("Abriendo modal...");
-                var modalElement = document.getElementById('modalHuellas');
-
-                // Método directo sin Bootstrap y SIN backdrop
-                modalElement.style.display = 'block';
-                modalElement.classList.add('show');
-                modalElement.setAttribute('aria-hidden', 'false');
-                modalElement.setAttribute('aria-modal', 'true');
-                modalElement.setAttribute('role', 'dialog');
-
-                // NO agregamos modal-open al body para evitar el oscurecimiento
-                // document.body.classList.add('modal-open');
-
-                // NO creamos backdrop - modal sin fondo oscuro
-                console.log("Modal abierto sin backdrop oscuro");
-            });
-
-            // Función para cerrar el modal correctamente
-            $(document).on('click', '[data-bs-dismiss="modal"], .btn-close', function() {
-                console.log("Cerrando modal...");
-                var modalElement = document.getElementById('modalHuellas');
-
-                if (modalElement) {
-                    modalElement.style.display = 'none';
-                    modalElement.classList.remove('show');
-                    modalElement.setAttribute('aria-hidden', 'true');
-                    modalElement.removeAttribute('aria-modal');
-                    modalElement.removeAttribute('role');
-
-                    // Remover cualquier backdrop que pueda existir
-                    var allBackdrops = document.querySelectorAll('.modal-backdrop');
-                    allBackdrops.forEach(function(backdrop) {
-                        backdrop.remove();
-                    });
-
-                    // Asegurar que el body no tenga clases de modal
-                    document.body.classList.remove('modal-open');
-
-                    console.log("Modal cerrado correctamente");
-                }
-            });
-
-            // Cerrar modal con Escape
-            $(document).on('keydown', function(e) {
-                if (e.key === 'Escape' || e.keyCode === 27) {
-                    if ($('#modalHuellas').hasClass('show')) {
-                        console.log("Cerrando modal con Escape");
-                        $('[data-bs-dismiss="modal"]').first().click();
-                    }
-                }
-            });
-            $('#btnConfirmarAccion').on('click', async function () {
-                var id = $(this).data('id');
-                var requestToken = $('#requestVerificationToken').val();
-
-                $('#indicadorLectura').html('Coloque la huella del <strong>OPERADOR</strong>.');
-                $('#resultadoValidacion').text('Leyendo huella del operador...');
-                var huellaOperador = await capturarHuella();
-                if (!huellaOperador) {
-                    $('#resultadoValidacion').removeClass().addClass('alert alert-danger').text('Error al leer huella del operador.');
-                    return;
-                }
-
-                $('#indicadorLectura').html('Coloque la huella del <strong>COORDINADOR</strong>.');
-                $('#resultadoValidacion').text('Leyendo huella del coordinador...');
-                var huellaCoordinador = await capturarHuella();
-                if (!huellaCoordinador) {
-                    $('#resultadoValidacion').removeClass().addClass('alert alert-danger').text('Error al leer huella del coordinador.');
-                    return;
-                }
-                $('#resultadoValidacion').text('Validando huellas...');
-
-                fetch('?handler=ActualizarEstado', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'RequestVerificationToken': requestToken
-                    },
-                    body: JSON.stringify({
-                        id: id,
-                        huellaOperador: huellaOperador,
-                        huellaCoordinador: huellaCoordinador
-                    })
-                })
-                .then(function(res) { return res.json(); })
-                .then(function(data) {
-                    if (data.success) {
-                        $('#resultadoValidacion').removeClass().addClass('alert alert-success').text('Huellas válidas. Estado actualizado.');
-                        setTimeout(function() { location.reload(); }, 1500);
-                    } else if (data.registrar) {
-                        $('#modalHuellas').modal('hide');
-                        $('#modalRegistrarHuella').data('persona', data.registrar);
-                        $('#modalRegistrarHuella').data('idpersona', data.idPersona);
-                        $('#modalRegistrarHuella').modal('show');
-                    } else {
-                        $('#resultadoValidacion').removeClass().addClass('alert alert-danger').text(data.error || 'Las huellas no coinciden.');
-                    }
-                })
-                .catch(function() {
-                    $('#resultadoValidacion').removeClass().addClass('alert alert-danger').text('Error en la validación del servidor.');
-                });
-            });
-
-            // Manejo de selección de dedos
-            $('.btn-dedo').on('click', function() {
-                var botonClickeado = $(this);
-                var nombreDedo = botonClickeado.data('dedo');
-
-                if (botonClickeado.hasClass('seleccionado')) {
-                    return;
-                }
-
-                $('.btn-dedo').removeClass('seleccionado');
-                botonClickeado.addClass('seleccionado');
-                dedoActualmenteSeleccionado = nombreDedo;
-
-                $('#nombreDedoSeleccionado').text(dedoActualmenteSeleccionado);
-                $('#dedoSeleccionadoInfo').show();
-
-                console.log('Dedo seleccionado:', dedoActualmenteSeleccionado);
-            });
-
-            // Modal de registro de huella
-            $('#modalRegistrarHuella').on('show.bs.modal', function (event) {
-                var persona = $(this).data('persona');
-                $('#tipoPersonaHuella').text(persona ? persona.toUpperCase() : 'N/A');
-
-                $('.btn-dedo').removeClass('seleccionado');
-                dedoActualmenteSeleccionado = null;
-                $('#dedoSeleccionadoInfo').hide();
-                $('#nombreDedoSeleccionado').text('');
-            });
-
-            $('#btnRegistrarHuella').on('click', async function () {
-                var persona = $('#modalRegistrarHuella').data('persona');
-                var idPersona = $('#modalRegistrarHuella').data('idpersona');
-                var requestToken = $('#requestVerificationToken').val();
-
-                if (!dedoActualmenteSeleccionado) {
-                    alert("Por favor selecciona un dedo antes de registrar.");
-                    return;
-                }
-
-                var huella = await capturarHuella();
-                if (!huella) {
-                    alert("Error al capturar la huella. Asegúrate que el dispositivo está conectado y la huella fue leída.");
-                    return;
-                }
-
-                fetch('/api/Huellas/Guardar', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'RequestVerificationToken': requestToken
-                    },
-                    body: JSON.stringify({
-                        huella: huella,
-                        dedo: dedoActualmenteSeleccionado,
-                        idEmpleado: persona === 'operador' ? idPersona : null,
-                        idUsuario: persona === 'coordinador' ? idPersona : null
-                    })
-                })
-                .then(async function(res) {
-                    if (!res.ok) {
-                        var errorData = await res.json().catch(function() {
-                            return { error: "Error desconocido del servidor." };
-                        });
-                        throw new Error(errorData.error || "Error del servidor: " + res.status);
-                    }
-                    return res.json();
-                })
-                .then(function(data) {
-                    if (data.success) {
-                        alert("Huella registrada correctamente.");
-                        $('#modalRegistrarHuella').modal('hide');
-                    } else {
-                        alert(data.error || "Error al registrar huella.");
-                    }
-                })
-                .catch(function(error) {
-                    console.error("Error en registro:", error);
-                    alert("Error al enviar la huella al servidor: " + error.message);
-                });
-            });
-        });
-
-        async function capturarHuella() {
+        // ENTREGAR SELLO - Cargar confirmación
+        async function entregarSello(idAsignacion) {
             try {
-                var requestToken = $('#requestVerificationToken').val();
-                var response = await fetch("?handler=LeerHuella", {
-                    method: "POST",
-                    headers: {
-                        "RequestVerificationToken": requestToken
-                    }
-                });
-                if (!response.ok) {
-                    var errorData = await response.json().catch(function() { return null; });
-                    console.error("Error en LeerHuella:", response.status, errorData);
-                    return null;
-                }
-                var data = await response.json();
-                if (data.success && data.template) {
-                    return data.template;
-                } else {
-                    console.error("LeerHuella no tuvo éxito:", data.error);
-                    return null;
-                }
+                const response = await fetch(`/Sellos/InventarioCoordinador?handler=ConfirmarEntrega&idAsignacion=${idAsignacion}`);
+                const html = await response.text();
+                document.getElementById('modalEntregarBody').innerHTML = html;
+                new bootstrap.Modal(document.getElementById('modalEntregar')).show();
             } catch (error) {
-                console.error("Excepción al llamar a LeerHuella:", error);
-                return null;
+                Swal.fire('Error', 'No se pudo cargar la información', 'error');
             }
         }
+
+        // MODIFICAR ASIGNACIÓN
+        async function modificarAsignacion(idAsignacion) {
+            try {
+                const response = await fetch(`/Sellos/InventarioCoordinador?handler=ObtenerAsignacion&idAsignacion=${idAsignacion}`);
+                const data = await response.json();
+
+                document.getElementById('modIdAsignacion').value = idAsignacion;
+                document.getElementById('modTipoAsignacion').value = data.tipoAsignacion;
+
+                // Cargar operadores
+                await cargarOperadores();
+
+                // Seleccionar operadores actuales
+                $('#modOperador1').val(data.idOperador).trigger('change');
+                if (data.tipoAsignacion == 1 && data.idOperador2) {
+                    $('#modOperador2').val(data.idOperador2).trigger('change');
+                    document.getElementById('modOperador2Container').style.display = 'block';
+                }
+
+                new bootstrap.Modal(document.getElementById('modalModificar')).show();
+            } catch (error) {
+                Swal.fire('Error', 'No se pudo cargar la información', 'error');
+            }
+        }
+
+        // VER QR
+        async function verQR(idAsignacion) {
+            try {
+                const response = await fetch(`/Sellos/InventarioCoordinador?handler=VerQR&idAsignacion=${idAsignacion}`);
+                const html = await response.text();
+                document.getElementById('modalQRBody').innerHTML = html;
+                new bootstrap.Modal(document.getElementById('modalQR')).show();
+            } catch (error) {
+                Swal.fire('Error', 'No se pudo cargar el QR', 'error');
+            }
+        }
+
+        // DEVOLVER SELLO
+        function devolverSello(idAsignacion) {
+            document.getElementById('devIdAsignacion').value = idAsignacion;
+            new bootstrap.Modal(document.getElementById('modalDevolver')).show();
+        }
+
+        // SUBIR EVIDENCIA
+        function subirEvidencia(idAsignacion) {
+            document.getElementById('evIdAsignacion').value = idAsignacion;
+            new bootstrap.Modal(document.getElementById('modalEvidencia')).show();
+        }
+
+        // VER EVIDENCIAS
+        async function verEvidencias(idAsignacion) {
+            try {
+                const response = await fetch(`/Sellos/InventarioCoordinador?handler=VerEvidencias&idAsignacion=${idAsignacion}`);
+                const html = await response.text();
+                document.getElementById('modalVerEvidenciasBody').innerHTML = html;
+                new bootstrap.Modal(document.getElementById('modalVerEvidencias')).show();
+            } catch (error) {
+                Swal.fire('Error', 'No se pudo cargar las evidencias', 'error');
+            }
+        }
+
+        // CARGAR OPERADORES (para modificar)
+        async function cargarOperadores() {
+            try {
+                const response = await fetch('/Sellos/InventarioCoordinador?handler=ListaOperadores');
+                const operadores = await response.json();
+
+                $('#modOperador1, #modOperador2').empty().append('<option value="">-- Seleccionar --</option>');
+                operadores.forEach(op => {
+                    $('#modOperador1, #modOperador2').append(new Option(op.text, op.value));
+                });
+
+                $('.operador-select').select2({
+                    width: '100%',
+                    placeholder: '-- Seleccionar Operador --'
+                });
+            } catch (error) {
+                console.error('Error cargando operadores:', error);
+            }
+        }
+
+        // Mostrar/ocultar segundo operador
+        document.getElementById('modTipoAsignacion')?.addEventListener('change', function() {
+            const container = document.getElementById('modOperador2Container');
+            if (this.value == '1') {
+                container.style.display = 'block';
+            } else {
+                container.style.display = 'none';
+                $('#modOperador2').val('').trigger('change');
+            }
+        });
     </script>
 }

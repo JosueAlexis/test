@@ -120,16 +120,16 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU2VsbG9zXEFzaWduYXJPcGVyYWRvci5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/jdelarosa/Desktop/Desarrollos Local/ProyectoRH2025/ProyectoRH2025/Pages/Sellos/AsignarSupervisor.cshtml]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU2VsbG9zXEFzaWduYXJTdXBlcnZpc29yLmNzaHRtbA==
+[C:/Users/jdelarosa/Desktop/Desarrollos Local/ProyectoRH2025/ProyectoRH2025/Pages/Sellos/Dashboard.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU2VsbG9zXERhc2hib2FyZC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/jdelarosa/Desktop/Desarrollos Local/ProyectoRH2025/ProyectoRH2025/Pages/Sellos/Importar.cshtml]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU2VsbG9zXEltcG9ydGFyLmNzaHRtbA==
+[C:/Users/jdelarosa/Desktop/Desarrollos Local/ProyectoRH2025/ProyectoRH2025/Pages/Sellos/GestionSellos.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU2VsbG9zXEdlc3Rpb25TZWxsb3MuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/jdelarosa/Desktop/Desarrollos Local/ProyectoRH2025/ProyectoRH2025/Pages/Sellos/Inventario.cshtml]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU2VsbG9zXEludmVudGFyaW8uY3NodG1s
+[C:/Users/jdelarosa/Desktop/Desarrollos Local/ProyectoRH2025/ProyectoRH2025/Pages/Sellos/HistorialSellos.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU2VsbG9zXEhpc3RvcmlhbFNlbGxvcy5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/jdelarosa/Desktop/Desarrollos Local/ProyectoRH2025/ProyectoRH2025/Pages/Sellos/InventarioCoordinador.cshtml]

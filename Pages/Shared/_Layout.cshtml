@@ -11,8 +11,8 @@
         mostrarMenu = usuario != null && (usuario.DefaultPassw ?? 0) == 0 && usuario.CambioPass != null;
     }
 
-    var rolesIT = new[] { 5, 7, 1007 }; // Roles de Administración IT (Rol 5 es Administrativo)
-    var idRolLiquidaciones = 1009; // Rol para Liquidaciones
+    var rolesIT = new[] { 5, 7, 1007 };
+    var idRolLiquidaciones = 1009;
 }
 
 <!DOCTYPE html>
@@ -240,48 +240,57 @@
         }
 
         @@keyframes fadeIn {
-            to {
-                opacity: 1;
-            }
+            to
+
+        {
+            opacity: 1;
+        }
+
         }
 
         /* Responsive Design */
         @@media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-            }
+            .sidebar
 
-                .sidebar.mobile-open {
-                    transform: translateX(0);
-                }
+        {
+            transform: translateX(-100%);
+        }
 
-            .content {
-                margin-left: 0;
-            }
+        .sidebar.mobile-open {
+            transform: translateX(0);
+        }
 
-            .mobile-toggle {
-                position: fixed;
-                top: 1rem;
-                left: 1rem;
-                z-index: 1001;
-                background: var(--primary-gradient);
-                color: white;
-                border: none;
-                width: 50px;
-                height: 50px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                box-shadow: var(--card-shadow);
-                cursor: pointer;
-            }
+        .content {
+            margin-left: 0;
+        }
+
+        .mobile-toggle {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1001;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--card-shadow);
+            cursor: pointer;
+        }
+
         }
 
         @@media (min-width: 769px) {
-            .mobile-toggle {
-                display: none;
-            }
+            .mobile-toggle
+
+        {
+            display: none;
+        }
+
         }
 
         /* Card Styles */
@@ -334,7 +343,6 @@
     </style>
 </head>
 <body>
-    <!-- Mobile Toggle Button -->
     <button class="mobile-toggle" onclick="toggleMobileSidebar()">
         <i class="fas fa-bars"></i>
     </button>
@@ -346,6 +354,7 @@
                 <h3>Test2 Admin</h3>
             </div>
 
+            <!-- INICIO -->
             <div class="module">
                 <a class="sidebar-link" asp-area="" asp-page="/Index">
                     <i class="fas fa-home"></i>
@@ -353,6 +362,7 @@
                 </a>
             </div>
 
+            <!-- RH -->
             @if (new[] { 5, 3, 1007 }.Contains(rol ?? 0))
             {
                 <div class="module">
@@ -373,6 +383,7 @@
                 </div>
             }
 
+            <!-- OPERADORES -->
             <div class="module">
                 <div class="sidebar-link" onclick="toggleSubmodules('operadores')">
                     <i class="fas fa-id-card"></i>
@@ -394,6 +405,7 @@
                 </div>
             </div>
 
+            <!-- SELLOS (ACTUALIZADO ✅) -->
             @if (new[] { 5, 2, 1008, 6 }.Contains(rol ?? 0))
             {
                 <div class="module">
@@ -402,30 +414,40 @@
                         <span>Sellos</span>
                     </div>
                     <div class="submodule" data-parent="sellos-main">
-                        <a class="sidebar-link" asp-page="/Sellos/Importar">
-                            <i class="fas fa-file-excel"></i>
-                            <span>Importar desde Excel</span>
+                        <!-- Dashboard -->
+                        <a class="sidebar-link" asp-page="/Sellos/Dashboard">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Dashboard</span>
                         </a>
-                        <a class="sidebar-link" asp-page="/Sellos/AsignarSupervisor">
-                            <i class="fas fa-random"></i>
+
+                        <!-- Asignar a Supervisor (GestionSellos) -->
+                        <a class="sidebar-link" asp-page="/Sellos/GestionSellos">
+                            <i class="fas fa-user-tie"></i>
                             <span>Asignar a Supervisor</span>
                         </a>
-                        <a class="sidebar-link" asp-page="/Sellos/Inventario">
-                            <i class="fas fa-boxes"></i>
-                            <span>Inventario</span>
-                        </a>
+
+                        <!-- Inventario Coordinador -->
                         <a class="sidebar-link" asp-page="/Sellos/InventarioCoordinador">
-                            <i class="fas fa-user-check"></i>
+                            <i class="fas fa-warehouse"></i>
                             <span>Inventario Coordinador</span>
                         </a>
+
+                        <!-- Asignar a Operador -->
                         <a class="sidebar-link" asp-page="/Sellos/AsignarOperador">
-                            <i class="fas fa-share-square"></i>
+                            <i class="fas fa-truck"></i>
                             <span>Asignar a Operador</span>
+                        </a>
+
+                        <!-- Historial Completo -->
+                        <a class="sidebar-link" asp-page="/Sellos/HistorialSellos">
+                            <i class="fas fa-history"></i>
+                            <span>Historial Completo</span>
                         </a>
                     </div>
                 </div>
             }
 
+            <!-- LIQUIDACIONES -->
             @if (rol == idRolLiquidaciones || rolesIT.Contains(rol ?? 0))
             {
                 <div class="module">
@@ -436,6 +458,7 @@
                 </div>
             }
 
+            <!-- ADMINISTRACIÓN (IT) -->
             @if (rolesIT.Contains(rol ?? 0))
             {
                 <div class="module">
@@ -452,7 +475,6 @@
                             <i class="fas fa-user-plus"></i>
                             <span>Crear Usuario</span>
                         </a>
-                        <!-- ✅ NUEVO: Migración SharePoint -->
                         <a class="sidebar-link" asp-page="/Administracion/MigracionSharePoint">
                             <i class="fas fa-cloud-upload-alt"></i>
                             <span>Migración SharePoint</span>
@@ -461,6 +483,15 @@
                 </div>
             }
 
+            <!-- PASE DE LISTA -->
+            <div class="module">
+                <a class="sidebar-link" asp-page="/Emergencia/PaseLista">
+                    <i class="fas fa-clipboard-check"></i>
+                    <span>Pase de Lista</span>
+                </a>
+            </div>
+
+            <!-- CAMBIAR CONTRASEÑA Y CERRAR SESIÓN -->
             <div class="module" style="margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
                 <a class="sidebar-link" asp-page="/CambioPassword">
                     <i class="fas fa-key"></i>
@@ -470,12 +501,6 @@
                 <a asp-page="/Logout" class="sidebar-link">
                     <i class="fas fa-sign-out-alt"></i>
                     <span>Cerrar sesión</span>
-                </a>
-            </div>
-            <div class="module">
-                <a class="sidebar-link" asp-page="/Emergencia/PaseLista">
-                    <i class="fas fa-users-medical"></i>
-                    <span>Pase de Lista</span>
                 </a>
             </div>
         </div>
@@ -506,6 +531,15 @@
     <script src="~/js/site.js" asp-append-version="true"></script>
 
     <script>
+        // ✅ FIX MODALES: Esto soluciona tu problema de pantalla oscura
+        document.addEventListener('DOMContentLoaded', function () {
+            // Mueve los modales al <body> para evitar conflictos de CSS con la sidebar o .content
+            var modales = document.querySelectorAll('.modal');
+            modales.forEach(function (modal) {
+                document.body.appendChild(modal);
+            });
+        });
+
         // Initialize layout functionality
         document.addEventListener('DOMContentLoaded', function() {
             // Responsive layout detection
@@ -575,6 +609,8 @@
                     var parentModule = link.closest('.submodule');
                     if (parentModule) {
                         parentModule.classList.add('show');
+                        parentModule.style.maxHeight = '500px';
+                        parentModule.style.opacity = '1';
                     }
                 }
             });

@@ -13,20 +13,23 @@
             <h5 class="mb-0">Asignar Sello a Operador</h5>
         </div>
         <div class="card-body">
-            <form method="post">
+            <form method="post" id="formAsignar">
                 <div class="mb-3">
-                    <label class="form-label">Sello disponible</label>
-                    <select asp-for="IdSello" asp-items="Model.Sellos" class="form-select"></select>
+                    <label class="form-label">Sello disponible <span class="text-danger">*</span></label>
+                    <select asp-for="IdSello" asp-items="Model.Sellos" class="form-select" required></select>
+                    <span asp-validation-for="IdSello" class="text-danger"></span>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Tipo de Asignación</label>
-                    <select asp-for="TipoAsignacion" asp-items="Model.TiposAsignacion" class="form-select" id="TipoAsignacion"></select>
+                    <label class="form-label">Tipo de Asignación <span class="text-danger">*</span></label>
+                    <select asp-for="TipoAsignacion" asp-items="Model.TiposAsignacion" class="form-select" id="TipoAsignacion" required></select>
+                    <span asp-validation-for="TipoAsignacion" class="text-danger"></span>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Operador principal</label>
-                    <select asp-for="IdOperador" asp-items="Model.Operadores" class="form-select operador-select"></select>
+                    <label class="form-label">Operador principal <span class="text-danger">*</span></label>
+                    <select asp-for="IdOperador" asp-items="Model.Operadores" class="form-select operador-select" required></select>
+                    <span asp-validation-for="IdOperador" class="text-danger"></span>
                 </div>
 
                 <div class="mb-3" id="segundo-operador-container" style="display: none;">
@@ -35,30 +38,32 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Unidad</label>
-                    <select asp-for="IdUnidad" asp-items="Model.Unidades" class="form-select unidad-select"></select>
+                    <label class="form-label">Unidad <span class="text-danger">*</span></label>
+                    <select asp-for="IdUnidad" asp-items="Model.Unidades" class="form-select unidad-select" required></select>
+                    <span asp-validation-for="IdUnidad" class="text-danger"></span>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Ruta</label>
-                    <input asp-for="Ruta" class="form-control" />
+                    <label class="form-label">Ruta <span class="text-danger">*</span></label>
+                    <input asp-for="Ruta" class="form-control" required />
                     <span asp-validation-for="Ruta" class="text-danger"></span>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Caja</label>
-                    <input asp-for="Caja" class="form-control" />
+                    <label class="form-label">Caja <span class="text-danger">*</span></label>
+                    <input asp-for="Caja" class="form-control" required />
                     <span asp-validation-for="Caja" class="text-danger"></span>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">Comentarios</label>
-                    <textarea asp-for="Comentarios" class="form-control"></textarea>
+                    <textarea asp-for="Comentarios" class="form-control" rows="3"></textarea>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Coordinador</label>
-                    <select asp-for="idCoordinador" asp-items="Model.Coordinadores" class="form-select"></select>
+                    <label class="form-label">Coordinador <span class="text-danger">*</span></label>
+                    <select asp-for="idCoordinador" asp-items="Model.Coordinadores" class="form-select" required></select>
+                    <span asp-validation-for="idCoordinador" class="text-danger"></span>
                 </div>
 
                 <button type="submit" class="btn btn-success">
@@ -68,8 +73,8 @@
 
             @if (!string.IsNullOrEmpty(Model.Mensaje))
             {
-                <div class="alert alert-success d-flex align-items-center mt-4" role="alert">
-                    <i class="fas fa-check-circle me-2"></i>
+                <div class="alert @(Model.Mensaje.StartsWith("✅") ? "alert-success" : "alert-danger") d-flex align-items-center mt-4" role="alert">
+                    <i class="fas @(Model.Mensaje.StartsWith("✅") ? "fa-check-circle" : "fa-exclamation-triangle") me-2"></i>
                     <div>@Model.Mensaje</div>
                 </div>
             }
@@ -84,6 +89,12 @@
 
     <script>
         $(document).ready(function () {
+            // ✅ Limpiar formulario si hubo éxito
+            var mensajeExito = '@Html.Raw(Model.MensajeExito ?? "")';
+            if (mensajeExito === 'true') {
+                limpiarFormulario();
+            }
+
             // Activar Select2 en operador y unidad
             $('.operador-select, .unidad-select').select2({
                 width: '100%',
@@ -103,7 +114,7 @@
             }).trigger('change');
 
             // 🔒 Validar que no se seleccione el mismo operador dos veces en comboy
-            $('form').on('submit', function (e) {
+            $('#formAsignar').on('submit', function (e) {
                 const tipo = parseInt($('#TipoAsignacion').val());
                 const op1 = $('#IdOperador').val();
                 const op2 = $('#IdOperador2').val();
@@ -111,9 +122,40 @@
                 if (tipo === 1 && op1 && op2 && op1 === op2) {
                     e.preventDefault();
                     alert("❌ No puedes seleccionar el mismo operador dos veces en Comboy.");
+                    return false;
+                }
+
+                // Validar campos obligatorios (por si el navegador no lo hace)
+                if (!$('#IdSello').val() || !$('#TipoAsignacion').val() ||
+                    !$('#IdOperador').val() || !$('#IdUnidad').val() ||
+                    !$('#Ruta').val().trim() || !$('#Caja').val().trim() ||
+                    !$('#idCoordinador').val()) {
+                    alert("❌ Por favor completa todos los campos obligatorios marcados con *");
+                    return false;
                 }
             });
+
+            // Función para limpiar el formulario
+            function limpiarFormulario() {
+                $('#IdSello').val('').trigger('change');
+                $('#TipoAsignacion').val('').trigger('change');
+                $('#IdOperador').val('').trigger('change');
+                $('#IdOperador2').val('').trigger('change');
+                $('#IdUnidad').val('').trigger('change');
+                $('#Ruta').val('');
+                $('#Caja').val('');
+                $('#Comentarios').val('');
+                $('#idCoordinador').val('').trigger('change');
+
+                // Ocultar segundo operador
+                $('#segundo-operador-container').hide();
+
+                // Reiniciar Select2
+                $('.operador-select, .unidad-select').select2({
+                    width: '100%',
+                    placeholder: "Buscar..."
+                });
+            }
         });
     </script>
 }
-

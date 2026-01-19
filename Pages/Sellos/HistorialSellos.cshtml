@@ -1,0 +1,133 @@
+﻿@page
+@model ProyectoRH2025.Pages.Sellos.HistorialSellosModel
+@{
+    ViewData["Title"] = "Historial de Sellos";
+}
+
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">📊 Historial de Movimientos de Sellos</h3>
+        </div>
+        <div class="card-body">
+            <!-- Filtros -->
+            <form method="get" class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <label class="form-label">Número de Sello</label>
+                    <input asp-for="FiltroSello" class="form-control" placeholder="Ej: 1127" />
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Supervisor</label>
+                    <select asp-for="FiltroSupervisor" asp-items="Model.ListaSupervisores" class="form-select">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">Tipo Movimiento</label>
+                    <select asp-for="FiltroTipoMovimiento" asp-items="Model.ListaTiposMovimiento" class="form-select">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">Fecha Desde</label>
+                    <input asp-for="FiltroFechaDesde" type="date" class="form-control" />
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">Fecha Hasta</label>
+                    <input asp-for="FiltroFechaHasta" type="date" class="form-control" />
+                </div>
+
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-2"></i>Buscar
+                    </button>
+                    <a href="/Sellos/HistorialSellos" class="btn btn-secondary">
+                        <i class="fas fa-eraser me-2"></i>Limpiar
+                    </a>
+                    <a href="/Sellos/GestionSellos" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left me-2"></i>Volver
+                    </a>
+                </div>
+            </form>
+
+            <!-- Tabla de Historial -->
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Fecha/Hora</th>
+                            <th>Sello</th>
+                            <th>Tipo Movimiento</th>
+                            <th>Supervisor</th>
+                            <th>Usuario</th>
+                            <th>Comentario</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Historial.Any())
+                        {
+                            @foreach (var item in Model.Historial)
+                            {
+                                <tr>
+                                    <td>@item.FechaMovimiento.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                                    <td class="fw-bold">@item.NumeroSello</td>
+                                    <td>
+                                        @if (item.TipoMovimiento == "Asignacion")
+                                        {
+                                            <span class="badge bg-success">✅ Asignación</span>
+                                        }
+                                        else if (item.TipoMovimiento == "Desasignacion")
+                                        {
+                                            <span class="badge bg-warning text-dark">❌ Desasignación</span>
+                                        }
+                                        else if (item.TipoMovimiento == "Importacion")
+                                        {
+                                            <span class="badge bg-info">📥 Importación</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (item.TipoMovimiento == "Asignacion")
+                                        {
+                                            <span class="text-success">→ @item.SupervisorNombreNuevo</span>
+                                        }
+                                        else if (item.TipoMovimiento == "Desasignacion")
+                                        {
+                                            <span class="text-danger">← @item.SupervisorNombreAnterior</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">N/A</span>
+                                        }
+                                    </td>
+                                    <td><small>@item.UsuarioNombre</small></td>
+                                    <td><small class="text-muted">@item.Comentario</small></td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    <i class="fas fa-inbox fa-3x mb-2"></i>
+                                    <p>No hay registros en el historial</p>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (Model.Historial.Count >= 200)
+            {
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Se muestran los últimos 200 registros. Usa los filtros para buscar registros específicos.
+                </div>
+            }
+        </div>
+    </div>
+</div>

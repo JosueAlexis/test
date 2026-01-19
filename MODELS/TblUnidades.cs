@@ -11,9 +11,9 @@ namespace ProyectoRH2025.Models
 
         public int NumUnidad { get; set; }
         public string? Placas { get; set; }
-        public string? Pool { get; set; }
-        public string? CodCliente { get; set; }
-        public string? AnoUnidad { get; set; }
+        public int? Pool { get; set; }
+        public int CodCliente { get; set; }
+        public int AnoUnidad { get; set; }
         public int? idSucursal { get; set; }
     }
 }

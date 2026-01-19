@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -23,17 +23,35 @@ namespace ProyectoRH2025.Pages.Sellos
         public List<SelectListItem> Coordinadores { get; set; } = new();
         public List<SelectListItem> TiposAsignacion { get; set; } = new();
 
-        [BindProperty, Required] public int IdSello { get; set; }
-        [BindProperty, Required] public int IdOperador { get; set; }
-        [BindProperty] public int? IdOperador2 { get; set; }
-        [BindProperty, Required] public int IdUnidad { get; set; }
-        [BindProperty] public int TipoAsignacion { get; set; }
-        [BindProperty, Required] public int idCoordinador { get; set; }
-        [BindProperty, Required] public string? Ruta { get; set; }
-        [BindProperty, Required] public string? Caja { get; set; }
-        [BindProperty] public string? Comentarios { get; set; }
+        [BindProperty, Required(ErrorMessage = "Debe seleccionar un sello")]
+        public int IdSello { get; set; }
+
+        [BindProperty, Required(ErrorMessage = "Debe seleccionar un operador")]
+        public int IdOperador { get; set; }
+
+        [BindProperty]
+        public int? IdOperador2 { get; set; }
+
+        [BindProperty, Required(ErrorMessage = "Debe seleccionar una unidad")]
+        public int IdUnidad { get; set; }
+
+        [BindProperty, Required(ErrorMessage = "Debe seleccionar el tipo de asignación")]
+        public int TipoAsignacion { get; set; }
+
+        [BindProperty, Required(ErrorMessage = "Debe seleccionar un coordinador")]
+        public int idCoordinador { get; set; }
+
+        [BindProperty, Required(ErrorMessage = "La ruta es obligatoria")]
+        public string? Ruta { get; set; }
+
+        [BindProperty, Required(ErrorMessage = "La caja es obligatoria")]
+        public string? Caja { get; set; }
+
+        [BindProperty]
+        public string? Comentarios { get; set; }
 
         public string? Mensaje { get; set; }
+        public string? MensajeExito { get; set; } // Para indicar al JS que limpie el formulario
 
         public async Task<IActionResult> OnGetAsync()
         {
@@ -46,19 +64,43 @@ namespace ProyectoRH2025.Pages.Sellos
             var idUsuario = HttpContext.Session.GetInt32("idUsuario");
             if (idUsuario == null)
             {
-                Mensaje = "?? Sesi�n expirada.";
+                Mensaje = "⚠️ Sesión expirada.";
                 await CargarDatosAsync();
                 return Page();
             }
 
-            await CargarDatosAsync();
+            // ✅ Validar que todos los campos obligatorios estén llenos
+            if (!ModelState.IsValid)
+            {
+                Mensaje = "❌ Por favor completa todos los campos obligatorios.";
+                await CargarDatosAsync();
+                return Page();
+            }
 
+            // ✅ Validar que ruta y caja no estén vacíos (trim)
+            if (string.IsNullOrWhiteSpace(Ruta) || string.IsNullOrWhiteSpace(Caja))
+            {
+                Mensaje = "❌ Los campos Ruta y Caja no pueden estar vacíos.";
+                await CargarDatosAsync();
+                return Page();
+            }
+
+            // ✅ Buscar sellos con Status 14 (Asignado a Supervisor)
             var sello = await _context.TblSellos
-                .FirstOrDefaultAsync(s => s.Id == IdSello && s.Status == 1 && s.SupervisorId == idUsuario);
+                .FirstOrDefaultAsync(s => s.Id == IdSello && s.Status == 14 && s.SupervisorId == idUsuario);
 
             if (sello == null)
             {
-                Mensaje = "? El sello no est� disponible o no est� asignado a usted.";
+                Mensaje = "❌ El sello no está disponible o no está asignado a usted.";
+                await CargarDatosAsync();
+                return Page();
+            }
+
+            // Validación de comboy: no puede ser el mismo operador
+            if (TipoAsignacion == 1 && IdOperador2.HasValue && IdOperador == IdOperador2.Value)
+            {
+                Mensaje = "❌ No puedes seleccionar el mismo operador dos veces en Comboy.";
+                await CargarDatosAsync();
                 return Page();
             }
 
@@ -71,32 +113,24 @@ namespace ProyectoRH2025.Pages.Sellos
                 idOperador2 = TipoAsignacion == 1 ? IdOperador2 : null,
                 TipoAsignacion = TipoAsignacion,
                 idUnidad = IdUnidad,
-                Ruta = Ruta,
-                Caja = Caja,
-                Comentarios = Comentarios,
-                Status = 4, // Estado Tr�mite
-                idSeAsigno = idCoordinador, // ? Campo correcto
+                Ruta = Ruta.Trim(),
+                Caja = Caja.Trim(),
+                Comentarios = Comentarios?.Trim(),
+                Status = 4, // Estado Trámite
+                idSeAsigno = idCoordinador,
                 FechaStatus4 = DateTime.Now
             };
 
             _context.TblAsigSellos.Add(asignacion);
 
-            sello.Status = 4; // Tambi�n marcar el sello como Tr�mite
+            // ✅ Cambiar status del sello a 4 (Trámite)
+            sello.Status = 4;
+            // ✅ IMPORTANTE: Mantener SupervisorId para trazabilidad
 
             await _context.SaveChangesAsync();
 
-            // ? Limpia los campos del formulario
-            IdSello = 0;
-            IdOperador = 0;
-            IdOperador2 = null;
-            IdUnidad = 0;
-            TipoAsignacion = 0;
-            idCoordinador = 0;
-            Ruta = "";
-            Caja = "";
-            Comentarios = "";
-
-            Mensaje = "? Sello asignado correctamente.";
+            Mensaje = "✅ Sello asignado correctamente al operador.";
+            MensajeExito = "true"; // ✅ Indicar al JavaScript que limpie el formulario
 
             await CargarDatosAsync();
             return Page();
@@ -106,50 +140,129 @@ namespace ProyectoRH2025.Pages.Sellos
         {
             var idUsuario = HttpContext.Session.GetInt32("idUsuario");
 
-            // ? 1. Sellos disponibles que el supervisor tiene asignados (Status = 1)
+            // ✅ SIMPLIFICADO: Solo mostrar número de sello
             Sellos = await _context.TblSellos
-                .Where(s => s.Status == 1 && s.SupervisorId == idUsuario)
+                .Where(s => s.Status == 14 && s.SupervisorId == idUsuario)
                 .Select(s => new SelectListItem
                 {
                     Value = s.Id.ToString(),
-                    Text = s.Sello
+                    Text = s.Sello  // ← Solo el número del sello
+                })
+                .OrderBy(s => s.Text)
+                .ToListAsync();
+
+            // Agregar opción por defecto si no hay sellos
+            if (!Sellos.Any())
+            {
+                Sellos.Add(new SelectListItem
+                {
+                    Value = "",
+                    Text = "-- No tienes sellos asignados --",
+                    Disabled = true,
+                    Selected = true
+                });
+            }
+            else
+            {
+                Sellos.Insert(0, new SelectListItem
+                {
+                    Value = "",
+                    Text = "-- Seleccionar Sello --"
+                });
+            }
+
+            // ✅ Operadores - Cargar datos y formatear EN MEMORIA (Solo codCliente = 1)
+            var operadoresData = await _context.Empleados
+                .Where(e => e.Puesto == 1 && e.Status == 1 && e.CodClientes == "1")
+                .Select(e => new
+                {
+                    e.Id,
+                    e.Reloj,
+                    e.Names,
+                    e.Apellido,
+                    e.Apellido2
                 })
                 .ToListAsync();
 
-            // ? 2. Operadores activos (Puesto = 1 y Status = 1) con b�squeda avanzada
-            Operadores = await _context.Empleados
-                .Where(e => e.Puesto == 1 && e.Status == 1)
+            Operadores = operadoresData
                 .Select(e => new SelectListItem
                 {
                     Value = e.Id.ToString(),
                     Text = $"{e.Reloj} - {e.Names} {e.Apellido} {e.Apellido2}"
-                }).ToListAsync();
+                })
+                .OrderBy(e => e.Text)
+                .ToList();
 
-            // ? 3. Unidades, mostrando solo n�mero (pero se puede ajustar si deseas m�s datos)
-            Unidades = await _context.TblUnidades
+            Operadores.Insert(0, new SelectListItem
+            {
+                Value = "",
+                Text = "-- Seleccionar Operador --"
+            });
+
+            // ✅ Unidades - Cargar y formatear EN MEMORIA
+            var unidadesData = await _context.TblUnidades
+                .Select(u => new
+                {
+                    u.id,
+                    u.NumUnidad
+                })
+                .ToListAsync();
+
+            Unidades = unidadesData
                 .Select(u => new SelectListItem
                 {
                     Value = u.id.ToString(),
-                    Text = u.NumUnidad.ToString()
-                }).ToListAsync();
+                    Text = $"Unidad {u.NumUnidad}"
+                })
+                .OrderBy(u => u.Text)
+                .ToList();
 
-            // ? 4. Coordinadores (rol 6) con usuario y nombre completo visibles
-            Coordinadores = await _context.TblUsuarios
-                .Where(u => u.idRol == 6)
+            Unidades.Insert(0, new SelectListItem
+            {
+                Value = "",
+                Text = "-- Seleccionar Unidad --"
+            });
+
+            // ✅ Coordinadores - Cargar y formatear EN MEMORIA
+            var coordinadoresData = await _context.TblUsuarios
+                .Where(u => u.idRol == 6 && u.Status == 1)
+                .Select(u => new
+                {
+                    u.idUsuario,
+                    u.UsuarioNombre,
+                    u.NombreCompleto
+                })
+                .ToListAsync();
+
+            Coordinadores = coordinadoresData
                 .Select(u => new SelectListItem
                 {
                     Value = u.idUsuario.ToString(),
                     Text = $"{u.UsuarioNombre} - {u.NombreCompleto}"
-                }).ToListAsync();
+                })
+                .OrderBy(u => u.Text)
+                .ToList();
 
-            // ? 5. Tipos de asignaci�n (Individual y Comboy)
+            Coordinadores.Insert(0, new SelectListItem
+            {
+                Value = "",
+                Text = "-- Seleccionar Coordinador --"
+            });
+
+            // Tipos de asignación
             TiposAsignacion = await _context.TblTipoAsignacion
                 .Select(t => new SelectListItem
                 {
                     Value = t.Id.ToString(),
                     Text = t.Nombre
-                }).ToListAsync();
-        }
+                })
+                .ToListAsync();
 
+            TiposAsignacion.Insert(0, new SelectListItem
+            {
+                Value = "",
+                Text = "-- Seleccionar Tipo --"
+            });
+        }
     }
 }
