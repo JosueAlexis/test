@@ -5,59 +5,436 @@
 }
 
 <div class="container-fluid mt-4">
+    <div class="container-fluid mt-4">
+@* ✅ Token antifalsificación para JavaScript *@
+@Html.AntiForgeryToken()
+        <div class="card shadow">
     <div class="card shadow">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">Usuarios del sistema</h4>
+            <h4 class="mb-0">
+                <i class="fas fa-users me-2"></i>Usuarios del Sistema
+            </h4>
             <a class="btn btn-light btn-sm" asp-page="/IT/CrearUsuario">
-                <i class="fas fa-user-plus"></i> Nuevo usuario
+                <i class="fas fa-user-plus"></i> Nuevo Usuario
             </a>
         </div>
         <div class="card-body">
+            @if (!string.IsNullOrEmpty(Model.MensajeExito))
+            {
+                <div class="alert alert-success alert-dismissible fade show">
+                    <i class="fas fa-check-circle"></i> @Model.MensajeExito
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.MensajeError))
+            {
+                <div class="alert alert-danger alert-dismissible fade show">
+                    <i class="fas fa-exclamation-circle"></i> @Model.MensajeError
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            <!-- FILTROS -->
             <form method="get" class="mb-4">
-                <div class="input-group">
-                    <input type="text" name="filtro" class="form-control" placeholder="Buscar por usuario o nombre..." value="@Model.Filtro" />
-                    <button class="btn btn-outline-primary" type="submit">
-                        <i class="fas fa-search"></i> Buscar
-                    </button>
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <input type="text"
+                               name="filtro"
+                               class="form-control"
+                               placeholder="Buscar por usuario o nombre..."
+                               value="@Model.Filtro" />
+                    </div>
+                    <div class="col-md-3">
+                        <select name="filtroRol" class="form-select">
+                            <option value="">Todos los roles</option>
+                            @foreach (var rol in Model.RolesFiltro)
+                            {
+                                <option value="@rol.Value" selected="@rol.Selected">@rol.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select name="filtroEstado" class="form-select">
+                            <option value="">Todos los estados</option>
+                            <option value="1" selected="@(Model.FiltroEstado == "1")">Activos</option>
+                            <option value="0" selected="@(Model.FiltroEstado == "0")">Inactivos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-primary w-100" type="submit">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                    </div>
                 </div>
             </form>
 
+            <!-- TABLA DE USUARIOS -->
             <div class="table-responsive">
-                <table class="table table-bordered table-striped table-hover">
+                <table class="table table-bordered table-striped table-hover align-middle">
                     <thead class="table-dark">
                         <tr>
-                            <th>ID</th>
+                            <th width="50">ID</th>
                             <th>Usuario</th>
-                            <th>Nombre</th>
+                            <th>Nombre Completo</th>
                             <th>Correo</th>
                             <th>Rol</th>
-                            <th>Estado</th>
-                            <th class="text-center">Acciones</th>
+                            <th width="80" class="text-center">Estado</th>
+                            <th width="100" class="text-center">Cuentas</th>
+                            <th width="80" class="text-center">Pass</th>
+                            <th width="200" class="text-center">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var u in Model.Usuarios)
+                        @if (!Model.Usuarios.Any())
                         {
                             <tr>
-                                <td>@u.idUsuario</td>
-                                <td>@u.UsuarioNombre</td>
-                                <td>@u.NombreCompleto</td>
-                                <td>@u.CorreoElectronico</td>
-                                <td>@u.NombreRol</td>
-                                <td>@(u.Status == 1 ? "Activo" : "Inactivo")</td>
-                                <td class="text-center">
-                                    <a asp-page="/IT/EditarUsuario" asp-route-id="@u.idUsuario" class="btn btn-sm btn-outline-secondary">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <a asp-page="/IT/CambiarPassword" asp-route-id="@u.idUsuario" class="btn btn-sm btn-outline-warning">
-                                        <i class="fas fa-key"></i>
-                                    </a>
+                                <td colspan="9" class="text-center text-muted py-4">
+                                    <i class="fas fa-inbox fa-3x mb-2 opacity-50"></i>
+                                    <p>No se encontraron usuarios</p>
                                 </td>
                             </tr>
+                        }
+                        else
+                        {
+                            @foreach (var u in Model.Usuarios)
+                            {
+                                <tr>
+                                    <td>@u.idUsuario</td>
+                                    <td>
+                                        <strong>@u.UsuarioNombre</strong>
+                                    </td>
+                                    <td>@(u.NombreCompleto ?? "-")</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(u.CorreoElectronico))
+                                        {
+                                            <small>@u.CorreoElectronico</small>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">@u.NombreRol</span>
+                                    </td>
+                                    <td class="text-center">
+                                        @if (u.Status == 1)
+                                        {
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check-circle"></i> Activo
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">
+                                                <i class="fas fa-ban"></i> Inactivo
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        @if (u.CuentasAsignadas > 0)
+                                        {
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-info"
+                                                    onclick="verCuentasAsignadas(@u.idUsuario, '@u.UsuarioNombre')">
+                                                <i class="fas fa-building"></i> @u.CuentasAsignadas
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">0</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        @if (u.DefaultPassw == 1)
+                                        {
+                                            <span class="badge bg-warning text-dark" title="Debe cambiar contraseña">
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-success" title="Contraseña cambiada">
+                                                <i class="fas fa-check"></i>
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group" role="group">
+                                            <!-- Editar -->
+                                            <a asp-page="/IT/EditarUsuario"
+                                               asp-route-id="@u.idUsuario"
+                                               class="btn btn-sm btn-outline-primary"
+                                               title="Editar usuario">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+
+                                            <!-- Cambiar contraseña -->
+                                            <a asp-page="/IT/CambiarPassword"
+                                               asp-route-id="@u.idUsuario"
+                                               class="btn btn-sm btn-outline-warning"
+                                               title="Cambiar contraseña">
+                                                <i class="fas fa-key"></i>
+                                            </a>
+
+                                            <!-- Gestionar cuentas (solo para supervisores/coordinadores) -->
+                                            @if (u.idRol == 2 || u.idRol == 6)
+                                            {
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-info"
+                                                        onclick="gestionarCuentas(@u.idUsuario, '@u.UsuarioNombre')"
+                                                        title="Gestionar cuentas">
+                                                    <i class="fas fa-building"></i>
+                                                </button>
+                                            }
+
+                                            <!-- Eliminar -->
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    onclick="confirmarEliminar(@u.idUsuario, '@u.UsuarioNombre')"
+                                                    title="Eliminar usuario">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
                         }
                     </tbody>
                 </table>
             </div>
+
+            <!-- Estadísticas -->
+            <div class="row mt-3">
+                <div class="col-md-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Total:</strong> @Model.Usuarios.Count usuario(s) |
+                        <strong>Activos:</strong> @Model.Usuarios.Count(u => u.Status == 1) |
+                        <strong>Inactivos:</strong> @Model.Usuarios.Count(u => u.Status == 0)
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- ================================================ -->
+<!-- MODAL: GESTIONAR CUENTAS -->
+<!-- ================================================ -->
+<div class="modal fade" id="modalGestionarCuentas" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-building me-2"></i>Gestionar Cuentas - <span id="nombreUsuarioModal"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="contenidoCuentas">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================================================ -->
+<!-- MODAL: VER CUENTAS ASIGNADAS -->
+<!-- ================================================ -->
+<div class="modal fade" id="modalVerCuentas" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-list me-2"></i>Cuentas Asignadas - <span id="nombreUsuarioVerModal"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="contenidoVerCuentas">
+                <!-- Se carga dinámicamente -->
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        // ================================================
+        // GESTIONAR CUENTAS (EDITAR)
+        // ================================================
+        async function gestionarCuentas(idUsuario, nombreUsuario) {
+            document.getElementById('nombreUsuarioModal').textContent = nombreUsuario;
+            const modal = new bootstrap.Modal(document.getElementById('modalGestionarCuentas'));
+            modal.show();
+
+            try {
+                const response = await fetch(`/IT/Usuarios?handler=GestionarCuentas&idUsuario=${idUsuario}`);
+                const html = await response.text();
+                document.getElementById('contenidoCuentas').innerHTML = html;
+            } catch (error) {
+                document.getElementById('contenidoCuentas').innerHTML =
+                    '<div class="alert alert-danger">Error al cargar las cuentas</div>';
+            }
+        }
+
+        // ================================================
+        // VER CUENTAS ASIGNADAS (SOLO LECTURA)
+        // ================================================
+        async function verCuentasAsignadas(idUsuario, nombreUsuario) {
+            document.getElementById('nombreUsuarioVerModal').textContent = nombreUsuario;
+            const modal = new bootstrap.Modal(document.getElementById('modalVerCuentas'));
+            modal.show();
+
+            document.getElementById('contenidoVerCuentas').innerHTML = `
+                <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status"></div>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`/IT/Usuarios?handler=VerCuentas&idUsuario=${idUsuario}`);
+                const html = await response.text();
+                document.getElementById('contenidoVerCuentas').innerHTML = html;
+            } catch (error) {
+                document.getElementById('contenidoVerCuentas').innerHTML =
+                    '<div class="alert alert-danger">Error al cargar las cuentas</div>';
+            }
+        }
+
+        // ================================================
+        // CONFIRMAR ELIMINACIÓN
+        // ================================================
+                // ================================================
+        // CONFIRMAR ELIMINACIÓN (VERSIÓN AJAX - MEJOR)
+        // ================================================
+                // ================================================
+                // CONFIRMAR ELIMINACIÓN (VERSIÓN CORREGIDA)
+                // ================================================
+                async function confirmarEliminar(idUsuario, nombreUsuario) {
+                    const { value: motivo, isConfirmed } = await Swal.fire({
+                        title: '¿Eliminar usuario?',
+                        html: `
+                            <p>Estás a punto de eliminar al usuario <strong>${nombreUsuario}</strong></p>
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Esta acción marcará el usuario como eliminado y desactivará todas sus cuentas asignadas.
+                            </div>
+                            <div class="mt-3">
+                                <label class="form-label text-start d-block">Motivo de la eliminación (opcional):</label>
+                                <textarea id="motivoEliminacion" class="form-control" rows="3" placeholder="Ej: Usuario renunció, duplicado, etc."></textarea>
+                            </div>
+                        `,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#dc3545',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: '<i class="fas fa-trash me-1"></i> Sí, eliminar',
+                        cancelButtonText: 'Cancelar',
+                        preConfirm: () => {
+                            return document.getElementById('motivoEliminacion').value;
+                        }
+                    });
+
+                    if (!isConfirmed) return;
+
+                    // Mostrar loading
+                    Swal.fire({
+                        title: 'Eliminando usuario...',
+                        html: 'Por favor espera',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    try {
+                        // Crear FormData
+                        const formData = new FormData();
+                        formData.append('IdUsuario', idUsuario);
+                        formData.append('MotivoEliminacion', motivo || '');
+
+                        // Obtener el token antifalsificación
+                        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+                        // Enviar petición
+                        const response = await fetch('/IT/Usuarios?handler=EliminarUsuario', {
+                            method: 'POST',
+                            headers: {
+                                'RequestVerificationToken': token
+                            },
+                            body: formData
+                        });
+
+                        // ✅ LEER LA RESPUESTA JSON
+                        const result = await response.json();
+
+                        if (result.success) {
+                            await Swal.fire({
+                                icon: 'success',
+                                title: '¡Usuario eliminado!',
+                                text: result.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                            // ✅ RECARGAR LA PÁGINA
+                            window.location.reload();
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: result.message
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'No se pudo eliminar el usuario. Intenta nuevamente.'
+                        });
+                    }
+                }
+
+        // ================================================
+        // AUTO-CERRAR ALERTAS DESPUÉS DE 5 SEGUNDOS
+        // ================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.alert:not(.alert-info)');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }, 5000);
+            });
+        });
+    </script>
+}
+
+@section Styles {
+    <style>
+        .btn-group .btn {
+            border-radius: 0;
+        }
+
+            .btn-group .btn:first-child {
+                border-top-left-radius: 0.25rem;
+                border-bottom-left-radius: 0.25rem;
+            }
+
+            .btn-group .btn:last-child {
+                border-top-right-radius: 0.25rem;
+                border-bottom-right-radius: 0.25rem;
+            }
+
+        .table tbody tr:hover {
+            background-color: rgba(0, 123, 255, 0.05);
+        }
+    </style>
+}

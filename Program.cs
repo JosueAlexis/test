@@ -32,6 +32,9 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<QRCodeService>();
 builder.Services.AddScoped<ImagenService>();
 
+//SERIVIO DE PERMISOS//
+builder.Services.AddScoped<PermisosService>();
+
 // CONFIGURACIÓN DE BASE DE DATOS CON VALIDACIÓN Y FALLBACK
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 

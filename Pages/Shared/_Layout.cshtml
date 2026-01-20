@@ -1,4 +1,6 @@
 ﻿@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
+@inject ProyectoRH2025.Services.PermisosService PermisosService
+@inject ProyectoRH2025.Data.ApplicationDbContext DbContext
 @{
     var rol = Context.Session.GetInt32("idRol");
     var idUsuario = Context.Session.GetInt32("idUsuario");
@@ -11,8 +13,23 @@
         mostrarMenu = usuario != null && (usuario.DefaultPassw ?? 0) == 0 && usuario.CambioPass != null;
     }
 
-    var rolesIT = new[] { 5, 7, 1007 };
-    var idRolLiquidaciones = 1009;
+    // ✅ FUNCIONES SIMPLIFICADAS USANDO EL SERVICIO
+    bool TienePermiso(string nombreOpcion)
+    {
+        if (!idUsuario.HasValue) return false;
+        return PermisosService.TienePermisoAsync(idUsuario.Value, nombreOpcion).Result;
+    }
+
+    bool TienePermisoEnModulo(string nombreModulo)
+    {
+        if (!idUsuario.HasValue) return false;
+        return PermisosService.TienePermisoModuloAsync(idUsuario.Value, nombreModulo).Result;
+    }
+
+    bool EsAdmin()
+    {
+        return PermisosService.EsAdministrador(rol);
+    }
 }
 
 <!DOCTYPE html>
@@ -240,57 +257,48 @@
         }
 
         @@keyframes fadeIn {
-            to
-
-        {
-            opacity: 1;
-        }
-
+            to {
+                opacity: 1;
+            }
         }
 
         /* Responsive Design */
         @@media (max-width: 768px) {
-            .sidebar
+            .sidebar {
+                transform: translateX(-100%);
+            }
 
-        {
-            transform: translateX(-100%);
-        }
+                .sidebar.mobile-open {
+                    transform: translateX(0);
+                }
 
-        .sidebar.mobile-open {
-            transform: translateX(0);
-        }
+            .content {
+                margin-left: 0;
+            }
 
-        .content {
-            margin-left: 0;
-        }
-
-        .mobile-toggle {
-            position: fixed;
-            top: 1rem;
-            left: 1rem;
-            z-index: 1001;
-            background: var(--primary-gradient);
-            color: white;
-            border: none;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: var(--card-shadow);
-            cursor: pointer;
-        }
-
+            .mobile-toggle {
+                position: fixed;
+                top: 1rem;
+                left: 1rem;
+                z-index: 1001;
+                background: var(--primary-gradient);
+                color: white;
+                border: none;
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: var(--card-shadow);
+                cursor: pointer;
+            }
         }
 
         @@media (min-width: 769px) {
-            .mobile-toggle
-
-        {
-            display: none;
-        }
-
+            .mobile-toggle {
+                display: none;
+            }
         }
 
         /* Card Styles */
@@ -341,6 +349,7 @@
                 transition: background 0.2s ease;
             }
     </style>
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
     <button class="mobile-toggle" onclick="toggleMobileSidebar()">
@@ -354,16 +363,19 @@
                 <h3>Test2 Admin</h3>
             </div>
 
-            <!-- INICIO -->
-            <div class="module">
-                <a class="sidebar-link" asp-area="" asp-page="/Index">
-                    <i class="fas fa-home"></i>
-                    <span>Inicio</span>
-                </a>
-            </div>
+            <!-- ✅ INICIO -->
+            @if (TienePermiso("Inicio"))
+            {
+                <div class="module">
+                    <a class="sidebar-link" asp-area="" asp-page="/Index">
+                        <i class="fas fa-home"></i>
+                        <span>Inicio</span>
+                    </a>
+                </div>
+            }
 
-            <!-- RH -->
-            @if (new[] { 5, 3, 1007 }.Contains(rol ?? 0))
+            <!-- ✅ RH -->
+            @if (TienePermisoEnModulo("RH"))
             {
                 <div class="module">
                     <div class="sidebar-link" onclick="toggleSubmodules('rh')">
@@ -371,42 +383,60 @@
                         <span>RH</span>
                     </div>
                     <div class="submodule" data-parent="rh">
-                        <a class="sidebar-link" asp-page="/Empleados/BuscarRh">
-                            <i class="fas fa-search"></i>
-                            <span>Buscar</span>
-                        </a>
-                        <a class="sidebar-link" asp-page="/Empleados/AltaEmpleadoRH">
-                            <i class="fas fa-user-plus"></i>
-                            <span>Alta Empleados</span>
-                        </a>
+                        @if (TienePermiso("Buscar RH"))
+                        {
+                            <a class="sidebar-link" asp-page="/Empleados/BuscarRh">
+                                <i class="fas fa-search"></i>
+                                <span>Buscar</span>
+                            </a>
+                        }
+                        @if (TienePermiso("Alta Empleados RH"))
+                        {
+                            <a class="sidebar-link" asp-page="/Empleados/AltaEmpleadoRH">
+                                <i class="fas fa-user-plus"></i>
+                                <span>Alta Empleados</span>
+                            </a>
+                        }
                     </div>
                 </div>
             }
 
-            <!-- OPERADORES -->
-            <div class="module">
-                <div class="sidebar-link" onclick="toggleSubmodules('operadores')">
-                    <i class="fas fa-id-card"></i>
-                    <span>Operadores</span>
+            <!-- ✅ OPERADORES -->
+            @if (TienePermisoEnModulo("Operadores"))
+            {
+                <div class="module">
+                    <div class="sidebar-link" onclick="toggleSubmodules('operadores')">
+                        <i class="fas fa-id-card"></i>
+                        <span>Operadores</span>
+                    </div>
+                    <div class="submodule" data-parent="operadores">
+                        @if (TienePermiso("Buscar Operadores"))
+                        {
+                            <a class="sidebar-link" asp-page="/Operadores/Buscar">
+                                <i class="fas fa-search"></i>
+                                <span>Buscar</span>
+                            </a>
+                        }
+                        @if (TienePermiso("Alta Operadores"))
+                        {
+                            <a class="sidebar-link" asp-page="/Operadores/AltaEmpleado">
+                                <i class="fas fa-user-plus"></i>
+                                <span>Dar de Alta</span>
+                            </a>
+                        }
+                        @if (TienePermiso("Documentos Operadores"))
+                        {
+                            <a class="sidebar-link" asp-page="/Operadores/Documentos">
+                                <i class="fas fa-file-alt"></i>
+                                <span>Documentos</span>
+                            </a>
+                        }
+                    </div>
                 </div>
-                <div class="submodule" data-parent="operadores">
-                    <a class="sidebar-link" asp-page="/Operadores/Buscar">
-                        <i class="fas fa-search"></i>
-                        <span>Buscar</span>
-                    </a>
-                    <a class="sidebar-link" asp-page="/Operadores/AltaEmpleado">
-                        <i class="fas fa-user-plus"></i>
-                        <span>Dar de Alta</span>
-                    </a>
-                    <a class="sidebar-link" asp-page="/Operadores/Documentos">
-                        <i class="fas fa-file-alt"></i>
-                        <span>Documentos</span>
-                    </a>
-                </div>
-            </div>
+            }
 
-            <!-- SELLOS (ACTUALIZADO ✅) -->
-            @if (new[] { 5, 2, 1008, 6 }.Contains(rol ?? 0))
+            <!-- ✅ SELLOS -->
+            @if (TienePermisoEnModulo("Sellos"))
             {
                 <div class="module">
                     <div class="sidebar-link" onclick="toggleSubmodules('sellos-main')">
@@ -414,41 +444,47 @@
                         <span>Sellos</span>
                     </div>
                     <div class="submodule" data-parent="sellos-main">
-                        <!-- Dashboard -->
-                        <a class="sidebar-link" asp-page="/Sellos/Dashboard">
-                            <i class="fas fa-chart-line"></i>
-                            <span>Dashboard</span>
-                        </a>
-
-                        <!-- Asignar a Supervisor (GestionSellos) -->
-                        <a class="sidebar-link" asp-page="/Sellos/GestionSellos">
-                            <i class="fas fa-user-tie"></i>
-                            <span>Asignar a Supervisor</span>
-                        </a>
-
-                        <!-- Inventario Coordinador -->
-                        <a class="sidebar-link" asp-page="/Sellos/InventarioCoordinador">
-                            <i class="fas fa-warehouse"></i>
-                            <span>Inventario Coordinador</span>
-                        </a>
-
-                        <!-- Asignar a Operador -->
-                        <a class="sidebar-link" asp-page="/Sellos/AsignarOperador">
-                            <i class="fas fa-truck"></i>
-                            <span>Asignar a Operador</span>
-                        </a>
-
-                        <!-- Historial Completo -->
-                        <a class="sidebar-link" asp-page="/Sellos/HistorialSellos">
-                            <i class="fas fa-history"></i>
-                            <span>Historial Completo</span>
-                        </a>
+                        @if (TienePermiso("Dashboard Sellos"))
+                        {
+                            <a class="sidebar-link" asp-page="/Sellos/Dashboard">
+                                <i class="fas fa-chart-line"></i>
+                                <span>Dashboard</span>
+                            </a>
+                        }
+                        @if (TienePermiso("Asignar Sellos Supervisor"))
+                        {
+                            <a class="sidebar-link" asp-page="/Sellos/GestionSellos">
+                                <i class="fas fa-user-tie"></i>
+                                <span>Asignar a Supervisor</span>
+                            </a>
+                        }
+                        @if (TienePermiso("Inventario Coordinador"))
+                        {
+                            <a class="sidebar-link" asp-page="/Sellos/InventarioCoordinador">
+                                <i class="fas fa-warehouse"></i>
+                                <span>Inventario Coordinador</span>
+                            </a>
+                        }
+                        @if (TienePermiso("Asignar Sellos Operador"))
+                        {
+                            <a class="sidebar-link" asp-page="/Sellos/AsignarOperador">
+                                <i class="fas fa-truck"></i>
+                                <span>Asignar a Operador</span>
+                            </a>
+                        }
+                        @if (TienePermiso("Historial Sellos"))
+                        {
+                            <a class="sidebar-link" asp-page="/Sellos/HistorialSellos">
+                                <i class="fas fa-history"></i>
+                                <span>Historial Completo</span>
+                            </a>
+                        }
                     </div>
                 </div>
             }
 
-            <!-- LIQUIDACIONES -->
-            @if (rol == idRolLiquidaciones || rolesIT.Contains(rol ?? 0))
+            <!-- ✅ LIQUIDACIONES -->
+            @if (TienePermiso("Liquidaciones"))
             {
                 <div class="module">
                     <a class="sidebar-link" asp-area="" asp-page="/Liquidaciones/Index">
@@ -458,8 +494,8 @@
                 </div>
             }
 
-            <!-- ADMINISTRACIÓN (IT) -->
-            @if (rolesIT.Contains(rol ?? 0))
+            <!-- ✅ ADMINISTRACIÓN (IT) -->
+            @if (TienePermisoEnModulo("IT"))
             {
                 <div class="module">
                     <div class="sidebar-link" onclick="toggleSubmodules('admin')">
@@ -467,31 +503,43 @@
                         <span>Administración</span>
                     </div>
                     <div class="submodule" data-parent="admin">
-                        <a class="sidebar-link" asp-page="/IT/Usuarios">
-                            <i class="fas fa-users-cog"></i>
-                            <span>Usuarios</span>
-                        </a>
-                        <a class="sidebar-link" asp-page="/IT/CrearUsuario">
-                            <i class="fas fa-user-plus"></i>
-                            <span>Crear Usuario</span>
-                        </a>
-                        <a class="sidebar-link" asp-page="/Administracion/MigracionSharePoint">
-                            <i class="fas fa-cloud-upload-alt"></i>
-                            <span>Migración SharePoint</span>
-                        </a>
+                        @if (TienePermiso("Usuarios IT"))
+                        {
+                            <a class="sidebar-link" asp-page="/IT/Usuarios">
+                                <i class="fas fa-users-cog"></i>
+                                <span>Usuarios</span>
+                            </a>
+                        }
+                        @if (TienePermiso("Crear Usuario IT"))
+                        {
+                            <a class="sidebar-link" asp-page="/IT/CrearUsuario">
+                                <i class="fas fa-user-plus"></i>
+                                <span>Crear Usuario</span>
+                            </a>
+                        }
+                        @if (TienePermiso("Migración SharePoint"))
+                        {
+                            <a class="sidebar-link" asp-page="/Administracion/MigracionSharePoint">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <span>Migración SharePoint</span>
+                            </a>
+                        }
                     </div>
                 </div>
             }
 
-            <!-- PASE DE LISTA -->
-            <div class="module">
-                <a class="sidebar-link" asp-page="/Emergencia/PaseLista">
-                    <i class="fas fa-clipboard-check"></i>
-                    <span>Pase de Lista</span>
-                </a>
-            </div>
+            <!-- ✅ PASE DE LISTA -->
+            @if (TienePermiso("Pase de Lista"))
+            {
+                <div class="module">
+                    <a class="sidebar-link" asp-page="/Emergencia/PaseLista">
+                        <i class="fas fa-clipboard-check"></i>
+                        <span>Pase de Lista</span>
+                    </a>
+                </div>
+            }
 
-            <!-- CAMBIAR CONTRASEÑA Y CERRAR SESIÓN -->
+            <!-- ✅ CAMBIAR CONTRASEÑA Y CERRAR SESIÓN (SIEMPRE VISIBLE) -->
             <div class="module" style="margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
                 <a class="sidebar-link" asp-page="/CambioPassword">
                     <i class="fas fa-key"></i>
@@ -531,9 +579,8 @@
     <script src="~/js/site.js" asp-append-version="true"></script>
 
     <script>
-        // ✅ FIX MODALES: Esto soluciona tu problema de pantalla oscura
+        // ✅ FIX MODALES
         document.addEventListener('DOMContentLoaded', function () {
-            // Mueve los modales al <body> para evitar conflictos de CSS con la sidebar o .content
             var modales = document.querySelectorAll('.modal');
             modales.forEach(function (modal) {
                 document.body.appendChild(modal);
@@ -542,7 +589,6 @@
 
         // Initialize layout functionality
         document.addEventListener('DOMContentLoaded', function() {
-            // Responsive layout detection
             function checkMobile() {
                 if (window.innerWidth <= 768) {
                     document.body.classList.add('mobile-layout');
@@ -564,7 +610,6 @@
                     submodule.style.maxHeight = '0';
                     submodule.style.opacity = '0';
                 } else {
-                    // Close all other submodules
                     document.querySelectorAll('.submodule.show').forEach(function(sub) {
                         sub.classList.remove('show');
                         sub.style.maxHeight = '0';
@@ -605,7 +650,6 @@
             sidebarLinks.forEach(function(link) {
                 if (link.getAttribute('href') === currentPath) {
                     link.classList.add('active');
-                    // Open parent module if it's a submodule
                     var parentModule = link.closest('.submodule');
                     if (parentModule) {
                         parentModule.classList.add('show');
@@ -615,7 +659,6 @@
                 }
             });
 
-            // Add fade-in animation to content
             setTimeout(function() {
                 document.querySelector('main').style.opacity = '1';
             }, 100);

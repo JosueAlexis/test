@@ -7,98 +7,270 @@
 <div class="container mt-4">
     <div class="card shadow">
         <div class="card-header bg-warning text-dark">
-            <h4 class="mb-0">Editar Usuario: @Model.Usuario.UsuarioNombre</h4>
+            <h4 class="mb-0">
+                <i class="fas fa-user-edit"></i> Editar Usuario: @Model.Usuario.UsuarioNombre
+            </h4>
         </div>
         <div class="card-body">
             @if (!string.IsNullOrEmpty(Model.MensajeError))
             {
-                <div class="alert alert-danger">
-                    @Model.MensajeError
+                <div class="alert alert-danger alert-dismissible fade show">
+                    <i class="fas fa-exclamation-circle"></i> @Model.MensajeError
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             }
 
             @if (!string.IsNullOrEmpty(Model.MensajeExito))
             {
-                <div class="alert alert-success">
-                    @Model.MensajeExito
+                <div class="alert alert-success alert-dismissible fade show">
+                    <i class="fas fa-check-circle"></i> @Model.MensajeExito
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             }
 
+            <!-- ✅ TABS DE NAVEGACIÓN -->
+            <ul class="nav nav-tabs mb-4" id="editarUsuarioTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button">
+                        <i class="fas fa-user"></i> Información General
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="permisos-tab" data-bs-toggle="tab" data-bs-target="#permisos" type="button">
+                        <i class="fas fa-lock"></i> Permisos (Páginas)
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="cuentas-tab" data-bs-toggle="tab" data-bs-target="#cuentas" type="button">
+                        <i class="fas fa-building"></i> Cuentas Asignadas
+                    </button>
+                </li>
+            </ul>
+
             <form method="post">
                 <input type="hidden" asp-for="Usuario.idUsuario" />
+                @Html.AntiForgeryToken()
 
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Usuario</label>
-                        <input asp-for="Usuario.UsuarioNombre" class="form-control" />
-                        <span asp-validation-for="Usuario.UsuarioNombre" class="text-danger"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Correo electrónico</label>
-                        <input asp-for="Usuario.CorreoElectronico" class="form-control" />
-                        <span asp-validation-for="Usuario.CorreoElectronico" class="text-danger"></span>
-                    </div>
-                </div>
+                <!-- ✅ TAB CONTENT -->
+                <div class="tab-content" id="editarUsuarioTabsContent">
 
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Nombre completo</label>
-                        <input asp-for="Usuario.NombreCompleto" class="form-control" />
-                        <span asp-validation-for="Usuario.NombreCompleto" class="text-danger"></span>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Rol</label>
-                        <select asp-for="Usuario.idRol" asp-items="Model.Roles" class="form-select"></select>
-                        <span asp-validation-for="Usuario.idRol" class="text-danger"></span>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Estado</label>
-                        <select asp-for="Usuario.Status" class="form-select">
-                            <option value="1">Activo</option>
-                            <option value="0">Inactivo</option>
-                        </select>
-                        <span asp-validation-for="Usuario.Status" class="text-danger"></span>
-                    </div>
-                </div>
+                    <!-- TAB 1: INFORMACIÓN GENERAL -->
+                    <div class="tab-pane fade show active" id="general" role="tabpanel">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Usuario</label>
+                                <input asp-for="Usuario.UsuarioNombre" class="form-control" />
+                                <span asp-validation-for="Usuario.UsuarioNombre" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Correo electrónico</label>
+                                <input asp-for="Usuario.CorreoElectronico" class="form-control" />
+                                <span asp-validation-for="Usuario.CorreoElectronico" class="text-danger"></span>
+                            </div>
+                        </div>
 
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Sucursal (Opcional)</label>
-                        <input asp-for="Usuario.idSucursal" class="form-control" type="number" />
-                        <span asp-validation-for="Usuario.idSucursal" class="text-danger"></span>
-                    </div>
-                    <div class="col-md-6 d-flex align-items-end">
-                        <div class="form-check">
-                            <input asp-for="ForzarCambioPassword" class="form-check-input" type="checkbox" />
-                            <label class="form-check-label" asp-for="ForzarCambioPassword">
-                                Forzar cambio de contraseña en el próximo inicio de sesión
-                            </label>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nombre completo</label>
+                                <input asp-for="Usuario.NombreCompleto" class="form-control" />
+                                <span asp-validation-for="Usuario.NombreCompleto" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Rol</label>
+                                <select asp-for="Usuario.idRol" asp-items="Model.Roles" class="form-select" id="rolSelect"></select>
+                                <span asp-validation-for="Usuario.idRol" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Estado</label>
+                                <select asp-for="Usuario.Status" class="form-select">
+                                    <option value="1">Activo</option>
+                                    <option value="0">Inactivo</option>
+                                </select>
+                                <span asp-validation-for="Usuario.Status" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Sucursal (Opcional)</label>
+                                <input asp-for="Usuario.idSucursal" class="form-control" type="number" />
+                                <span asp-validation-for="Usuario.idSucursal" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end">
+                                <div class="form-check">
+                                    <input asp-for="ForzarCambioPassword" class="form-check-input" type="checkbox" />
+                                    <label class="form-check-label" asp-for="ForzarCambioPassword">
+                                        Forzar cambio de contraseña en el próximo inicio de sesión
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr />
+
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <h5>Cambiar contraseña (opcional)</h5>
+                                <small class="text-muted">Deje en blanco si no desea cambiar la contraseña</small>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nueva contraseña</label>
+                                <input asp-for="NuevaPassword" class="form-control" type="password" />
+                                <span asp-validation-for="NuevaPassword" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Confirmar nueva contraseña</label>
+                                <input asp-for="ConfirmarPassword" class="form-control" type="password" />
+                                <span asp-validation-for="ConfirmarPassword" class="text-danger"></span>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- TAB 2: PERMISOS (PÁGINAS) -->
+                    <div class="tab-pane fade" id="permisos" role="tabpanel">
+                        <div class="alert alert-info mb-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Importante:</strong> Estos permisos determinan a qué páginas puede acceder el usuario <strong>@Model.Usuario.UsuarioNombre</strong>. Los cambios se aplican al rol <strong id="nombreRolActual">@Model.Usuario.Rol?.RolNombre</strong>.
+                        </div>
+
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-gradient-primary text-white">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-shield-alt me-2"></i>Acceso a Páginas del Sistema
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- Resumen de permisos -->
+                                <div id="resumenPermisos" class="alert alert-info mb-4">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>Páginas con acceso:</strong> <span id="contadorPermisos">0</span>
+                                </div>
+
+                                <!-- Botón Seleccionar Todos -->
+                                <button type="button" id="btnToggleTodos" class="btn btn-sm btn-outline-primary mb-3">
+                                    <i class="fas fa-check-double me-1"></i>Seleccionar Todos
+                                </button>
+
+                                <!-- Contenedor de módulos -->
+                                <div class="row g-3" id="contenedorModulos">
+                                    @foreach (var modulo in Model.ModulosConOpciones)
+                                    {
+                                        <div class="col-md-6 col-lg-4">
+                                            <div class="card h-100 shadow-sm border-0 modulo-card">
+                                                <div class="card-header bg-gradient-custom text-white">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input modulo-checkbox bg-white"
+                                                               type="checkbox"
+                                                               id="modulo_@modulo.IdModulo"
+                                                               data-modulo="@modulo.IdModulo">
+                                                        <label class="form-check-label fw-bold" for="modulo_@modulo.IdModulo">
+                                                            <i class="fas fa-folder me-2"></i>@modulo.NombreModulo
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="list-group list-group-flush">
+                                                        @foreach (var opcion in modulo.Opciones)
+                                                        {
+                                                            <div class="list-group-item px-0 border-0">
+                                                                <div class="form-check">
+                                                                    <input class="form-check-input opcion-checkbox"
+                                                                           type="checkbox"
+                                                                           name="PermisosSeleccionados"
+                                                                           value="@opcion.IdOpcion"
+                                                                           id="opcion_@opcion.IdOpcion"
+                                                                           data-modulo="@modulo.IdModulo"
+                                                                           @(opcion.TienePermiso ? "checked" : "")>
+                                                                    <label class="form-check-label text-wrap" for="opcion_@opcion.IdOpcion">
+                                                                        @opcion.NombreOpcion
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ✅ TAB 3: CUENTAS ASIGNADAS -->
+                    <div class="tab-pane fade" id="cuentas" role="tabpanel">
+                        <div class="alert alert-warning mb-3">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Nota:</strong> Las cuentas asignadas determinan qué información puede ver el usuario. Si no asigna ninguna cuenta, el usuario solo verá datos generales.
+                        </div>
+
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-gradient-success text-white">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-building me-2"></i>Cuentas Disponibles
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- Resumen de cuentas -->
+                                <div id="resumenCuentas" class="alert alert-info mb-4">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>Cuentas asignadas:</strong> <span id="contadorCuentas">0</span> de @Model.CuentasDisponibles.Count
+                                </div>
+
+                                <!-- Botón Seleccionar Todas las Cuentas -->
+                                <button type="button" id="btnToggleCuentas" class="btn btn-sm btn-outline-success mb-3">
+                                    <i class="fas fa-check-double me-1"></i>Seleccionar Todas
+                                </button>
+
+                                <!-- Lista de cuentas -->
+                                <div class="row g-3">
+                                    @foreach (var cuenta in Model.CuentasDisponibles)
+                                    {
+                                        <div class="col-md-6 col-lg-4">
+                                            <div class="card cuenta-card h-100 border-0 shadow-sm">
+                                                <div class="card-body">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input cuenta-checkbox"
+                                                               type="checkbox"
+                                                               name="CuentasSeleccionadas"
+                                                               value="@cuenta.IdCuenta"
+                                                               id="cuenta_@cuenta.IdCuenta"
+                                                               @(cuenta.EstaAsignada ? "checked" : "")>
+                                                        <label class="form-check-label d-flex align-items-center" for="cuenta_@cuenta.IdCuenta">
+                                                            @if (!string.IsNullOrEmpty(cuenta.ColorHex))
+                                                            {
+                                                                <span class="color-badge me-2" style="background-color: @cuenta.ColorHex;"></span>
+                                                            }
+                                                            <div>
+                                                                <strong>@cuenta.CodigoCuenta</strong><br />
+                                                                <small class="text-muted">@cuenta.NombreCuenta</small>
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+
+                                @if (!Model.CuentasDisponibles.Any())
+                                {
+                                    <div class="alert alert-secondary text-center">
+                                        <i class="fas fa-info-circle fa-3x mb-3"></i>
+                                        <p>No hay cuentas disponibles en el sistema.</p>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
-                <hr />
-
-                <div class="row mb-3">
-                    <div class="col-12">
-                        <h5>Cambiar contraseña (opcional)</h5>
-                        <small class="text-muted">Deje en blanco si no desea cambiar la contraseña</small>
-                    </div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Nueva contraseña</label>
-                        <input asp-for="NuevaPassword" class="form-control" type="password" />
-                        <span asp-validation-for="NuevaPassword" class="text-danger"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Confirmar nueva contraseña</label>
-                        <input asp-for="ConfirmarPassword" class="form-control" type="password" />
-                        <span asp-validation-for="ConfirmarPassword" class="text-danger"></span>
-                    </div>
-                </div>
-
+                <!-- BOTONES DE ACCIÓN -->
+                <hr class="mt-4">
                 <div class="d-flex justify-content-between">
                     <a asp-page="/IT/Usuarios" class="btn btn-secondary">
                         <i class="fas fa-arrow-left"></i> Regresar
@@ -112,6 +284,231 @@
     </div>
 </div>
 
+@section Styles {
+    <style>
+        /* Gradientes para headers */
+        .bg-gradient-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .bg-gradient-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        /* Checkboxes personalizados */
+        .form-check-input:checked {
+            background-color: #667eea;
+            border-color: #667eea;
+        }
+
+        .form-check-input:indeterminate {
+            background-color: #ffc107;
+            border-color: #ffc107;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M6 10h8'/%3e%3c/svg%3e");
+        }
+
+        /* Hover en cards */
+        .modulo-card,
+        .cuenta-card {
+            transition: all 0.3s ease;
+        }
+
+            .modulo-card:hover,
+            .cuenta-card:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 8px 16px rgba(0,0,0,0.15) !important;
+            }
+
+        /* Color badge para cuentas */
+        .color-badge {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* Animación del resumen */
+        #resumenPermisos,
+        #resumenCuentas {
+            animation: fadeIn 0.3s ease;
+        }
+
+        @@keyframes fadeIn {
+            from
+
+        {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        }
+
+        /* Lista de opciones */
+        .list-group-item {
+            transition: background-color 0.2s;
+        }
+
+            .list-group-item:hover {
+                background-color: #f8f9fa;
+            }
+    </style>
+}
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        $(document).ready(function() {
+            // ====================================
+            // PERMISOS (PÁGINAS)
+            // ====================================
+
+            function sincronizarModuloCheckbox(idModulo) {
+                const opcionesCheckboxes = $(`.opcion-checkbox[data-modulo="${idModulo}"]`);
+                const moduloCheckbox = $(`#modulo_${idModulo}`);
+
+                const totalOpciones = opcionesCheckboxes.length;
+                const opcionesSeleccionadas = opcionesCheckboxes.filter(':checked').length;
+
+                if (opcionesSeleccionadas === 0) {
+                    moduloCheckbox.prop('checked', false).prop('indeterminate', false);
+                } else if (opcionesSeleccionadas === totalOpciones) {
+                    moduloCheckbox.prop('checked', true).prop('indeterminate', false);
+                } else {
+                    moduloCheckbox.prop('checked', false).prop('indeterminate', true);
+                }
+            }
+
+            function actualizarContadorPermisos() {
+                const total = $('.opcion-checkbox:checked').length;
+                $('#contadorPermisos').text(total);
+
+                const alert = $('#resumenPermisos');
+                alert.removeClass('alert-info alert-success alert-warning');
+
+                if (total === 0) {
+                    alert.addClass('alert-warning');
+                } else if (total > 10) {
+                    alert.addClass('alert-success');
+                } else {
+                    alert.addClass('alert-info');
+                }
+            }
+
+            $('.modulo-checkbox').on('change', function() {
+                const idModulo = $(this).data('modulo');
+                const isChecked = $(this).is(':checked');
+                $(`.opcion-checkbox[data-modulo="${idModulo}"]`).prop('checked', isChecked);
+                actualizarContadorPermisos();
+            });
+
+            $('.opcion-checkbox').on('change', function() {
+                const idModulo = $(this).data('modulo');
+                sincronizarModuloCheckbox(idModulo);
+                actualizarContadorPermisos();
+            });
+
+            $('#btnToggleTodos').on('click', function() {
+                const todasSeleccionadas = $('.opcion-checkbox:checked').length === $('.opcion-checkbox').length;
+                $('.opcion-checkbox').prop('checked', !todasSeleccionadas);
+                $('.modulo-checkbox').each(function() {
+                    sincronizarModuloCheckbox($(this).data('modulo'));
+                });
+                $(this).html(todasSeleccionadas
+                    ? '<i class="fas fa-check-double me-1"></i>Seleccionar Todos'
+                    : '<i class="fas fa-times me-1"></i>Deseleccionar Todos');
+                actualizarContadorPermisos();
+            });
+
+            // Inicializar checkboxes de módulos
+            $('.modulo-checkbox').each(function() {
+                const idModulo = $(this).data('modulo');
+                sincronizarModuloCheckbox(idModulo);
+            });
+            actualizarContadorPermisos();
+
+            // ====================================
+            // CUENTAS
+            // ====================================
+
+            function actualizarContadorCuentas() {
+                const total = $('.cuenta-checkbox:checked').length;
+                const totalDisponible = $('.cuenta-checkbox').length;
+                $('#contadorCuentas').text(`${total} de ${totalDisponible}`);
+
+                const alert = $('#resumenCuentas');
+                alert.removeClass('alert-info alert-success alert-warning');
+
+                if (total === 0) {
+                    alert.addClass('alert-warning');
+                } else if (total === totalDisponible) {
+                    alert.addClass('alert-success');
+                } else {
+                    alert.addClass('alert-info');
+                }
+            }
+
+            $('.cuenta-checkbox').on('change', function() {
+                actualizarContadorCuentas();
+            });
+
+            $('#btnToggleCuentas').on('click', function() {
+                const todasSeleccionadas = $('.cuenta-checkbox:checked').length === $('.cuenta-checkbox').length;
+                $('.cuenta-checkbox').prop('checked', !todasSeleccionadas);
+                $(this).html(todasSeleccionadas
+                    ? '<i class="fas fa-check-double me-1"></i>Seleccionar Todas'
+                    : '<i class="fas fa-times me-1"></i>Deseleccionar Todas');
+                actualizarContadorCuentas();
+            });
+
+            actualizarContadorCuentas();
+
+            // ====================================
+            // CAMBIO DE ROL
+            // ====================================
+
+            $('#rolSelect').on('change', function() {
+                const rolSeleccionado = $(this).find('option:selected').text();
+                $('#nombreRolActual').text(rolSeleccionado);
+
+                const tabPermisos = $('#permisos-tab');
+                if (!tabPermisos.hasClass('active')) {
+                    tabPermisos.addClass('text-warning');
+                    setTimeout(() => tabPermisos.removeClass('text-warning'), 2000);
+                }
+            });
+
+            // ====================================
+            // ADVERTENCIA DE CAMBIOS SIN GUARDAR
+            // ====================================
+
+            let estadoInicial = JSON.stringify({
+                permisos: $('.opcion-checkbox:checked').map(function() { return $(this).val(); }).get().sort(),
+                cuentas: $('.cuenta-checkbox:checked').map(function() { return $(this).val(); }).get().sort()
+            });
+
+            $(window).on('beforeunload', function(e) {
+                let estadoActual = JSON.stringify({
+                    permisos: $('.opcion-checkbox:checked').map(function() { return $(this).val(); }).get().sort(),
+                    cuentas: $('.cuenta-checkbox:checked').map(function() { return $(this).val(); }).get().sort()
+                });
+
+                if (estadoInicial !== estadoActual) {
+                    e.preventDefault();
+                    return '¿Desea salir sin guardar los cambios?';
+                }
+            });
+
+            $('form').on('submit', function() {
+                $(window).off('beforeunload');
+            });
+        });
+    </script>
 }

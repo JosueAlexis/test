@@ -1,0 +1,144 @@
+﻿@page
+@model ProyectoRH2025.Pages.IT.UsuariosEliminadosModel
+@{
+    ViewData["Title"] = "Usuarios Eliminados";
+}
+
+<div class="container-fluid mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">
+                <i class="fas fa-trash-restore me-2"></i>Usuarios Eliminados
+            </h4>
+            <a class="btn btn-light btn-sm" asp-page="/IT/Usuarios">
+                <i class="fas fa-arrow-left"></i> Volver a Usuarios
+            </a>
+        </div>
+        <div class="card-body">
+            @if (!Model.UsuariosEliminados.Any())
+            {
+                <div class="text-center text-muted py-5">
+                    <i class="fas fa-check-circle fa-3x mb-3 opacity-50"></i>
+                    <p>No hay usuarios eliminados</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Usuario</th>
+                                <th>Nombre</th>
+                                <th>Rol</th>
+                                <th>Fecha Eliminación</th>
+                                <th>Eliminado Por</th>
+                                <th>Motivo</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var u in Model.UsuariosEliminados)
+                            {
+                                <tr>
+                                    <td><strong>@u.UsuarioNombre</strong></td>
+                                    <td>@u.NombreCompleto</td>
+                                    <td>
+                                        <span class="badge bg-secondary">@u.NombreRol</span>
+                                    </td>
+                                    <td>
+                                        <small>@u.FechaEliminacion?.ToString("dd/MM/yyyy HH:mm")</small>
+                                    </td>
+                                    <td>
+                                        <small>@u.NombreEliminador</small>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">@u.MotivoEliminacion</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-success"
+                                                onclick="restaurarUsuario(@u.idUsuario, '@u.UsuarioNombre')"
+                                                title="Restaurar usuario">
+                                            <i class="fas fa-undo"></i> Restaurar
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: RESTAURAR USUARIO -->
+<div class="modal fade" id="modalRestaurar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-undo me-2"></i>Restaurar Usuario
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" asp-page-handler="RestaurarUsuario">
+                <div class="modal-body">
+                    <input type="hidden" id="restIdUsuario" name="IdUsuario" />
+
+                    <div class="alert alert-success">
+                        <i class="fas fa-info-circle me-2"></i>
+                        ¿Deseas restaurar al usuario <strong id="restNombreUsuario"></strong>?
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-check me-2"></i>
+                        El usuario será reactivado y podrá acceder al sistema nuevamente.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-undo"></i> Confirmar Restauración
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        function restaurarUsuario(idUsuario, nombreUsuario) {
+            document.getElementById('restIdUsuario').value = idUsuario;
+            document.getElementById('restNombreUsuario').textContent = nombreUsuario;
+            new bootstrap.Modal(document.getElementById('modalRestaurar')).show();
+        }
+
+        @if (TempData["MensajeExito"] != null)
+        {
+                <text>
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Éxito',
+                    text: '@TempData["MensajeExito"]',
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+                </text>
+        }
+
+        @if (TempData["MensajeError"] != null)
+        {
+                <text>
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: '@TempData["MensajeError"]'
+                });
+                </text>
+        }
+    </script>
+}

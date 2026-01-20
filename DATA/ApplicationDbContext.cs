@@ -31,9 +31,17 @@ namespace ProyectoRH2025.Data
         public DbSet<CarteleraConfig> CarteleraConfigs { get; set; }
         public DbSet<TblSellosHistorial> TblSellosHistorial { get; set; }
 
+        // ✅ NUEVAS TABLAS PARA GESTIÓN DE CUENTAS
+        public DbSet<TblCuentas> TblCuentas { get; set; }
+        public DbSet<TblUsuariosCuentas> TblUsuariosCuentas { get; set; }
+        public DbSet<TblPermiso> TblPermiso { get; set; }
+        public DbSet<TblModulo> TblModulo { get; set; }
+        public DbSet<TblOpcion> TblOpcion { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
             modelBuilder.Entity<TblAsigSellos>(entity =>
             {
                 entity.ToTable(tb => tb.HasTrigger("Trigger_Generico"));
@@ -123,6 +131,64 @@ namespace ProyectoRH2025.Data
 
                 entity.HasIndex(e => e.UsuarioId)
                       .HasDatabaseName("IX_TblSellosHistorial_UsuarioId");
+            });
+
+            // ================================================
+            // ✅ CONFIGURACIÓN DE CUENTAS
+            // ================================================
+
+            modelBuilder.Entity<TblCuentas>(entity =>
+            {
+                entity.ToTable("tblCuentas");
+                entity.HasKey(e => e.Id);
+
+                // Código de cuenta único
+                entity.HasIndex(e => e.CodigoCuenta)
+                      .IsUnique()
+                      .HasDatabaseName("IX_Cuentas_CodigoCuenta");
+
+                // Índice para cuenta activa
+                entity.HasIndex(e => e.EsActiva)
+                      .HasDatabaseName("IX_Cuentas_EsActiva");
+
+                // Índice para orden de visualización
+                entity.HasIndex(e => e.OrdenVisualizacion)
+                      .HasDatabaseName("IX_Cuentas_Orden");
+            });
+
+            // ================================================
+            // ✅ CONFIGURACIÓN DE USUARIOS-CUENTAS
+            // ================================================
+
+            modelBuilder.Entity<TblUsuariosCuentas>(entity =>
+            {
+                entity.ToTable("tblUsuariosCuentas");
+                entity.HasKey(e => e.Id);
+
+                // Índice para búsquedas por usuario
+                entity.HasIndex(e => e.IdUsuario)
+                      .HasDatabaseName("IX_UsuariosCuentas_Usuario");
+
+                // Índice para búsquedas por cuenta
+                entity.HasIndex(e => e.IdCuenta)
+                      .HasDatabaseName("IX_UsuariosCuentas_Cuenta");
+
+                // Índice compuesto para evitar duplicados activos
+                entity.HasIndex(e => new { e.IdUsuario, e.IdCuenta, e.EsActivo })
+                      .IsUnique()
+                      .HasDatabaseName("IX_UsuariosCuentas_Unique")
+                      .HasFilter("EsActivo = 1");
+
+                // Configurar relaciones
+                entity.HasOne(e => e.Usuario)
+                      .WithMany()
+                      .HasForeignKey(e => e.IdUsuario)
+                      .OnDelete(DeleteBehavior.NoAction);
+
+                entity.HasOne(e => e.Cuenta)
+                      .WithMany(c => c.UsuariosAsignados)
+                      .HasForeignKey(e => e.IdCuenta)
+                      .OnDelete(DeleteBehavior.NoAction);
             });
         }
     }

@@ -26,10 +26,17 @@ namespace ProyectoRH2025.Models
         public int? DefaultPassw { get; set; }
         public DateTime? CambioPass { get; set; }
         public string? TokenRecuperacion { get; set; }
+        public DateTime? TokenExpiracion { get; set; }
         public int? idSucursal { get; set; }
 
         public string? NombreCompleto { get; set; }
         public string? CorreoElectronico { get; set; }
+
+        // ✅ CAMPOS DE ELIMINACIÓN LÓGICA
+        public DateTime? FechaEliminacion { get; set; }
+        public int? EliminadoPor { get; set; }
+        public string? MotivoEliminacion { get; set; }
+        public bool EsEliminado { get; set; } = false;
 
         // Si no usas lazy loading, no es necesario "virtual"
         [ForeignKey("idRol")]

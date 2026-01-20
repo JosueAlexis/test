@@ -464,21 +464,33 @@
                 const response = await fetch(`/Sellos/InventarioCoordinador?handler=ObtenerAsignacion&idAsignacion=${idAsignacion}`);
                 const data = await response.json();
 
+                if (data.error) {
+                    Swal.fire('Error', data.error, 'error');
+                    return;
+                }
+
                 document.getElementById('modIdAsignacion').value = idAsignacion;
                 document.getElementById('modTipoAsignacion').value = data.tipoAsignacion;
 
-                // Cargar operadores
+                // 1. Primero cargamos la lista
                 await cargarOperadores();
 
-                // Seleccionar operadores actuales
-                $('#modOperador1').val(data.idOperador).trigger('change');
-                if (data.tipoAsignacion == 1 && data.idOperador2) {
-                    $('#modOperador2').val(data.idOperador2).trigger('change');
-                    document.getElementById('modOperador2Container').style.display = 'block';
-                }
+                // 2. Esperamos un momento para asegurar que el DOM se actualizó y luego asignamos valores
+                setTimeout(() => {
+                    $('#modOperador1').val(data.idOperador).trigger('change');
+
+                    if (data.tipoAsignacion == 1 && data.idOperador2) {
+                        $('#modOperador2').val(data.idOperador2).trigger('change');
+                        document.getElementById('modOperador2Container').style.display = 'block';
+                    } else {
+                        document.getElementById('modOperador2Container').style.display = 'none';
+                        $('#modOperador2').val('').trigger('change');
+                    }
+                }, 100);
 
                 new bootstrap.Modal(document.getElementById('modalModificar')).show();
             } catch (error) {
+                console.error(error);
                 Swal.fire('Error', 'No se pudo cargar la información', 'error');
             }
         }
@@ -519,23 +531,32 @@
             }
         }
 
-        // CARGAR OPERADORES (para modificar)
+        // ✅ CARGAR OPERADORES (CORREGIDO PARA MODAL)
         async function cargarOperadores() {
             try {
                 const response = await fetch('/Sellos/InventarioCoordinador?handler=ListaOperadores');
                 const operadores = await response.json();
 
-                $('#modOperador1, #modOperador2').empty().append('<option value="">-- Seleccionar --</option>');
+                // Limpiar opciones anteriores
+                $('#modOperador1, #modOperador2').empty();
+                $('#modOperador1, #modOperador2').append(new Option('-- Seleccionar --', ''));
+
+                // Llenar select
                 operadores.forEach(op => {
                     $('#modOperador1, #modOperador2').append(new Option(op.text, op.value));
                 });
 
+                // ✅ SOLUCIÓN CRÍTICA: dropdownParent
+                // Esto hace que la lista desplegable se renderice DENTRO del modal y sea visible/clicable
                 $('.operador-select').select2({
                     width: '100%',
-                    placeholder: '-- Seleccionar Operador --'
+                    placeholder: '-- Seleccionar Operador --',
+                    dropdownParent: $('#modalModificar')
                 });
+
             } catch (error) {
                 console.error('Error cargando operadores:', error);
+                Swal.fire('Error', 'No se pudo cargar la lista de operadores', 'error');
             }
         }
 

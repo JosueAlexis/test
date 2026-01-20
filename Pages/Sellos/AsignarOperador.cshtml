@@ -4,7 +4,6 @@
     ViewData["Title"] = "Asignar Sello a Operador";
 }
 
-<!-- Select2 CSS -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
 <div class="container mt-4">
@@ -60,12 +59,6 @@
                     <textarea asp-for="Comentarios" class="form-control" rows="3"></textarea>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Coordinador <span class="text-danger">*</span></label>
-                    <select asp-for="idCoordinador" asp-items="Model.Coordinadores" class="form-select" required></select>
-                    <span asp-validation-for="idCoordinador" class="text-danger"></span>
-                </div>
-
                 <button type="submit" class="btn btn-success">
                     <i class="fas fa-check-circle"></i> Asignar Sello
                 </button>
@@ -83,7 +76,6 @@
 </div>
 
 @section Scripts {
-    <!-- jQuery y Select2 -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
@@ -126,10 +118,10 @@
                 }
 
                 // Validar campos obligatorios (por si el navegador no lo hace)
+                // Se eliminó la validación de idCoordinador
                 if (!$('#IdSello').val() || !$('#TipoAsignacion').val() ||
                     !$('#IdOperador').val() || !$('#IdUnidad').val() ||
-                    !$('#Ruta').val().trim() || !$('#Caja').val().trim() ||
-                    !$('#idCoordinador').val()) {
+                    !$('#Ruta').val().trim() || !$('#Caja').val().trim()) {
                     alert("❌ Por favor completa todos los campos obligatorios marcados con *");
                     return false;
                 }
@@ -145,7 +137,8 @@
                 $('#Ruta').val('');
                 $('#Caja').val('');
                 $('#Comentarios').val('');
-                $('#idCoordinador').val('').trigger('change');
+
+                // Se eliminó la limpieza de idCoordinador
 
                 // Ocultar segundo operador
                 $('#segundo-operador-container').hide();

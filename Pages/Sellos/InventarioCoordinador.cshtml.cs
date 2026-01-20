@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ProyectoRH2025.Data;
 using ProyectoRH2025.Models;
 using ProyectoRH2025.Services;
-using Microsoft.AspNetCore.Antiforgery; // <--- CAMBIO 1: Agregar librería necesaria
+using Microsoft.AspNetCore.Antiforgery;
 
 namespace ProyectoRH2025.Pages.Sellos
 {
@@ -14,21 +14,22 @@ namespace ProyectoRH2025.Pages.Sellos
         private readonly QRCodeService _qrService;
         private readonly IWebHostEnvironment _environment;
         private readonly IAntiforgery _antiforgery;
-        private readonly ImagenService _imagenService; // ✅ AGREGAR
+        private readonly ImagenService _imagenService;
 
         public InventarioCoordinadorModel(
             ApplicationDbContext context,
             QRCodeService qrService,
             IWebHostEnvironment environment,
             IAntiforgery antiforgery,
-            ImagenService imagenService) // ✅ AGREGAR
+            ImagenService imagenService)
         {
             _context = context;
             _qrService = qrService;
             _environment = environment;
             _antiforgery = antiforgery;
-            _imagenService = imagenService; // ✅ AGREGAR
+            _imagenService = imagenService;
         }
+
         // PROPIEDADES
         public List<TblAsigSellos> SellosEnTramite { get; set; } = new();
         public List<TblAsigSellos> SellosEnUso { get; set; } = new();
@@ -40,36 +41,56 @@ namespace ProyectoRH2025.Pages.Sellos
         public string MensajeError { get; set; }
 
         // ==========================================
-        // HANDLER: CARGAR PÁGINA
+        // HANDLER: CARGAR PÁGINA (Con Filtro de Seguridad)
         // ==========================================
         public async Task<IActionResult> OnGetAsync()
         {
             var idUsuario = HttpContext.Session.GetInt32("idUsuario");
-            if (idUsuario == null)
-            {
-                return RedirectToPage("/Login");
-            }
+            if (idUsuario == null) return RedirectToPage("/Login");
 
-            // Cargar sellos en trámite (Status 4)
-            SellosEnTramite = await _context.TblAsigSellos
+            // 1. Obtener Cuentas Activas del Usuario Actual
+            var misCuentasIds = await _context.TblUsuariosCuentas
+                .Where(uc => uc.IdUsuario == idUsuario && uc.EsActivo)
+                .Select(uc => uc.IdCuenta)
+                .ToListAsync();
+
+            // 2. ¿Es Super Usuario? (Cuenta 7 = TODAS)
+            bool esSuperUsuario = misCuentasIds.Contains(7);
+
+            // Consultas Base
+            IQueryable<TblAsigSellos> queryTramite = _context.TblAsigSellos
                 .Include(a => a.Sello)
                 .Include(a => a.Operador)
                 .Include(a => a.Operador2)
                 .Include(a => a.Unidad)
                 .Include(a => a.Usuario)
-                .Where(a => a.Status == 4)
-                .OrderBy(a => a.Fentrega)
-                .ToListAsync();
+                .Where(a => a.Status == 4);
 
-            // Cargar sellos en uso (Status 3)
-            SellosEnUso = await _context.TblAsigSellos
+            IQueryable<TblAsigSellos> queryUso = _context.TblAsigSellos
                 .Include(a => a.Sello)
                 .Include(a => a.Operador)
                 .Include(a => a.Operador2)
                 .Include(a => a.Unidad)
-                .Where(a => a.Status == 3)
-                .OrderByDescending(a => a.FechaEntrega)
-                .ToListAsync();
+                .Where(a => a.Status == 3);
+
+            // 3. Aplicar Filtro de Seguridad (Si no es Super Admin)
+            if (!esSuperUsuario)
+            {
+                // Buscamos a TODOS los usuarios (Supervisores/Coordinadores) que comparten mis cuentas
+                var usuariosVisibles = await _context.TblUsuariosCuentas
+                    .Where(uc => misCuentasIds.Contains(uc.IdCuenta) && uc.EsActivo)
+                    .Select(uc => uc.IdUsuario)
+                    .Distinct()
+                    .ToListAsync();
+
+                // Filtramos: Solo veo lo asignado por usuarios que pertenecen a mi mismo proyecto/cuenta
+                queryTramite = queryTramite.Where(a => a.idSeAsigno != null && usuariosVisibles.Contains(a.idSeAsigno.Value));
+                queryUso = queryUso.Where(a => a.idSeAsigno != null && usuariosVisibles.Contains(a.idSeAsigno.Value));
+            }
+
+            // 4. Ejecutar Consultas
+            SellosEnTramite = await queryTramite.OrderBy(a => a.Fentrega).ToListAsync();
+            SellosEnUso = await queryUso.OrderByDescending(a => a.FechaEntrega).ToListAsync();
 
             return Page();
         }
@@ -87,12 +108,14 @@ namespace ProyectoRH2025.Pages.Sellos
                 .Include(a => a.Usuario)
                 .FirstOrDefaultAsync(a => a.id == idAsignacion);
 
-            if (asignacion == null)
+            if (asignacion == null) return Content("<div class='alert alert-danger'>Asignación no encontrada</div>");
+
+            // VALIDAR PERMISOS
+            if (!await UsuarioTienePermiso(asignacion.idSeAsigno))
             {
-                return Content("<div class='alert alert-danger'>Asignación no encontrada</div>");
+                return Content("<div class='alert alert-danger'>⛔ No tienes permisos para ver esta asignación.</div>");
             }
 
-            // <--- CAMBIO 5: Obtener el Token AntiForgery manualmente
             var token = _antiforgery.GetAndStoreTokens(HttpContext).RequestToken;
 
             var html = $@"
@@ -101,75 +124,39 @@ namespace ProyectoRH2025.Pages.Sellos
                         <h5 class='card-title mb-4'>Información de la Asignación</h5>
                         
                         <div class='row mb-3'>
-                            <div class='col-6'>
-                                <strong>Sello:</strong>
-                            </div>
-                            <div class='col-6'>
-                                <span class='badge bg-primary fs-6'>{asignacion.Sello?.Sello}</span>
-                            </div>
+                            <div class='col-6'><strong>Sello:</strong></div>
+                            <div class='col-6'><span class='badge bg-primary fs-6'>{asignacion.Sello?.Sello}</span></div>
                         </div>
-
                         <div class='row mb-3'>
-                            <div class='col-6'>
-                                <strong>Operador Principal:</strong>
-                            </div>
-                            <div class='col-6'>
-                                {asignacion.Operador?.Names} {asignacion.Operador?.Apellido}
-                            </div>
+                            <div class='col-6'><strong>Operador Principal:</strong></div>
+                            <div class='col-6'>{asignacion.Operador?.Names} {asignacion.Operador?.Apellido}</div>
                         </div>
-
                         {(asignacion.TipoAsignacion == 1 && asignacion.Operador2 != null ? $@"
                         <div class='row mb-3'>
-                            <div class='col-6'>
-                                <strong>Segundo Operador:</strong>
-                            </div>
-                            <div class='col-6'>
-                                {asignacion.Operador2?.Names} {asignacion.Operador2?.Apellido}
-                            </div>
+                            <div class='col-6'><strong>Segundo Operador:</strong></div>
+                            <div class='col-6'>{asignacion.Operador2?.Names} {asignacion.Operador2?.Apellido}</div>
                         </div>" : "")}
-
                         <div class='row mb-3'>
-                            <div class='col-6'>
-                                <strong>Unidad:</strong>
-                            </div>
-                            <div class='col-6'>
-                                {asignacion.Unidad?.NumUnidad}
-                            </div>
+                            <div class='col-6'><strong>Unidad:</strong></div>
+                            <div class='col-6'>{asignacion.Unidad?.NumUnidad}</div>
                         </div>
-
                         <div class='row mb-3'>
-                            <div class='col-6'>
-                                <strong>Ruta:</strong>
-                            </div>
-                            <div class='col-6'>
-                                {asignacion.Ruta ?? "N/A"}
-                            </div>
+                            <div class='col-6'><strong>Ruta:</strong></div>
+                            <div class='col-6'>{asignacion.Ruta ?? "N/A"}</div>
                         </div>
-
                         <div class='row mb-3'>
-                            <div class='col-6'>
-                                <strong>Tipo:</strong>
-                            </div>
-                            <div class='col-6'>
-                                <span class='badge bg-info'>{(asignacion.TipoAsignacion == 1 ? "Comboy" : "Individual")}</span>
-                            </div>
+                            <div class='col-6'><strong>Tipo:</strong></div>
+                            <div class='col-6'><span class='badge bg-info'>{(asignacion.TipoAsignacion == 1 ? "Comboy" : "Individual")}</span></div>
                         </div>
-
                         <div class='row mb-3'>
-                            <div class='col-6'>
-                                <strong>Supervisor:</strong>
-                            </div>
-                            <div class='col-6'>
-                                {asignacion.Usuario?.UsuarioNombre ?? "N/A"}
-                            </div>
+                            <div class='col-6'><strong>Supervisor:</strong></div>
+                            <div class='col-6'>{asignacion.Usuario?.UsuarioNombre ?? "N/A"}</div>
                         </div>
 
                         <hr/>
 
                         <form method='post' action='/Sellos/InventarioCoordinador?handler=GenerarQR'>
-                            
                             <input type='hidden' name='__RequestVerificationToken' value='{token}' />
-
                             <input type='hidden' name='IdAsignacion' value='{idAsignacion}' />
                             
                             <div class='alert alert-warning'>
@@ -185,8 +172,7 @@ namespace ProyectoRH2025.Pages.Sellos
                             </div>
                         </form>
                     </div>
-                </div>
-            ";
+                </div>";
 
             return Content(html, "text/html");
         }
@@ -200,11 +186,7 @@ namespace ProyectoRH2025.Pages.Sellos
         public async Task<IActionResult> OnPostGenerarQRAsync()
         {
             var idUsuario = HttpContext.Session.GetInt32("idUsuario");
-            if (idUsuario == null)
-            {
-                MensajeError = "Sesión expirada";
-                return RedirectToPage();
-            }
+            if (idUsuario == null) { MensajeError = "Sesión expirada"; return RedirectToPage(); }
 
             var asignacion = await _context.TblAsigSellos
                 .Include(a => a.Sello)
@@ -217,6 +199,13 @@ namespace ProyectoRH2025.Pages.Sellos
                 return RedirectToPage();
             }
 
+            // VALIDAR PERMISOS
+            if (!await UsuarioTienePermiso(asignacion.idSeAsigno))
+            {
+                MensajeError = "⛔ No tienes permiso para gestionar sellos de este proyecto/cuenta.";
+                return RedirectToPage();
+            }
+
             // Generar código único
             var codigoQR = _qrService.GenerarCodigoUnico(
                 asignacion.id,
@@ -224,18 +213,14 @@ namespace ProyectoRH2025.Pages.Sellos
                 asignacion.idOperador
             );
 
-            // Actualizar asignación
             asignacion.QR_Code = codigoQR;
             asignacion.QR_FechaGeneracion = DateTime.Now;
             asignacion.QR_Entregado = true;
             asignacion.FechaEntrega = DateTime.Now;
             asignacion.Status = 3; // En Uso
             asignacion.editor = idUsuario;
-            // Actualizar sello
-            if (asignacion.Sello != null)
-            {
-                asignacion.Sello.Status = 3; // En Uso
-            }
+
+            if (asignacion.Sello != null) asignacion.Sello.Status = 3;
 
             await _context.SaveChangesAsync();
 
@@ -256,12 +241,11 @@ namespace ProyectoRH2025.Pages.Sellos
                 .Include(a => a.Operador)
                 .FirstOrDefaultAsync(a => a.id == idAsignacion);
 
-            if (asignacion == null || string.IsNullOrEmpty(asignacion.QR_Code))
-            {
-                return Content("<div class='alert alert-danger'>QR no disponible</div>");
-            }
+            if (asignacion == null || string.IsNullOrEmpty(asignacion.QR_Code)) return Content("<div class='alert alert-danger'>QR no disponible</div>");
 
-            // Generar imagen QR en base64
+            // VALIDAR PERMISOS
+            if (!await UsuarioTienePermiso(asignacion.idSeAsigno)) return Content("<div class='alert alert-danger'>⛔ Sin permisos.</div>");
+
             var qrBase64 = _qrService.GenerarQRBase64(asignacion.QR_Code);
 
             var html = $@"
@@ -269,10 +253,7 @@ namespace ProyectoRH2025.Pages.Sellos
                     <h5 class='mb-3'>Sello: {asignacion.Sello?.Sello}</h5>
                     <h6 class='text-muted mb-4'>Operador: {asignacion.Operador?.Names} {asignacion.Operador?.Apellido}</h6>
                     
-                    <img src='data:image/png;base64,{qrBase64}' 
-                         alt='Código QR' 
-                         class='img-fluid mb-3'
-                         style='max-width: 300px; border: 2px solid #007bff; padding: 10px;' />
+                    <img src='data:image/png;base64,{qrBase64}' class='img-fluid mb-3' style='max-width: 300px; border: 2px solid #007bff; padding: 10px;' />
                     
                     <div class='alert alert-info mt-3'>
                         <small><strong>Código:</strong><br/>{asignacion.QR_Code}</small>
@@ -282,13 +263,7 @@ namespace ProyectoRH2025.Pages.Sellos
                         <i class='fas fa-print'></i> Imprimir
                     </button>
                 </div>
-
-                <script>
-                function imprimirQR() {{
-                    window.print();
-                }}
-                </script>
-            ";
+                <script>function imprimirQR() {{ window.print(); }}</script>";
 
             return Content(html, "text/html");
         }
@@ -298,13 +273,12 @@ namespace ProyectoRH2025.Pages.Sellos
         // ==========================================
         public async Task<IActionResult> OnGetObtenerAsignacionAsync(int idAsignacion)
         {
-            var asignacion = await _context.TblAsigSellos
-                .FirstOrDefaultAsync(a => a.id == idAsignacion);
+            var asignacion = await _context.TblAsigSellos.FirstOrDefaultAsync(a => a.id == idAsignacion);
 
-            if (asignacion == null)
-            {
-                return new JsonResult(new { error = "No encontrada" });
-            }
+            if (asignacion == null) return new JsonResult(new { error = "No encontrada" });
+
+            // VALIDAR PERMISOS
+            if (!await UsuarioTienePermiso(asignacion.idSeAsigno)) return new JsonResult(new { error = "Sin permisos" });
 
             return new JsonResult(new
             {
@@ -315,19 +289,33 @@ namespace ProyectoRH2025.Pages.Sellos
         }
 
         // ==========================================
-        // HANDLER: LISTA DE OPERADORES (para select)
+        // HANDLER: LISTA DE OPERADORES (CORREGIDO PARA EVITAR ERROR 500)
         // ==========================================
         public async Task<IActionResult> OnGetListaOperadoresAsync()
         {
-            var operadores = await _context.Empleados
-                .Where(e => e.Puesto == 1 && e.Status == 1)
+            // PASO 1: Traer los datos crudos de la base de datos
+            // Esto evita el error de "System.InvalidOperationException" por intentar formatear strings en la query SQL
+            var rawData = await _context.Empleados
+                .Where(e => e.Puesto == 1 && e.Status == 1 && e.CodClientes == "1")
+                .Select(e => new
+                {
+                    e.Id,
+                    e.Reloj,
+                    e.Names,
+                    e.Apellido,
+                    e.Apellido2
+                })
+                .ToListAsync();
+
+            // PASO 2: Formatear el texto en memoria (C# puro)
+            var operadores = rawData
                 .Select(e => new
                 {
                     value = e.Id.ToString(),
                     text = $"{e.Reloj} - {e.Names} {e.Apellido} {e.Apellido2}"
                 })
                 .OrderBy(e => e.text)
-                .ToListAsync();
+                .ToList();
 
             return new JsonResult(operadores);
         }
@@ -355,7 +343,13 @@ namespace ProyectoRH2025.Pages.Sellos
                 return RedirectToPage();
             }
 
-            // Validar comboy
+            // VALIDAR PERMISOS
+            if (!await UsuarioTienePermiso(asignacion.idSeAsigno))
+            {
+                MensajeError = "⛔ No tienes permiso para modificar este sello.";
+                return RedirectToPage();
+            }
+
             if (TipoAsignacion == 1 && IdOperador2.HasValue && IdOperador == IdOperador2.Value)
             {
                 MensajeError = "No puedes seleccionar el mismo operador dos veces";
@@ -381,71 +375,44 @@ namespace ProyectoRH2025.Pages.Sellos
         public async Task<IActionResult> OnPostDevolverSelloAsync()
         {
             var idUsuario = HttpContext.Session.GetInt32("idUsuario");
-            if (idUsuario == null)
-            {
-                MensajeError = "Sesión expirada";
-                return RedirectToPage();
-            }
+            if (idUsuario == null) { MensajeError = "Sesión expirada"; return RedirectToPage(); }
 
-            // ←←← Normalizar aquí el código recibido
             CodigoQR = CodigoQR?.Replace("'", "-").Trim();
 
-            // Validar formato del QR
             var (esValido, idAsignacionQR, numeroSello, idOperadorQR) = _qrService.ValidarQR(CodigoQR);
-            if (!esValido)
-            {
-                MensajeError = "Código QR inválido o con formato incorrecto";
-                return RedirectToPage();
-            }
+            if (!esValido) { MensajeError = "Código QR inválido o con formato incorrecto"; return RedirectToPage(); }
 
-            // Buscar la asignación
             var asignacion = await _context.TblAsigSellos
                 .Include(a => a.Sello)
                 .Include(a => a.Operador)
                 .FirstOrDefaultAsync(a => a.id == IdAsignacion && a.Status == 3);
 
-            if (asignacion == null)
+            if (asignacion == null) { MensajeError = "Asignación no encontrada o no está en uso"; return RedirectToPage(); }
+
+            // VALIDAR PERMISOS
+            if (!await UsuarioTienePermiso(asignacion.idSeAsigno))
             {
-                MensajeError = "Asignación no encontrada o no está en uso";
+                MensajeError = "⛔ No tienes permiso para gestionar la devolución de este sello.";
                 return RedirectToPage();
             }
 
-            // Validar que el QR coincida con la asignación
-            if (asignacion.QR_Code != CodigoQR)
-            {
-                MensajeError = "El código QR no coincide con esta asignación";
-                return RedirectToPage();
-            }
+            if (asignacion.QR_Code != CodigoQR) { MensajeError = "El código QR no coincide con esta asignación"; return RedirectToPage(); }
+            if (asignacion.idOperador != idOperadorQR) { MensajeError = "El código QR no pertenece al operador de esta asignación"; return RedirectToPage(); }
+            if (asignacion.Sello?.Sello != numeroSello) { MensajeError = "El código QR no coincide con el sello de esta asignación"; return RedirectToPage(); }
 
-            // Validar que el operador del QR coincida
-            if (asignacion.idOperador != idOperadorQR)
-            {
-                MensajeError = "El código QR no pertenece al operador de esta asignación";
-                return RedirectToPage();
-            }
-
-            // Validar que el sello del QR coincida
-            if (asignacion.Sello?.Sello != numeroSello)
-            {
-                MensajeError = "El código QR no coincide con el sello de esta asignación";
-                return RedirectToPage();
-            }
-
-            // ✅ TODO VÁLIDO - Procesar devolución
             asignacion.FechaDevolucion = DateTime.Now;
-            asignacion.Status = 1; // Devuelto (puedes usar otro status si prefieres)
-            asignacion.editor = HttpContext.Session.GetInt32("idUsuario");
-            // Liberar el sello para nueva asignación
+            asignacion.Status = 1;
+            asignacion.editor = idUsuario;
+
             if (asignacion.Sello != null)
             {
-                asignacion.Sello.Status = 1; // Activo/Disponible
+                asignacion.Sello.Status = 1;
                 asignacion.Sello.SupervisorId = null;
                 asignacion.Sello.FechaAsignacion = null;
             }
 
             await _context.SaveChangesAsync();
-
-            Mensaje = $"Sello {numeroSello} devuelto correctamente. El sello está disponible nuevamente.";
+            Mensaje = $"Sello {numeroSello} devuelto correctamente.";
             return RedirectToPage();
         }
 
@@ -464,74 +431,47 @@ namespace ProyectoRH2025.Pages.Sellos
         public async Task<IActionResult> OnPostSubirEvidenciaAsync()
         {
             var idUsuario = HttpContext.Session.GetInt32("idUsuario");
-            if (idUsuario == null)
-            {
-                MensajeError = "Sesión expirada";
-                return RedirectToPage();
-            }
+            if (idUsuario == null) { MensajeError = "Sesión expirada"; return RedirectToPage(); }
 
-            if (ArchivoEvidencia == null || ArchivoEvidencia.Length == 0)
-            {
-                MensajeError = "Debes seleccionar un archivo";
-                return RedirectToPage();
-            }
-
-            // Validar tamaño máximo (10 MB)
-            if (ArchivoEvidencia.Length > 10 * 1024 * 1024)
-            {
-                MensajeError = "El archivo no puede superar 10 MB";
-                return RedirectToPage();
-            }
+            if (ArchivoEvidencia == null || ArchivoEvidencia.Length == 0) { MensajeError = "Debes seleccionar un archivo"; return RedirectToPage(); }
+            if (ArchivoEvidencia.Length > 10 * 1024 * 1024) { MensajeError = "El archivo no puede superar 10 MB"; return RedirectToPage(); }
 
             var asignacion = await _context.TblAsigSellos
                 .Include(a => a.Sello)
                 .FirstOrDefaultAsync(a => a.id == IdAsignacion && a.Status == 3);
 
-            if (asignacion == null)
+            if (asignacion == null) { MensajeError = "Asignación no encontrada"; return RedirectToPage(); }
+
+            // VALIDAR PERMISOS
+            if (!await UsuarioTienePermiso(asignacion.idSeAsigno))
             {
-                MensajeError = "Asignación no encontrada";
+                MensajeError = "⛔ No tienes permiso para subir evidencia a este sello.";
                 return RedirectToPage();
             }
 
             try
             {
                 var extension = Path.GetExtension(ArchivoEvidencia.FileName).ToLower();
-                string imagenBase64;
-                string thumbnailBase64 = null;
-                string imagenOriginalBase64 = null;
-                int tamanoOriginal;
-                int tamanoComprimido;
-                string tipoArchivo;
+                string imagenBase64, thumbnailBase64 = null, tipoArchivo;
+                int tamanoOriginal = 0;
+                int tamanoComprimido = 0;
 
                 if (extension == ".pdf")
                 {
-                    // Procesar PDF
                     var (pdfBase64, tamanoKB) = _imagenService.ProcesarPDF(ArchivoEvidencia);
                     imagenBase64 = pdfBase64;
-                    imagenOriginalBase64 = pdfBase64;
-                    thumbnailBase64 = null;
                     tamanoOriginal = tamanoKB;
                     tamanoComprimido = tamanoKB;
                     tipoArchivo = "pdf";
                 }
                 else if (extension == ".jpg" || extension == ".jpeg" || extension == ".png")
                 {
-                    // Validar que sea una imagen válida
-                    if (!_imagenService.EsImagenValida(ArchivoEvidencia))
-                    {
-                        MensajeError = "El archivo no es una imagen válida";
-                        return RedirectToPage();
-                    }
-
-                    // Procesar imagen con compresión
-                    var (imgBase64, thumbBase64, tamOriginal, tamComprimido) =
-                        _imagenService.ProcesarImagen(ArchivoEvidencia);
-
-                    imagenBase64 = imgBase64;          // Imagen comprimida
-                    thumbnailBase64 = thumbBase64;      // Miniatura
-                    imagenOriginalBase64 = imgBase64;   // Para esta implementación, guardamos la comprimida
+                    if (!_imagenService.EsImagenValida(ArchivoEvidencia)) { MensajeError = "El archivo no es una imagen válida"; return RedirectToPage(); }
+                    var (imgBase64, thumbBase64, tamOriginal, tamComprimidoImg) = _imagenService.ProcesarImagen(ArchivoEvidencia);
+                    imagenBase64 = imgBase64;
+                    thumbnailBase64 = thumbBase64;
                     tamanoOriginal = tamOriginal;
-                    tamanoComprimido = tamComprimido;
+                    tamanoComprimido = tamComprimidoImg;
                     tipoArchivo = "imagen";
                 }
                 else
@@ -540,7 +480,6 @@ namespace ProyectoRH2025.Pages.Sellos
                     return RedirectToPage();
                 }
 
-                // Guardar en base de datos
                 var evidencia = new TblImagenAsigSellos
                 {
                     idTabla = asignacion.id,
@@ -555,7 +494,6 @@ namespace ProyectoRH2025.Pages.Sellos
 
                 _context.TblImagenAsigSellos.Add(evidencia);
 
-                // Actualizar status según tipo de evidencia
                 asignacion.StatusEvidencia = TipoEvidencia;
                 asignacion.Comentarios = Comentarios;
 
@@ -563,32 +501,15 @@ namespace ProyectoRH2025.Pages.Sellos
                 {
                     switch (TipoEvidencia)
                     {
-                        case "Utilizado":
-                            asignacion.Sello.Status = 12;
-                            asignacion.Status = 12;
-                            break;
-                        case "Defectuoso":
-                            asignacion.Sello.Status = 6;
-                            asignacion.Status = 6;
-                            break;
-                        case "Planta":
-                            asignacion.Sello.Status = 11;
-                            asignacion.Status = 11;
-                            break;
-                        case "Extraviado":
-                            asignacion.Sello.Status = 8;
-                            asignacion.Status = 8;
-                            break;
+                        case "Utilizado": asignacion.Sello.Status = 12; asignacion.Status = 12; break;
+                        case "Defectuoso": asignacion.Sello.Status = 6; asignacion.Status = 6; break;
+                        case "Planta": asignacion.Sello.Status = 11; asignacion.Status = 11; break;
+                        case "Extraviado": asignacion.Sello.Status = 8; asignacion.Status = 8; break;
                     }
                 }
 
                 await _context.SaveChangesAsync();
-
-                var porcentajeReduccion = tamanoOriginal > 0
-                    ? 100 - (tamanoComprimido * 100 / tamanoOriginal)
-                    : 0;
-
-                Mensaje = $"✅ Evidencia subida correctamente. Tamaño: {tamanoOriginal} KB → {tamanoComprimido} KB (reducción: {porcentajeReduccion}%)";
+                Mensaje = $"✅ Evidencia subida correctamente.";
             }
             catch (Exception ex)
             {
@@ -597,20 +518,25 @@ namespace ProyectoRH2025.Pages.Sellos
 
             return RedirectToPage();
         }
+
         // ==========================================
         // HANDLER: VER EVIDENCIAS
         // ==========================================
         public async Task<IActionResult> OnGetVerEvidenciasAsync(int idAsignacion)
         {
+            var asignacion = await _context.TblAsigSellos.FindAsync(idAsignacion);
+            if (asignacion != null)
+            {
+                // VALIDAR PERMISOS
+                if (!await UsuarioTienePermiso(asignacion.idSeAsigno)) return Content("<div class='alert alert-danger'>⛔ Sin permisos.</div>");
+            }
+
             var evidencias = await _context.TblImagenAsigSellos
                 .Where(e => e.idTabla == idAsignacion)
                 .OrderByDescending(e => e.FSubidaEvidencia)
                 .ToListAsync();
 
-            if (!evidencias.Any())
-            {
-                return Content("<div class='alert alert-info'>No hay evidencias registradas</div>");
-            }
+            if (!evidencias.Any()) return Content("<div class='alert alert-info'>No hay evidencias registradas</div>");
 
             var html = "<div class='row'>";
 
@@ -626,7 +552,6 @@ namespace ProyectoRH2025.Pages.Sellos
 
                 if (esRutaAntigua)
                 {
-                    // Compatibilidad con rutas antiguas
                     var ext = Path.GetExtension(evidencia.Imagen).ToLower();
                     var esPDFAntiguo = ext == ".pdf";
 
@@ -640,7 +565,6 @@ namespace ProyectoRH2025.Pages.Sellos
                 }
                 else if (esPDF)
                 {
-                    // PDF en Base64
                     html += $@"
                 <div class='text-center'>
                     <i class='fas fa-file-pdf fa-5x text-danger mb-3'></i>
@@ -656,7 +580,6 @@ namespace ProyectoRH2025.Pages.Sellos
                 }
                 else
                 {
-                    // Imagen en Base64 - Usar thumbnail para preview, imagen completa para modal
                     var imagenMostrar = !string.IsNullOrEmpty(evidencia.ImagenThumbnail)
                         ? evidencia.ImagenThumbnail
                         : evidencia.Imagen;
@@ -698,7 +621,6 @@ namespace ProyectoRH2025.Pages.Sellos
 
             html += "</div>";
 
-            // Modal para ver imagen completa
             html += @"
         <div class='modal fade' id='modalImagenCompleta' tabindex='-1'>
             <div class='modal-dialog modal-xl modal-dialog-centered'>
@@ -732,6 +654,31 @@ namespace ProyectoRH2025.Pages.Sellos
         </script>";
 
             return Content(html, "text/html");
+        }
+
+        // ==========================================
+        // 🔒 MÉTODO PRIVADO: VERIFICAR PERMISOS (CORE)
+        // ==========================================
+        private async Task<bool> UsuarioTienePermiso(int? idCreadorAsignacion)
+        {
+            if (idCreadorAsignacion == null) return false;
+
+            var idUsuarioActual = HttpContext.Session.GetInt32("idUsuario");
+            if (idUsuarioActual == null) return false;
+
+            var misCuentasIds = await _context.TblUsuariosCuentas
+                .Where(uc => uc.IdUsuario == idUsuarioActual && uc.EsActivo)
+                .Select(uc => uc.IdCuenta)
+                .ToListAsync();
+
+            if (misCuentasIds.Contains(7)) return true;
+
+            bool tienenCuentaEnComun = await _context.TblUsuariosCuentas
+                .AnyAsync(uc => uc.IdUsuario == idCreadorAsignacion.Value
+                             && misCuentasIds.Contains(uc.IdCuenta)
+                             && uc.EsActivo);
+
+            return tienenCuentaEnComun;
         }
     }
 }

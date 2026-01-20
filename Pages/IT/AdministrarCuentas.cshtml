@@ -1,0 +1,294 @@
+﻿@page
+@model ProyectoRH2025.Pages.IT.AdministrarCuentasModel
+@{
+    ViewData["Title"] = "Administrar Cuentas";
+}
+
+<div class="container-fluid mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">
+                <i class="fas fa-building me-2"></i>Catálogo de Cuentas
+            </h4>
+            <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalNuevaCuenta">
+                <i class="fas fa-plus"></i> Nueva Cuenta
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered">
+                    <thead class="table-dark">
+                        <tr>
+                            <th width="50">Color</th>
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>Descripción</th>
+                            <th width="80">Usuarios</th>
+                            <th width="80">Estado</th>
+                            <th width="150" class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var cuenta in Model.Cuentas)
+                        {
+                            <tr>
+                                <td class="text-center">
+                                    @if (!string.IsNullOrEmpty(cuenta.ColorHex))
+                                    {
+                                        <div style="width: 30px; height: 30px; background-color: @cuenta.ColorHex; border-radius: 4px; border: 1px solid #dee2e6;"></div>
+                                    }
+                                </td>
+                                <td><strong>@cuenta.CodigoCuenta</strong></td>
+                                <td>@cuenta.NombreCuenta</td>
+                                <td>
+                                    <small class="text-muted">@(cuenta.Descripcion ?? "-")</small>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-info">@cuenta.UsuariosAsignados</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge @(cuenta.EsActiva ? "bg-success" : "bg-secondary")">
+                                        @(cuenta.EsActiva ? "Activa" : "Inactiva")
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button class="btn btn-outline-primary"
+                                                onclick="editarCuenta(@cuenta.Id)"
+                                                title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-info"
+                                                onclick="verUsuariosAsignados(@cuenta.Id, '@cuenta.NombreCuenta')"
+                                                title="Ver usuarios">
+                                            <i class="fas fa-users"></i>
+                                        </button>
+                                        @if (cuenta.EsActiva)
+                                        {
+                                            <button class="btn btn-outline-warning"
+                                                    onclick="toggleEstadoCuenta(@cuenta.Id, false)"
+                                                    title="Desactivar">
+                                                <i class="fas fa-ban"></i>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-outline-success"
+                                                    onclick="toggleEstadoCuenta(@cuenta.Id, true)"
+                                                    title="Activar">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (!Model.Cuentas.Any())
+            {
+                <div class="text-center text-muted py-5">
+                    <i class="fas fa-inbox fa-3x mb-3 opacity-50"></i>
+                    <p>No hay cuentas registradas</p>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNuevaCuenta">
+                        <i class="fas fa-plus"></i> Crear Primera Cuenta
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: NUEVA CUENTA -->
+<div class="modal fade" id="modalNuevaCuenta" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>Nueva Cuenta
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" asp-page-handler="CrearCuenta">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Código de Cuenta <span class="text-danger">*</span></label>
+                        <input name="CodigoCuenta" class="form-control" required
+                               placeholder="Ej: TOYOTA_TMMTX" />
+                        <small class="form-text text-muted">Sin espacios, mayúsculas, guiones bajos permitidos</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                        <input name="NombreCuenta" class="form-control" required
+                               placeholder="Ej: Toyota Manufacturing México" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea name="Descripcion" class="form-control" rows="2"
+                                  placeholder="Descripción opcional de la cuenta"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Color Identificador</label>
+                        <input name="ColorHex" type="color" class="form-control form-control-color"
+                               value="#007bff" />
+                        <small class="form-text text-muted">Color para identificar visualmente la cuenta</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Orden de Visualización</label>
+                        <input name="OrdenVisualizacion" type="number" class="form-control"
+                               value="0" min="0" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> Crear Cuenta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: EDITAR CUENTA -->
+<div class="modal fade" id="modalEditarCuenta" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>Editar Cuenta
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalEditarBody">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: USUARIOS ASIGNADOS -->
+<div class="modal fade" id="modalUsuariosAsignados" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-users me-2"></i>Usuarios Asignados
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalUsuariosBody">
+                <div class="text-center">
+                    <div class="spinner-border text-info" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        async function editarCuenta(idCuenta) {
+            try {
+                const response = await fetch(`/IT/AdministrarCuentas?handler=ObtenerCuenta&idCuenta=${idCuenta}`);
+                const html = await response.text();
+                document.getElementById('modalEditarBody').innerHTML = html;
+                new bootstrap.Modal(document.getElementById('modalEditarCuenta')).show();
+            } catch (error) {
+                Swal.fire('Error', 'No se pudo cargar la información', 'error');
+            }
+        }
+
+        async function verUsuariosAsignados(idCuenta, nombreCuenta) {
+            try {
+                const response = await fetch(`/IT/AdministrarCuentas?handler=UsuariosAsignados&idCuenta=${idCuenta}`);
+                const html = await response.text();
+                document.getElementById('modalUsuariosBody').innerHTML = html;
+                document.querySelector('#modalUsuariosAsignados .modal-title').innerHTML =
+                    `<i class="fas fa-users me-2"></i>Usuarios con acceso a: ${nombreCuenta}`;
+                new bootstrap.Modal(document.getElementById('modalUsuariosAsignados')).show();
+            } catch (error) {
+                Swal.fire('Error', 'No se pudo cargar la información', 'error');
+            }
+        }
+
+        async function toggleEstadoCuenta(idCuenta, activar) {
+            const confirmacion = await Swal.fire({
+                title: `¿${activar ? 'Activar' : 'Desactivar'} cuenta?`,
+                text: activar ? 'La cuenta volverá a estar disponible' : 'Los usuarios no podrán acceder a esta cuenta',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: activar ? '#28a745' : '#ffc107',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: `Sí, ${activar ? 'activar' : 'desactivar'}`,
+                cancelButtonText: 'Cancelar'
+            });
+
+            if (!confirmacion.isConfirmed) return;
+
+            try {
+                const formData = new FormData();
+                formData.append('IdCuenta', idCuenta);
+                formData.append('Activar', activar);
+
+                const response = await fetch('/IT/AdministrarCuentas?handler=ToggleEstado', {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    Swal.fire('Éxito', result.message, 'success').then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', result.message, 'error');
+                }
+            } catch (error) {
+                Swal.fire('Error', 'No se pudo completar la operación', 'error');
+            }
+        }
+
+        @if (TempData["MensajeExito"] != null)
+        {
+                <text>
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Éxito',
+                    text: '@TempData["MensajeExito"]',
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+                </text>
+        }
+
+        @if (TempData["MensajeError"] != null)
+        {
+                <text>
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: '@TempData["MensajeError"]'
+                });
+                </text>
+        }
+    </script>
+}

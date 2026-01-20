@@ -20,7 +20,6 @@ namespace ProyectoRH2025.Pages.Sellos
         public List<SelectListItem> Sellos { get; set; } = new();
         public List<SelectListItem> Operadores { get; set; } = new();
         public List<SelectListItem> Unidades { get; set; } = new();
-        public List<SelectListItem> Coordinadores { get; set; } = new();
         public List<SelectListItem> TiposAsignacion { get; set; } = new();
 
         [BindProperty, Required(ErrorMessage = "Debe seleccionar un sello")]
@@ -37,9 +36,6 @@ namespace ProyectoRH2025.Pages.Sellos
 
         [BindProperty, Required(ErrorMessage = "Debe seleccionar el tipo de asignación")]
         public int TipoAsignacion { get; set; }
-
-        [BindProperty, Required(ErrorMessage = "Debe seleccionar un coordinador")]
-        public int idCoordinador { get; set; }
 
         [BindProperty, Required(ErrorMessage = "La ruta es obligatoria")]
         public string? Ruta { get; set; }
@@ -85,7 +81,7 @@ namespace ProyectoRH2025.Pages.Sellos
                 return Page();
             }
 
-            // ✅ Buscar sellos con Status 14 (Asignado a Supervisor)
+            // ✅ Buscar sellos con Status 14 (Asignado a Supervisor) y que pertenezcan al usuario
             var sello = await _context.TblSellos
                 .FirstOrDefaultAsync(s => s.Id == IdSello && s.Status == 14 && s.SupervisorId == idUsuario);
 
@@ -117,7 +113,10 @@ namespace ProyectoRH2025.Pages.Sellos
                 Caja = Caja.Trim(),
                 Comentarios = Comentarios?.Trim(),
                 Status = 4, // Estado Trámite
-                idSeAsigno = idCoordinador,
+
+                // ✅ CAMBIO: Se asigna automáticamente al usuario logueado (Supervisor/Coordinador actual)
+                idSeAsigno = idUsuario.Value,
+
                 FechaStatus4 = DateTime.Now
             };
 
@@ -140,18 +139,17 @@ namespace ProyectoRH2025.Pages.Sellos
         {
             var idUsuario = HttpContext.Session.GetInt32("idUsuario");
 
-            // ✅ SIMPLIFICADO: Solo mostrar número de sello
+            // ✅ Sellos: Solo mostrar los asignados al usuario logueado
             Sellos = await _context.TblSellos
                 .Where(s => s.Status == 14 && s.SupervisorId == idUsuario)
                 .Select(s => new SelectListItem
                 {
                     Value = s.Id.ToString(),
-                    Text = s.Sello  // ← Solo el número del sello
+                    Text = s.Sello
                 })
                 .OrderBy(s => s.Text)
                 .ToListAsync();
 
-            // Agregar opción por defecto si no hay sellos
             if (!Sellos.Any())
             {
                 Sellos.Add(new SelectListItem
@@ -171,7 +169,7 @@ namespace ProyectoRH2025.Pages.Sellos
                 });
             }
 
-            // ✅ Operadores - Cargar datos y formatear EN MEMORIA (Solo codCliente = 1)
+            // ✅ Operadores (Nota: Filtro avanzado por cuenta pendiente para el futuro)
             var operadoresData = await _context.Empleados
                 .Where(e => e.Puesto == 1 && e.Status == 1 && e.CodClientes == "1")
                 .Select(e => new
@@ -199,7 +197,7 @@ namespace ProyectoRH2025.Pages.Sellos
                 Text = "-- Seleccionar Operador --"
             });
 
-            // ✅ Unidades - Cargar y formatear EN MEMORIA
+            // ✅ Unidades
             var unidadesData = await _context.TblUnidades
                 .Select(u => new
                 {
@@ -223,33 +221,7 @@ namespace ProyectoRH2025.Pages.Sellos
                 Text = "-- Seleccionar Unidad --"
             });
 
-            // ✅ Coordinadores - Cargar y formatear EN MEMORIA
-            var coordinadoresData = await _context.TblUsuarios
-                .Where(u => u.idRol == 6 && u.Status == 1)
-                .Select(u => new
-                {
-                    u.idUsuario,
-                    u.UsuarioNombre,
-                    u.NombreCompleto
-                })
-                .ToListAsync();
-
-            Coordinadores = coordinadoresData
-                .Select(u => new SelectListItem
-                {
-                    Value = u.idUsuario.ToString(),
-                    Text = $"{u.UsuarioNombre} - {u.NombreCompleto}"
-                })
-                .OrderBy(u => u.Text)
-                .ToList();
-
-            Coordinadores.Insert(0, new SelectListItem
-            {
-                Value = "",
-                Text = "-- Seleccionar Coordinador --"
-            });
-
-            // Tipos de asignación
+            // ✅ Tipos de asignación
             TiposAsignacion = await _context.TblTipoAsignacion
                 .Select(t => new SelectListItem
                 {
