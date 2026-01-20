@@ -114,24 +114,62 @@ namespace ProyectoRH2025.Pages.Sellos
                 return Page();
             }
 
-            // 3. Selección sin consecutivos
-            var asignados = new List<TblSellos>();
+            // 3. Selección aleatoria permitiendo hasta 2 consecutivos seguidos
+            var disponiblesRandom = disponibles
+                .OrderBy(x => Guid.NewGuid())   // ← mezcla aleatoria
+                .ToList();
 
-            foreach (var sello in disponibles)
+            var asignados = new List<TblSellos>();
+            const int maxConsecutivosPermitidos = 2;
+
+            foreach (var sello in disponiblesRandom)
             {
                 if (asignados.Count >= CantidadAsignar) break;
 
-                if (asignados.Any(s => Math.Abs(Convert.ToInt32(s.Sello) - Convert.ToInt32(sello.Sello)) <= 1))
+                bool puedeAgregar = true;
+
+                // Si ya tenemos suficientes al final, revisamos cuántos consecutivos hay
+                if (asignados.Count >= maxConsecutivosPermitidos)
                 {
-                    continue;
+                    // Tomamos los últimos maxConsecutivosPermitidos sellos asignados
+                    var ultimos = asignados.TakeLast(maxConsecutivosPermitidos).ToList();
+                    var ultimoNumero = Convert.ToInt32(ultimos.Last().Sello);
+                    var nuevoNumero = Convert.ToInt32(sello.Sello);
+
+                    if (Math.Abs(nuevoNumero - ultimoNumero) == 1)
+                    {
+                        // Contamos cuántos consecutivos hay al final
+                        int contadorConsecutivos = 1; // ya contamos el último
+                        for (int i = ultimos.Count - 2; i >= 0; i--)
+                        {
+                            var anterior = Convert.ToInt32(ultimos[i].Sello);
+                            if (Math.Abs(anterior - ultimoNumero) == 1)
+                            {
+                                contadorConsecutivos++;
+                                ultimoNumero = anterior; // seguimos la cadena
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+
+                        if (contadorConsecutivos >= maxConsecutivosPermitidos)
+                        {
+                            puedeAgregar = false;
+                        }
+                    }
                 }
 
-                asignados.Add(sello);
+                if (puedeAgregar)
+                {
+                    asignados.Add(sello);
+                }
             }
 
             if (asignados.Count < CantidadAsignar)
             {
-                MensajeError = $"No se pudieron encontrar {CantidadAsignar} sellos no consecutivos. Intenta con una cantidad menor.";
+                MensajeError = $"No se pudieron seleccionar {CantidadAsignar} sellos con la regla actual (máx {maxConsecutivosPermitidos} consecutivos). Intenta con una cantidad menor o relaja la regla.";
                 await CargarDatosIniciales();
                 return Page();
             }
