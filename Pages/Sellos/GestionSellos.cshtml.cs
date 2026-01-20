@@ -34,6 +34,10 @@ namespace ProyectoRH2025.Pages.Sellos
         [BindProperty]
         public int CantidadAsignar { get; set; }
 
+        // ✅ UNA SOLA DECLARACIÓN DE SellosSeleccionados
+        [BindProperty]
+        public List<int> SellosSeleccionados { get; set; } = new List<int>();
+
         public SelectList ListaSupervisores { get; set; }
 
         [BindProperty]
@@ -41,9 +45,6 @@ namespace ProyectoRH2025.Pages.Sellos
 
         [BindProperty]
         public int SupervisorADesasignar { get; set; }
-
-        [BindProperty]
-        public List<int> SellosSeleccionados { get; set; } = new List<int>();
 
         [TempData]
         public string MensajeExito { get; set; }
@@ -210,6 +211,73 @@ namespace ProyectoRH2025.Pages.Sellos
             await _context.SaveChangesAsync();
             MensajeExito = $"Se asignaron correctamente {asignados.Count} sellos.";
 
+            return RedirectToPage();
+        }
+
+        // ==========================================
+        // HANDLER: ASIGNAR SELLOS SELECCIONADOS CON AUDITORÍA
+        // ==========================================
+        public async Task<IActionResult> OnPostAsignarSeleccionadosAsync()
+        {
+            if (SupervisorSeleccionadoId <= 0)
+            {
+                MensajeError = "Debes seleccionar un supervisor.";
+                await CargarDatosIniciales();
+                return Page();
+            }
+
+            if (SellosSeleccionados == null || !SellosSeleccionados.Any())
+            {
+                MensajeError = "No se seleccionaron sellos.";
+                await CargarDatosIniciales();
+                return Page();
+            }
+
+            var sellos = await _context.TblSellos
+                .Where(s => SellosSeleccionados.Contains(s.Id) && s.Status == 1)
+                .ToListAsync();
+
+            if (sellos.Count != SellosSeleccionados.Count)
+            {
+                MensajeError = "Algunos sellos ya no están disponibles.";
+                await CargarDatosIniciales();
+                return Page();
+            }
+
+            // Aquí puedes aplicar validación de no consecutivos si quieres (opcional)
+            // Por ahora, asignamos directamente
+
+            var usuarioId = HttpContext.Session.GetInt32("idUsuario");
+            var usuarioNombre = HttpContext.Session.GetString("UsuarioNombre");
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            foreach (var sello in sellos)
+            {
+                var statusAnterior = sello.Status;
+                var supervisorAnterior = sello.SupervisorId;
+                var supervisorNombreAnterior = sello.Supervisor?.NombreCompleto ?? sello.Supervisor?.UsuarioNombre;
+
+                sello.Status = 14; // Asignado
+                sello.SupervisorId = SupervisorSeleccionadoId;
+                sello.FechaAsignacion = DateTime.Now;
+
+                await _context.Entry(sello).Reference(s => s.Supervisor).LoadAsync();
+
+                await _auditoriaService.RegistrarAsignacion(
+                    sello,
+                    statusAnterior,
+                    supervisorAnterior,
+                    supervisorNombreAnterior,
+                    usuarioId,
+                    usuarioNombre,
+                    ip,
+                    "Asignación manual/selectiva individual"
+                );
+            }
+
+            await _context.SaveChangesAsync();
+
+            MensajeExito = $"Se asignaron correctamente {sellos.Count} sello(s) seleccionados.";
             return RedirectToPage();
         }
 

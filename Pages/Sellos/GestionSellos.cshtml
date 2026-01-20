@@ -383,6 +383,26 @@
             opacity: 0.6;
             cursor: not-allowed;
         }
+
+    /* Botón de asignar mejorado */
+    .btn-success {
+        background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+        color: white;
+        font-weight: 600;
+        padding: 0.5rem 1rem;
+        border: none;
+        transition: all 0.2s;
+    }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+        }
+
+        .btn-success.disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
 </style>
 
 <div class="dashboard-header">
@@ -456,48 +476,65 @@
     </div>
 
     <div class="tables-container">
-        <!-- TABLA DE SELLOS DISPONIBLES -->
+        <!-- TABLA DE SELLOS DISPONIBLES CON CHECKBOXES -->
         <div class="table-card">
             <div class="table-header">
                 <h3 class="table-title">Sellos Disponibles (@Model.ListaSellos.Count(s => s.Status == 1))</h3>
-                <button class="download-btn" onclick="downloadAvailable()">
-                    <i class="fas fa-download"></i>
-                </button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-success" onclick="asignarSeleccionadosDisponibles()">
+                        <i class="fas fa-check-circle me-1"></i> Asignar Seleccionados
+                    </button>
+                    <button class="download-btn" onclick="downloadAvailable()">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </div>
             </div>
             <div class="table-responsive">
-                <table class="modern-table">
-                    <thead>
-                        <tr>
-                            <th>Sello</th>
-                            <th>Fecha Entrega</th>
-                            <th>Recibió</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (Model.ListaSellos.Any(s => s.Status == 1))
-                        {
-                            @foreach (var item in Model.ListaSellos.Where(s => s.Status == 1))
+                <form id="formAsignarSeleccionados" method="post" asp-page-handler="AsignarSeleccionados">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th width="50" class="text-center">
+                                    <input type="checkbox" id="selectAllAvailable" onclick="toggleSelectAllAvailable(this)"
+                                           title="Seleccionar todos">
+                                </th>
+                                <th>Sello</th>
+                                <th>Fecha Entrega</th>
+                                <th>Recibió</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.ListaSellos.Any(s => s.Status == 1))
+                            {
+                                @foreach (var item in Model.ListaSellos.Where(s => s.Status == 1))
+                                {
+                                    <tr>
+                                        <td class="text-center">
+                                            <input type="checkbox"
+                                                   name="SellosSeleccionados"
+                                                   value="@item.Id"
+                                                   class="sello-checkbox sello-checkbox-available form-check-input" />
+                                        </td>
+                                        <td class="fw-bold">@item.Sello</td>
+                                        <td>@(item.Fentrega?.ToString("dd/MM/yyyy") ?? "-")</td>
+                                        <td>@(item.Recibio ?? "-")</td>
+                                        <td><span class="status-badge available">Disponible</span></td>
+                                    </tr>
+                                }
+                            }
+                            else
                             {
                                 <tr>
-                                    <td class="fw-bold">@item.Sello</td>
-                                    <td>@(item.Fentrega?.ToString("dd/MM/yyyy") ?? "-")</td>
-                                    <td>@(item.Recibio ?? "-")</td>
-                                    <td><span class="status-badge available">Disponible</span></td>
+                                    <td colspan="5" class="text-center text-muted py-4">
+                                        <i class="fas fa-inbox fa-2x mb-2"></i>
+                                        <div>No hay sellos disponibles</div>
+                                    </td>
                                 </tr>
                             }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="4" class="text-center text-muted py-4">
-                                    <i class="fas fa-inbox fa-2x mb-2"></i>
-                                    <div>No hay sellos disponibles</div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
+                </form>
             </div>
         </div>
 
@@ -520,7 +557,7 @@
                         <thead>
                             <tr>
                                 <th width="50" class="text-center">
-                                    <input type="checkbox" id="selectAllAssigned" onclick="toggleSelectAll(this)"
+                                    <input type="checkbox" id="selectAllAssigned" onclick="toggleSelectAllAssigned(this)"
                                            title="Seleccionar todos">
                                 </th>
                                 <th>Sello</th>
@@ -532,7 +569,6 @@
                         <tbody>
                             @if (Model.ListaSellos.Any(s => s.Status == 14))
                             {
-                                var index = 0;
                                 @foreach (var item in Model.ListaSellos.Where(s => s.Status == 14))
                                 {
                                     <tr>
@@ -540,15 +576,13 @@
                                             <input type="checkbox"
                                                    name="SellosSeleccionados"
                                                    value="@item.Id"
-                                                   class="sello-checkbox form-check-input"
-                                                   style="cursor: pointer;">
+                                                   class="sello-checkbox sello-checkbox-assigned form-check-input">
                                         </td>
                                         <td class="fw-bold">@item.Sello</td>
                                         <td>@(item.Supervisor?.NombreCompleto ?? item.Supervisor?.UsuarioNombre ?? "Sin Supervisor")</td>
                                         <td>@(item.FechaAsignacion?.ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
                                         <td><span class="status-badge assigned">Asignado</span></td>
                                     </tr>
-                                    index++;
                                 }
                             }
                             else
@@ -664,17 +698,89 @@
     <partial name="_ValidationScriptsPartial" />
 
     <script>
-        // Función para seleccionar/deseleccionar todos los checkboxes
-        function toggleSelectAll(checkbox) {
-            const checkboxes = document.querySelectorAll('.sello-checkbox');
+        // Función para seleccionar/deseleccionar todos los checkboxes DISPONIBLES
+        function toggleSelectAllAvailable(checkbox) {
+            const checkboxes = document.querySelectorAll('.sello-checkbox-available');
             checkboxes.forEach(cb => cb.checked = checkbox.checked);
-            actualizarContadorSeleccionados();
+            actualizarContadorDisponibles();
+        }
+
+        // Función para seleccionar/deseleccionar todos los checkboxes ASIGNADOS
+        function toggleSelectAllAssigned(checkbox) {
+            const checkboxes = document.querySelectorAll('.sello-checkbox-assigned');
+            checkboxes.forEach(cb => cb.checked = checkbox.checked);
+            actualizarContadorAsignados();
+        }
+
+        // Función para asignar sellos seleccionados disponibles
+        function asignarSeleccionadosDisponibles() {
+            const form = document.getElementById('formAsignarSeleccionados');
+            const checkboxes = document.querySelectorAll('.sello-checkbox-available:checked');
+
+            if (checkboxes.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Sin Selección',
+                    text: 'Selecciona al menos un sello para asignar.',
+                    confirmButtonColor: '#16a34a'
+                });
+                return;
+            }
+
+            let sellosTexto = '';
+            checkboxes.forEach((cb, index) => {
+                const fila = cb.closest('tr');
+                const numeroSello = fila.querySelector('td:nth-child(2)').textContent.trim();
+                sellosTexto += numeroSello + (index < checkboxes.length - 1 ? ', ' : '');
+            });
+
+            Swal.fire({
+                title: '¿Asignar sellos seleccionados?',
+                html: `
+                    <div class="text-start">
+                        <p>Vas a asignar <strong>${checkboxes.length}</strong> sello(s):</p>
+                        <div class="alert alert-info">${sellosTexto}</div>
+                        <p>Selecciona el supervisor:</p>
+                        <select id="supervisorSelect" class="form-select mt-2">
+                            <option value="">-- Seleccionar Supervisor --</option>
+                            @foreach (var sup in Model.ListaSupervisores)
+                            {
+                                    <text><option value="@sup.Value">@sup.Text</option></text>
+                            }
+                        </select>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#16a34a',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Sí, asignar',
+                cancelButtonText: 'Cancelar',
+                preConfirm: () => {
+                    const supervisorId = document.getElementById('supervisorSelect').value;
+                    if (!supervisorId) {
+                        Swal.showValidationMessage('Debes seleccionar un supervisor');
+                        return false;
+                    }
+                    return supervisorId;
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Agregar el supervisor seleccionado al form (hidden input)
+                    let hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = 'SupervisorSeleccionadoId';
+                    hiddenInput.value = result.value;
+                    form.appendChild(hiddenInput);
+                    form.submit();
+                }
+            });
         }
 
         // Función para desasignar sellos seleccionados
         function desasignarSeleccionados() {
             const form = document.getElementById('formDesasignarSeleccionados');
-            const checkboxes = document.querySelectorAll('.sello-checkbox:checked');
+            const checkboxes = document.querySelectorAll('.sello-checkbox-assigned:checked');
 
             if (checkboxes.length === 0) {
                 Swal.fire({
@@ -718,26 +824,59 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            const checkboxes = document.querySelectorAll('.sello-checkbox');
-            const selectAll = document.getElementById('selectAllAssigned');
+            // Manejar checkboxes de sellos disponibles
+            const checkboxesAvailable = document.querySelectorAll('.sello-checkbox-available');
+            const selectAllAvailable = document.getElementById('selectAllAvailable');
 
-            checkboxes.forEach(checkbox => {
+            checkboxesAvailable.forEach(checkbox => {
                 checkbox.addEventListener('change', function() {
-                    const todosSeleccionados = Array.from(checkboxes).every(cb => cb.checked);
-                    const algunoSeleccionado = Array.from(checkboxes).some(cb => cb.checked);
+                    const todosSeleccionados = Array.from(checkboxesAvailable).every(cb => cb.checked);
+                    const algunoSeleccionado = Array.from(checkboxesAvailable).some(cb => cb.checked);
 
-                    if (selectAll) {
-                        selectAll.checked = todosSeleccionados;
-                        selectAll.indeterminate = algunoSeleccionado && !todosSeleccionados;
+                    if (selectAllAvailable) {
+                        selectAllAvailable.checked = todosSeleccionados;
+                        selectAllAvailable.indeterminate = algunoSeleccionado && !todosSeleccionados;
                     }
 
-                    actualizarContadorSeleccionados();
+                    actualizarContadorDisponibles();
+                });
+            });
+
+            // Manejar checkboxes de sellos asignados
+            const checkboxesAssigned = document.querySelectorAll('.sello-checkbox-assigned');
+            const selectAllAssigned = document.getElementById('selectAllAssigned');
+
+            checkboxesAssigned.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const todosSeleccionados = Array.from(checkboxesAssigned).every(cb => cb.checked);
+                    const algunoSeleccionado = Array.from(checkboxesAssigned).some(cb => cb.checked);
+
+                    if (selectAllAssigned) {
+                        selectAllAssigned.checked = todosSeleccionados;
+                        selectAllAssigned.indeterminate = algunoSeleccionado && !todosSeleccionados;
+                    }
+
+                    actualizarContadorAsignados();
                 });
             });
         });
 
-        function actualizarContadorSeleccionados() {
-            const checkboxes = document.querySelectorAll('.sello-checkbox:checked');
+        function actualizarContadorDisponibles() {
+            const checkboxes = document.querySelectorAll('.sello-checkbox-available:checked');
+            const botonAsignar = document.querySelector('.btn-success');
+
+            if (botonAsignar) {
+                if (checkboxes.length > 0) {
+                    botonAsignar.innerHTML = `<i class="fas fa-check-circle me-1"></i> Asignar (${checkboxes.length})`;
+                    botonAsignar.classList.remove('disabled');
+                } else {
+                    botonAsignar.innerHTML = '<i class="fas fa-check-circle me-1"></i> Asignar Seleccionados';
+                }
+            }
+        }
+
+        function actualizarContadorAsignados() {
+            const checkboxes = document.querySelectorAll('.sello-checkbox-assigned:checked');
             const botonDesasignar = document.querySelector('.btn-danger');
 
             if (botonDesasignar) {
