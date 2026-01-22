@@ -1,0 +1,115 @@
+﻿@page
+@model ProyectoRH2025.Pages.Catalogos.CrearUnidadModel
+@{
+    ViewData["Title"] = "Nueva Unidad";
+}
+
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="fas fa-truck"></i> Registrar Nueva Unidad</h4>
+        </div>
+        <div class="card-body">
+            <form method="post">
+
+                <!-- Información Básica -->
+                <h5 class="mb-3 text-primary">Información Básica</h5>
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label">Número de Unidad <span class="text-danger">*</span></label>
+                        <input asp-for="NumUnidad" class="form-control" placeholder="Ej: 713683" autofocus required />
+                        <span asp-validation-for="NumUnidad" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Placas <span class="text-danger">*</span></label>
+                        <input asp-for="Unidad.Placas" class="form-control text-uppercase"
+                               placeholder="ABC123" maxlength="15" required />
+                        <span asp-validation-for="Unidad.Placas" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Año <span class="text-danger">*</span></label>
+                        <input asp-for="Unidad.AnoUnidad" class="form-control" type="number"
+                               min="1990" max="@(DateTime.Now.Year + 1)" required />
+                        <span asp-validation-for="Unidad.AnoUnidad" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <!-- Clasificación -->
+                <h5 class="mb-3 text-primary">Clasificación y Asignación</h5>
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label">Cuenta <span class="text-danger">*</span></label>
+                        <select asp-for="Unidad.IdCuenta" class="form-select" required>
+                            <option value="">-- Seleccione --</option>
+                            @foreach (var cuenta in Model.Cuentas)
+                            {
+                                <option value="@cuenta.Id">@cuenta.CodigoCuenta - @cuenta.NombreCuenta</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Unidad.IdCuenta" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Pool <span class="text-danger">*</span></label>
+                        <select asp-for="Unidad.Pool" class="form-select" required>
+                            <option value="">-- Seleccione --</option>
+                            @foreach (var pool in Model.Pools)
+                            {
+                                <option value="@pool.id">@pool.Pool</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Unidad.Pool" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Cliente <span class="text-danger">*</span></label>
+                        <select asp-for="Unidad.CodCliente" class="form-select" required>
+                            <option value="">-- Seleccione --</option>
+                            @foreach (var cliente in Model.Clientes)
+                            {
+                                <option value="@cliente.codCliente">@cliente.Cliente</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Unidad.CodCliente" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <!-- Ubicación -->
+                <h5 class="mb-3 text-primary">Ubicación</h5>
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label">Sucursal <span class="text-danger">*</span></label>
+                        <select asp-for="Unidad.idSucursal" class="form-select" required>
+                            <option value="">-- Seleccione --</option>
+                            @foreach (var sucursal in Model.Sucursales)
+                            {
+                                <option value="@sucursal.id">@sucursal.Sucursal</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Unidad.idSucursal" class="text-danger"></span>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(Model.MensajeError))
+                {
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle"></i> @Model.MensajeError
+                    </div>
+                }
+
+                <hr />
+
+                <div class="d-flex justify-content-between">
+                    <a asp-page="/Unidades/Unidades" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Regresar
+                    </a>
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="fas fa-save"></i> Guardar Unidad
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

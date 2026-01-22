@@ -31,12 +31,15 @@ namespace ProyectoRH2025.Data
         public DbSet<CarteleraConfig> CarteleraConfigs { get; set; }
         public DbSet<TblSellosHistorial> TblSellosHistorial { get; set; }
 
-        // ✅ NUEVAS TABLAS PARA GESTIÓN DE CUENTAS
+        // ✅ NUEVAS TABLAS PARA GESTIÓN DE CUENTAS Y RELACIONES
         public DbSet<TblCuentas> TblCuentas { get; set; }
         public DbSet<TblUsuariosCuentas> TblUsuariosCuentas { get; set; }
         public DbSet<TblPermiso> TblPermiso { get; set; }
         public DbSet<TblModulo> TblModulo { get; set; }
         public DbSet<TblOpcion> TblOpcion { get; set; }
+        public DbSet<TblPool> TblPool { get; set; }
+        public DbSet<TblClientes> TblClientes { get; set; }
+        public DbSet<TblSucursal> TblSucursal { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -134,6 +137,60 @@ namespace ProyectoRH2025.Data
             });
 
             // ================================================
+            // ✅ CONFIGURACIÓN DE POOL
+            // ================================================
+
+            modelBuilder.Entity<TblPool>(entity =>
+            {
+                entity.ToTable("tblPool");
+                entity.HasKey(e => e.id);
+
+                entity.Property(e => e.Pool)
+                      .IsRequired()
+                      .HasMaxLength(100);
+
+                // Índice para búsquedas
+                entity.HasIndex(e => e.Pool)
+                      .HasDatabaseName("IX_Pool_Nombre");
+            });
+
+            // ================================================
+            // ✅ CONFIGURACIÓN DE CLIENTES
+            // ================================================
+
+            modelBuilder.Entity<TblClientes>(entity =>
+            {
+                entity.ToTable("tblClientes");
+                entity.HasKey(e => e.codCliente);
+
+                entity.Property(e => e.Cliente)
+                      .IsRequired()
+                      .HasMaxLength(200);
+
+                // Índice para búsquedas
+                entity.HasIndex(e => e.Cliente)
+                      .HasDatabaseName("IX_Clientes_Nombre");
+            });
+
+            // ================================================
+            // ✅ CONFIGURACIÓN DE SUCURSALES
+            // ================================================
+
+            modelBuilder.Entity<TblSucursal>(entity =>
+            {
+                entity.ToTable("tblSucursal");
+                entity.HasKey(e => e.id);
+
+                entity.Property(e => e.Sucursal)
+                      .IsRequired()
+                      .HasMaxLength(200);
+
+                // Índice para búsquedas
+                entity.HasIndex(e => e.Sucursal)
+                      .HasDatabaseName("IX_Sucursales_Nombre");
+            });
+
+            // ================================================
             // ✅ CONFIGURACIÓN DE CUENTAS
             // ================================================
 
@@ -189,6 +246,71 @@ namespace ProyectoRH2025.Data
                       .WithMany(c => c.UsuariosAsignados)
                       .HasForeignKey(e => e.IdCuenta)
                       .OnDelete(DeleteBehavior.NoAction);
+            });
+
+            // ================================================
+            // ✅ CONFIGURACIÓN DE UNIDADES (CON TODAS LAS RELACIONES)
+            // ================================================
+
+            modelBuilder.Entity<TblUnidades>(entity =>
+            {
+                entity.ToTable("tblUnidades");
+                entity.HasKey(e => e.id);
+
+                // Mapear la propiedad IdCuenta a la columna de la BD
+                entity.Property(e => e.IdCuenta)
+                      .HasColumnName("IdCuenta");
+
+                // ===== ÍNDICES =====
+
+                // Índice único para número de unidad
+                entity.HasIndex(e => e.NumUnidad)
+                      .IsUnique()
+                      .HasDatabaseName("IX_Unidades_NumUnidad");
+
+                // Índice para búsquedas por cuenta
+                entity.HasIndex(e => e.IdCuenta)
+                      .HasDatabaseName("IX_Unidades_IdCuenta");
+
+                // Índice para búsquedas por pool
+                entity.HasIndex(e => e.Pool)
+                      .HasDatabaseName("IX_Unidades_Pool");
+
+                // Índice para búsquedas por cliente
+                entity.HasIndex(e => e.CodCliente)
+                      .HasDatabaseName("IX_Unidades_CodCliente");
+
+                // Índice para búsquedas por sucursal
+                entity.HasIndex(e => e.idSucursal)
+                      .HasDatabaseName("IX_Unidades_Sucursal");
+
+                // ===== RELACIONES =====
+
+                // Relación con TblCuentas (REQUERIDA)
+                entity.HasOne(u => u.Cuenta)
+                      .WithMany()
+                      .HasForeignKey(u => u.IdCuenta)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                // Relación con TblPool (OPCIONAL)
+                entity.HasOne(u => u.PoolNavigation)
+                      .WithMany(p => p.Unidades)
+                      .HasForeignKey(u => u.Pool)
+                      .OnDelete(DeleteBehavior.Restrict)
+                      .IsRequired(false);
+
+                // Relación con TblClientes (REQUERIDA)
+                entity.HasOne(u => u.Cliente)
+                      .WithMany(c => c.Unidades)
+                      .HasForeignKey(u => u.CodCliente)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                // Relación con TblSucursal (OPCIONAL)
+                entity.HasOne(u => u.Sucursal)
+                      .WithMany(s => s.Unidades)
+                      .HasForeignKey(u => u.idSucursal)
+                      .OnDelete(DeleteBehavior.Restrict)
+                      .IsRequired(false);
             });
         }
     }

@@ -369,6 +369,9 @@ namespace ProyectoRH2025.Pages.Sellos
         // ==========================================
         // HANDLER: DEVOLVER SELLO CON QR
         // ==========================================
+        // ==========================================
+        // HANDLER: DEVOLVER SELLO CON QR
+        // ==========================================
         [BindProperty]
         public string CodigoQR { get; set; }
 
@@ -401,21 +404,19 @@ namespace ProyectoRH2025.Pages.Sellos
             if (asignacion.Sello?.Sello != numeroSello) { MensajeError = "El código QR no coincide con el sello de esta asignación"; return RedirectToPage(); }
 
             asignacion.FechaDevolucion = DateTime.Now;
-            asignacion.Status = 1;
+            asignacion.Status = 14; // ✅ CAMBIO: Regresa a Status 14 (Asignado a Supervisor)
             asignacion.editor = idUsuario;
 
             if (asignacion.Sello != null)
             {
-                asignacion.Sello.Status = 1;
-                asignacion.Sello.SupervisorId = null;
-                asignacion.Sello.FechaAsignacion = null;
+                asignacion.Sello.Status = 14; // ✅ CAMBIO: Status 14 en lugar de 1
+                                              // ✅ NO modificar SupervisorId ni FechaAsignacion - el sello sigue "casado"
             }
 
             await _context.SaveChangesAsync();
-            Mensaje = $"Sello {numeroSello} devuelto correctamente.";
+            Mensaje = $"✅ Sello {numeroSello} devuelto correctamente al supervisor."; // ✅ Mensaje actualizado
             return RedirectToPage();
         }
-
         // ==========================================
         // HANDLER: SUBIR EVIDENCIA
         // ==========================================
@@ -497,19 +498,69 @@ namespace ProyectoRH2025.Pages.Sellos
                 asignacion.StatusEvidencia = TipoEvidencia;
                 asignacion.Comentarios = Comentarios;
 
+                // ✅ SWITCH FINAL - TODOS LOS ESTADOS LIBERAN DEL SUPERVISOR
                 if (asignacion.Sello != null)
                 {
                     switch (TipoEvidencia)
                     {
-                        case "Utilizado": asignacion.Sello.Status = 12; asignacion.Status = 12; break;
-                        case "Defectuoso": asignacion.Sello.Status = 6; asignacion.Status = 6; break;
-                        case "Planta": asignacion.Sello.Status = 11; asignacion.Status = 11; break;
-                        case "Extraviado": asignacion.Sello.Status = 8; asignacion.Status = 8; break;
+                        case "Utilizado":
+                            asignacion.Sello.Status = 12;
+                            asignacion.Status = 12;
+                            asignacion.Sello.SupervisorId = null;
+                            asignacion.Sello.FechaAsignacion = null;
+                            break;
+
+                        case "Defectuoso":
+                            asignacion.Sello.Status = 6;
+                            asignacion.Status = 6;
+                            asignacion.Sello.SupervisorId = null;
+                            asignacion.Sello.FechaAsignacion = null;
+                            break;
+
+                        case "Planta":
+                            asignacion.Sello.Status = 11;
+                            asignacion.Status = 11;
+                            asignacion.Sello.SupervisorId = null;
+                            asignacion.Sello.FechaAsignacion = null;
+                            break;
+
+                        case "Extraviado":
+                            asignacion.Sello.Status = 8;
+                            asignacion.Status = 8;
+                            asignacion.Sello.SupervisorId = null;
+                            asignacion.Sello.FechaAsignacion = null;
+                            break;
+
+                        case "Otro":
+                            asignacion.Sello.Status = 15; // ✅ Status 15: Otro
+                            asignacion.Status = 15;
+                            asignacion.Sello.SupervisorId = null;
+                            asignacion.Sello.FechaAsignacion = null;
+                            break;
+
+                        default:
+                            // Solo si TipoEvidencia está vacío o es inválido
+                            asignacion.Sello.Status = 14;
+                            asignacion.Status = 14;
+                            // NO modificar SupervisorId ni FechaAsignacion
+                            break;
                     }
                 }
 
                 await _context.SaveChangesAsync();
-                Mensaje = $"✅ Evidencia subida correctamente.";
+
+                // ✅ MENSAJES CORTOS Y CLAROS
+                string mensajeFinal = TipoEvidencia switch
+                {
+                    "Utilizado" => "✅ Sello marcado como UTILIZADO y archivado.",
+                    "Defectuoso" => "⚠️ Sello marcado como DEFECTUOSO y archivado.",
+                    "Planta" => "⚠️ Sello marcado como EN PLANTA y archivado.",
+                    "Extraviado" => "❌ Sello marcado como EXTRAVIADO y archivado.",
+                    "Otro" => "📝 Sello archivado (Otro motivo).",
+                    _ => "✅ Sello devuelto al supervisor."
+                };
+
+                Mensaje = mensajeFinal;
             }
             catch (Exception ex)
             {
@@ -518,7 +569,6 @@ namespace ProyectoRH2025.Pages.Sellos
 
             return RedirectToPage();
         }
-
         // ==========================================
         // HANDLER: VER EVIDENCIAS
         // ==========================================

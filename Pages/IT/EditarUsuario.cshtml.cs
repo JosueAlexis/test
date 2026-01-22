@@ -215,8 +215,18 @@ namespace ProyectoRH2025.Pages.IT
 
         private async Task CargarModulosYPermisos()
         {
-            // Lista de módulos principales del menú (en el orden que aparecen)
-            var modulosOrdenados = new[] { "Inicio", "RH", "Operadores", "Sellos", "Liquidaciones", "IT", "Emergencia", "Cuenta" };
+            // ✅ Lista de módulos principales del menú (AGREGADO "Unidades")
+            var modulosOrdenados = new[] {
+        "Inicio",
+        "RH",
+        "Operadores",
+        "Unidades", 
+        "Sellos",
+        "Liquidaciones",
+        "IT",
+        "Emergencia",
+        "Cuenta"
+    };
 
             // Obtener todos los módulos en el orden especificado
             var modulos = await _context.TblModulo

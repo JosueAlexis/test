@@ -435,6 +435,32 @@
                 </div>
             }
 
+            <!-- ✅ UNIDADES -->
+            @if (TienePermisoEnModulo("Unidades"))
+            {
+                <div class="module">
+                    <div class="sidebar-link" onclick="toggleSubmodules('unidades')">
+                        <i class="fas fa-truck"></i>
+                        <span>Unidades</span>
+                    </div>
+                    <div class="submodule" data-parent="unidades">
+                        @if (TienePermiso("Alta Unidades") || TienePermiso("Dar De Alta Unidad"))
+                        {
+                            <a class="sidebar-link" asp-page="/Unidades/CrearUnidad">
+                                <i class="fas fa-plus-circle"></i>
+                                <span>Dar de Alta</span>
+                            </a>
+                        }
+                        @if (TienePermiso("Buscar Unidades"))
+                        {
+                            <a class="sidebar-link" asp-page="/Unidades/unidades">
+                                <i class="fas fa-search"></i>
+                                <span>Buscar</span>
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
             <!-- ✅ SELLOS -->
             @if (TienePermisoEnModulo("Sellos"))
             {
@@ -482,7 +508,6 @@
                     </div>
                 </div>
             }
-
             <!-- ✅ LIQUIDACIONES -->
             @if (TienePermiso("Liquidaciones"))
             {
