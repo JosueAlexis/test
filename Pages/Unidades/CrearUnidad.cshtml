@@ -5,95 +5,169 @@
 }
 
 <div class="container mt-4">
-    <div class="card">
+    <div class="card shadow">
         <div class="card-header bg-primary text-white">
-            <h4 class="mb-0"><i class="fas fa-truck"></i> Registrar Nueva Unidad</h4>
+            <h4 class="mb-0">
+                <i class="fas fa-truck"></i> Registrar Nueva Unidad
+            </h4>
         </div>
         <div class="card-body">
-            <form method="post">
+            @if (!string.IsNullOrEmpty(Model.MensajeError))
+            {
+                <div class="alert alert-danger alert-dismissible fade show">
+                    <i class="fas fa-exclamation-circle"></i> @Model.MensajeError
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
 
+            <form method="post">
                 <!-- Información Básica -->
-                <h5 class="mb-3 text-primary">Información Básica</h5>
+                <h5 class="mb-3 text-primary">
+                    <i class="fas fa-info-circle"></i> Información Básica
+                </h5>
                 <div class="row mb-4">
                     <div class="col-md-4">
                         <label class="form-label">Número de Unidad <span class="text-danger">*</span></label>
-                        <input asp-for="NumUnidad" class="form-control" placeholder="Ej: 713683" autofocus required />
+                        <input asp-for="NumUnidad" class="form-control"
+                               type="number"
+                               placeholder="Ej: 713683"
+                               min="1"
+                               step="1"
+                               autofocus />
                         <span asp-validation-for="NumUnidad" class="text-danger"></span>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Placas <span class="text-danger">*</span></label>
-                        <input asp-for="Unidad.Placas" class="form-control text-uppercase"
-                               placeholder="ABC123" maxlength="15" required />
-                        <span asp-validation-for="Unidad.Placas" class="text-danger"></span>
+                        <input asp-for="Placas" class="form-control"
+                               type="text"
+                               placeholder="ABC123"
+                               maxlength="50" />
+                        <span asp-validation-for="Placas" class="text-danger"></span>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Año <span class="text-danger">*</span></label>
-                        <input asp-for="Unidad.AnoUnidad" class="form-control" type="number"
-                               min="1990" max="@(DateTime.Now.Year + 1)" required />
-                        <span asp-validation-for="Unidad.AnoUnidad" class="text-danger"></span>
+                        <input asp-for="AnoUnidad" class="form-control"
+                               type="number"
+                               placeholder="@DateTime.Now.Year"
+                               min="1990"
+                               max="@(DateTime.Now.Year + 1)" />
+                        <span asp-validation-for="AnoUnidad" class="text-danger"></span>
                     </div>
                 </div>
 
                 <!-- Clasificación -->
-                <h5 class="mb-3 text-primary">Clasificación y Asignación</h5>
+                <h5 class="mb-3 text-primary">
+                    <i class="fas fa-tags"></i> Clasificación y Asignación
+                </h5>
                 <div class="row mb-4">
                     <div class="col-md-4">
                         <label class="form-label">Cuenta <span class="text-danger">*</span></label>
-                        <select asp-for="Unidad.IdCuenta" class="form-select" required>
+                        <select asp-for="IdCuenta" class="form-select">
                             <option value="">-- Seleccione --</option>
                             @foreach (var cuenta in Model.Cuentas)
                             {
-                                <option value="@cuenta.Id">@cuenta.CodigoCuenta - @cuenta.NombreCuenta</option>
+                                <option value="@cuenta.Id">
+                                    @cuenta.CodigoCuenta - @cuenta.NombreCuenta
+                                </option>
                             }
                         </select>
-                        <span asp-validation-for="Unidad.IdCuenta" class="text-danger"></span>
+                        <span asp-validation-for="IdCuenta" class="text-danger"></span>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Pool <span class="text-danger">*</span></label>
-                        <select asp-for="Unidad.Pool" class="form-select" required>
+                        <select asp-for="Pool" class="form-select">
                             <option value="">-- Seleccione --</option>
                             @foreach (var pool in Model.Pools)
                             {
                                 <option value="@pool.id">@pool.Pool</option>
                             }
                         </select>
-                        <span asp-validation-for="Unidad.Pool" class="text-danger"></span>
+                        <span asp-validation-for="Pool" class="text-danger"></span>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Cliente <span class="text-danger">*</span></label>
-                        <select asp-for="Unidad.CodCliente" class="form-select" required>
+                        <select asp-for="CodCliente" class="form-select">
                             <option value="">-- Seleccione --</option>
                             @foreach (var cliente in Model.Clientes)
                             {
                                 <option value="@cliente.codCliente">@cliente.Cliente</option>
                             }
                         </select>
-                        <span asp-validation-for="Unidad.CodCliente" class="text-danger"></span>
+                        <span asp-validation-for="CodCliente" class="text-danger"></span>
                     </div>
                 </div>
 
                 <!-- Ubicación -->
-                <h5 class="mb-3 text-primary">Ubicación</h5>
+                <h5 class="mb-3 text-primary">
+                    <i class="fas fa-map-marker-alt"></i> Ubicación
+                </h5>
                 <div class="row mb-4">
                     <div class="col-md-6">
-                        <label class="form-label">Sucursal <span class="text-danger">*</span></label>
-                        <select asp-for="Unidad.idSucursal" class="form-select" required>
-                            <option value="">-- Seleccione --</option>
+                        <label class="form-label">Sucursal</label>
+                        <select asp-for="IdSucursal" class="form-select">
+                            <option value="">-- Seleccione (Opcional) --</option>
                             @foreach (var sucursal in Model.Sucursales)
                             {
                                 <option value="@sucursal.id">@sucursal.Sucursal</option>
                             }
                         </select>
-                        <span asp-validation-for="Unidad.idSucursal" class="text-danger"></span>
+                        <small class="text-muted">Campo opcional</small>
                     </div>
                 </div>
 
-                @if (!string.IsNullOrEmpty(Model.MensajeError))
-                {
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-circle"></i> @Model.MensajeError
+                <hr class="my-4">
+
+                <!-- ✅ SECCIÓN DE UNIDAD COMODÍN -->
+                <h5 class="mb-3 text-warning">
+                    <i class="fas fa-clock"></i> Unidad Comodín (Temporal)
+                </h5>
+
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <div class="card border-warning">
+                            <div class="card-body">
+                                <div class="form-check form-switch">
+                                    <input asp-for="EsComodin" class="form-check-input"
+                                           type="checkbox" id="esComodinSwitch"
+                                           style="width: 3em; height: 1.5em;">
+                                    <label class="form-check-label ms-2" for="esComodinSwitch">
+                                        <strong class="fs-5">Esta es una unidad comodín (prestada temporalmente)</strong>
+                                    </label>
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    <i class="fas fa-info-circle"></i>
+                                    Las unidades comodín se desactivarán automáticamente después de 5 días
+                                    y no serán visibles en ninguna cuenta.
+                                </small>
+                            </div>
+                        </div>
                     </div>
-                }
+                </div>
+
+                <!-- Alerta que se muestra cuando se marca como comodín -->
+                <div class="row mb-3" id="alertaComodin" style="display: none;">
+                    <div class="col-12">
+                        <div class="alert alert-warning shadow-sm">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+                                <div>
+                                    <h6 class="alert-heading mb-1">
+                                        <strong>¡Atención! Unidad Temporal</strong>
+                                    </h6>
+                                    <p class="mb-0">
+                                        Esta unidad estará activa solamente por <strong>5 días calendario</strong>
+                                        y se desactivará automáticamente.
+                                        <br>
+                                        <small>
+                                            Fecha aproximada de expiración:
+                                            <strong id="fechaExpiracion"></strong>
+                                        </small>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <hr />
 
@@ -101,7 +175,7 @@
                     <a asp-page="/Unidades/Unidades" class="btn btn-secondary">
                         <i class="fas fa-arrow-left"></i> Regresar
                     </a>
-                    <button type="submit" class="btn btn-primary px-4">
+                    <button type="submit" class="btn btn-primary px-4" id="btnGuardar">
                         <i class="fas fa-save"></i> Guardar Unidad
                     </button>
                 </div>
@@ -112,4 +186,153 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        $(document).ready(function() {
+            // Calcular y mostrar fecha de expiración
+            function calcularFechaExpiracion() {
+                const hoy = new Date();
+                const expiracion = new Date(hoy.getTime() + (5 * 24 * 60 * 60 * 1000));
+
+                const opciones = {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                };
+
+                return expiracion.toLocaleDateString('es-MX', opciones);
+            }
+
+            // Mostrar/ocultar alerta cuando se marca como comodín
+            $('#esComodinSwitch').on('change', function() {
+                if ($(this).is(':checked')) {
+                    $('#fechaExpiracion').text(calcularFechaExpiracion());
+                    $('#alertaComodin').slideDown(300);
+                } else {
+                    $('#alertaComodin').slideUp(300);
+                }
+            });
+
+            // Convertir placas a mayúsculas automáticamente mientras escribe
+            $('input[name="Placas"]').on('input', function() {
+                const cursorPos = this.selectionStart;
+                const valorOriginal = $(this).val();
+                const valorMayusculas = valorOriginal.toUpperCase();
+
+                if (valorOriginal !== valorMayusculas) {
+                    $(this).val(valorMayusculas);
+                    this.setSelectionRange(cursorPos, cursorPos);
+                }
+            });
+
+            // Validación en tiempo real del año
+            $('input[name="AnoUnidad"]').on('input', function() {
+                const valor = parseInt($(this).val());
+                const anioActual = new Date().getFullYear();
+                const anioMax = anioActual + 1;
+
+                if (valor > anioMax) {
+                    $(this).val(anioMax);
+                }
+                if (valor < 1990 && $(this).val().length === 4) {
+                    $(this).val(1990);
+                }
+            });
+
+            // Validar antes de enviar
+            $('form').on('submit', function(e) {
+                let errores = [];
+
+                // Validar número de unidad
+                const numUnidad = parseInt($('input[name="NumUnidad"]').val());
+                if (isNaN(numUnidad) || numUnidad < 1) {
+                    errores.push('El número de unidad debe ser mayor a 0');
+                }
+
+                // Validar placas
+                const placas = $('input[name="Placas"]').val().trim();
+                if (placas.length === 0) {
+                    errores.push('Las placas son obligatorias');
+                }
+
+                // Validar año
+                const anio = parseInt($('input[name="AnoUnidad"]').val());
+                const anioActual = new Date().getFullYear();
+                if (isNaN(anio) || anio < 1990 || anio > anioActual + 1) {
+                    errores.push('El año debe estar entre 1990 y ' + (anioActual + 1));
+                }
+
+                // Validar cuenta
+                const cuenta = $('select[name="IdCuenta"]').val();
+                if (!cuenta) {
+                    errores.push('Debe seleccionar una cuenta');
+                }
+
+                // Validar pool
+                const pool = $('select[name="Pool"]').val();
+                if (!pool) {
+                    errores.push('Debe seleccionar un pool');
+                }
+
+                // Validar cliente
+                const cliente = $('select[name="CodCliente"]').val();
+                if (!cliente) {
+                    errores.push('Debe seleccionar un cliente');
+                }
+
+                if (errores.length > 0) {
+                    e.preventDefault();
+                    alert('Por favor corrija los siguientes errores:\n\n' + errores.join('\n'));
+                    return false;
+                }
+            });
+
+            // Establecer año actual por defecto si está vacío
+            const inputAnio = $('input[name="AnoUnidad"]');
+            if (!inputAnio.val() || inputAnio.val() === '0') {
+                inputAnio.val(new Date().getFullYear());
+            }
+        });
+    </script>
+}
+
+@section Styles {
+    <style>
+        .form-check-input:checked {
+            background-color: #ffc107;
+            border-color: #ffc107;
+        }
+
+        .card.border-warning {
+            border-width: 2px;
+        }
+
+        .alert-warning {
+            border-left: 4px solid #ff9800;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        /* Permitir que los campos sean editables */
+        input[type="text"],
+        input[type="number"] {
+            -webkit-appearance: none;
+            -moz-appearance: textfield;
+        }
+
+            /* Mejorar la apariencia de los spinners en Chrome */
+            input[type="number"]::-webkit-inner-spin-button,
+            input[type="number"]::-webkit-outer-spin-button {
+                -webkit-appearance: inner-spin-button;
+                opacity: 1;
+                height: 40px;
+            }
+    </style>
 }

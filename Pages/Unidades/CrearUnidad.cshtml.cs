@@ -1,9 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using ProyectoRH2025.Data;
 using ProyectoRH2025.Models;
 using System.ComponentModel.DataAnnotations;
+using System.Data;
 
 namespace ProyectoRH2025.Pages.Catalogos
 {
@@ -17,13 +19,37 @@ namespace ProyectoRH2025.Pages.Catalogos
         }
 
         [BindProperty]
-        public TblUnidades Unidad { get; set; } = new();
+        [Required(ErrorMessage = "El número de unidad es obligatorio")]
+        [Display(Name = "Número de Unidad")]
+        public int NumUnidad { get; set; } // ✅ INT
 
         [BindProperty]
-        [Required(ErrorMessage = "El número de unidad es obligatorio")]
-        [Range(1, 999999, ErrorMessage = "Número de unidad inválido")]
-        [Display(Name = "Número de Unidad")]
-        public int NumUnidad { get; set; }
+        [Required(ErrorMessage = "Las placas son obligatorias")]
+        [StringLength(50, ErrorMessage = "Máximo 50 caracteres")]
+        public string Placas { get; set; } = string.Empty; // ✅ VARCHAR(50) NOT NULL
+
+        [BindProperty]
+        [Required(ErrorMessage = "El pool es obligatorio")]
+        public int Pool { get; set; }
+
+        [BindProperty]
+        [Required(ErrorMessage = "El cliente es obligatorio")]
+        public int CodCliente { get; set; }
+
+        [BindProperty]
+        [Required(ErrorMessage = "El año es obligatorio")]
+        [Range(1990, 2100, ErrorMessage = "Año inválido")]
+        public int AnoUnidad { get; set; }
+
+        [BindProperty]
+        public int? IdSucursal { get; set; } // ✅ NULLABLE
+
+        [BindProperty]
+        [Required(ErrorMessage = "La cuenta es obligatoria")]
+        public int IdCuenta { get; set; }
+
+        [BindProperty]
+        public bool EsComodin { get; set; } = false;
 
         public string? MensajeError { get; set; }
 
@@ -48,39 +74,52 @@ namespace ProyectoRH2025.Pages.Catalogos
 
             try
             {
-                bool existe = await _context.TblUnidades
-                    .AnyAsync(u => u.NumUnidad == NumUnidad);
+                // Normalizar placas
+                Placas = Placas.Trim().ToUpper();
 
-                if (existe)
+                // Preparar parámetros
+                var parameters = new[]
                 {
-                    MensajeError = $"Ya existe una unidad con el número {NumUnidad}";
-                    await CargarCatalogos();
-                    return Page();
+                    new SqlParameter("@NumUnidad", NumUnidad),
+                    new SqlParameter("@Placas", Placas),
+                    new SqlParameter("@Pool", Pool),
+                    new SqlParameter("@CodCliente", CodCliente),
+                    new SqlParameter("@AnoUnidad", AnoUnidad),
+                    new SqlParameter("@idSucursal", (object?)IdSucursal ?? DBNull.Value),
+                    new SqlParameter("@IdCuenta", IdCuenta),
+                    new SqlParameter("@EsComodin", EsComodin),
+                    new SqlParameter("@IdUnidadCreada", SqlDbType.Int) { Direction = ParameterDirection.Output }
+                };
+
+                await _context.Database.ExecuteSqlRawAsync(
+                    "EXEC sp_AltaUnidad @NumUnidad, @Placas, @Pool, @CodCliente, @AnoUnidad, " +
+                    "@idSucursal, @IdCuenta, @EsComodin, @IdUnidadCreada OUTPUT",
+                    parameters);
+
+                var idUnidadCreada = (int)parameters[8].Value;
+
+                if (EsComodin)
+                {
+                    var fechaExp = DateTime.Now.AddDays(5);
+                    TempData["Success"] = $"✅ Unidad COMODÍN #{idUnidadCreada} ({NumUnidad}) creada exitosamente. " +
+                                          $"⏰ Expira el {fechaExp:dd/MM/yyyy HH:mm}.";
+                }
+                else
+                {
+                    TempData["Success"] = $"✅ Unidad #{idUnidadCreada} ({NumUnidad}) creada exitosamente.";
                 }
 
-                var cuentaValida = await _context.TblCuentas
-                    .AnyAsync(c => c.Id == Unidad.IdCuenta && c.EsActiva);
-
-                if (!cuentaValida)
-                {
-                    MensajeError = "La cuenta seleccionada no es válida";
-                    await CargarCatalogos();
-                    return Page();
-                }
-
-                Unidad.NumUnidad = NumUnidad;
-                Unidad.Placas = Unidad.Placas?.Trim().ToUpper();
-                Unidad.AnoUnidad = Math.Clamp(Unidad.AnoUnidad, 1990, DateTime.Now.Year + 1);
-
-                _context.TblUnidades.Add(Unidad);
-                await _context.SaveChangesAsync();
-
-                TempData["Success"] = $"Unidad {Unidad.NumUnidad} creada correctamente";
                 return RedirectToPage("/Unidades/Unidades");
+            }
+            catch (SqlException ex)
+            {
+                MensajeError = ex.Message;
+                await CargarCatalogos();
+                return Page();
             }
             catch (Exception ex)
             {
-                MensajeError = $"Error al guardar: {ex.Message}";
+                MensajeError = $"Error inesperado: {ex.Message}";
                 await CargarCatalogos();
                 return Page();
             }
@@ -88,7 +127,6 @@ namespace ProyectoRH2025.Pages.Catalogos
 
         private async Task CargarCatalogos()
         {
-            // FILTRAR CUENTAS: Excluir "TODAS LAS CUENTAS" y solo traer activas
             Cuentas = await _context.TblCuentas
                 .Where(c => c.EsActiva &&
                             c.CodigoCuenta != "TODAS" &&

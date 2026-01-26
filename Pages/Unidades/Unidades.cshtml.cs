@@ -39,6 +39,10 @@ namespace ProyectoRH2025.Pages.Catalogos
         [BindProperty(SupportsGet = true)]
         public int? FiltroAno { get; set; }
 
+        // ✅ NUEVO: Filtro para mostrar inactivas
+        [BindProperty(SupportsGet = true)]
+        public bool MostrarInactivas { get; set; } = false;
+
         public async Task<IActionResult> OnGetAsync()
         {
             try
@@ -66,14 +70,33 @@ namespace ProyectoRH2025.Pages.Catalogos
                     .Include(u => u.PoolNavigation)
                     .Include(u => u.Cliente)
                     .Include(u => u.Sucursal)
+                    .Include(u => u.Status)
                     .AsQueryable();
+
+                // ✅ FILTRO POR STATUS: Por defecto solo activas (IdStatus = 1)
+                if (!MostrarInactivas)
+                {
+                    query = query.Where(u => u.IdStatus == 1);
+                }
+                else
+                {
+                    // Si se solicita ver inactivas, mostrar solo las inactivas
+                    query = query.Where(u => u.IdStatus == 2);
+                }
 
                 if (!string.IsNullOrWhiteSpace(Busqueda))
                 {
-                    query = query.Where(u =>
-                        u.NumUnidad.ToString().Contains(Busqueda) ||
-                        (u.Placas != null && u.Placas.Contains(Busqueda))
-                    );
+                    if (int.TryParse(Busqueda, out int numBusqueda))
+                    {
+                        query = query.Where(u =>
+                            u.NumUnidad == numBusqueda ||
+                            u.Placas.Contains(Busqueda)
+                        );
+                    }
+                    else
+                    {
+                        query = query.Where(u => u.Placas.Contains(Busqueda));
+                    }
                 }
 
                 if (FiltroIdCuenta.HasValue)
@@ -93,7 +116,7 @@ namespace ProyectoRH2025.Pages.Catalogos
 
                 if (FiltroSucursal.HasValue)
                 {
-                    query = query.Where(u => u.idSucursal == FiltroSucursal.Value);
+                    query = query.Where(u => u.IdSucursal == FiltroSucursal.Value);
                 }
 
                 if (FiltroAno.HasValue)
@@ -114,12 +137,13 @@ namespace ProyectoRH2025.Pages.Catalogos
             }
         }
 
-        public async Task<IActionResult> OnPostAsync(int idEliminar)
+        // ✅ SOFT DELETE: Desactivar en lugar de eliminar
+        public async Task<IActionResult> OnPostDesactivarAsync(int idEliminar)
         {
             try
             {
                 var unidad = await _context.TblUnidades
-                    .FirstOrDefaultAsync(u => u.id == idEliminar);
+                    .FirstOrDefaultAsync(u => u.Id == idEliminar);
 
                 if (unidad == null)
                 {
@@ -127,25 +151,55 @@ namespace ProyectoRH2025.Pages.Catalogos
                     return RedirectToPage();
                 }
 
+                // Verificar si tiene sellos asignados activos
                 bool enUso = await _context.TblAsigSellos
                     .AnyAsync(a => a.idUnidad == idEliminar);
 
                 if (enUso)
                 {
-                    TempData["Error"] = $"No se puede eliminar la unidad {unidad.NumUnidad} porque tiene sellos asignados";
+                    TempData["Error"] = $"No se puede desactivar la unidad {unidad.NumUnidad} porque tiene sellos asignados activos";
                     return RedirectToPage();
                 }
 
-                _context.TblUnidades.Remove(unidad);
+                // ✅ SOFT DELETE: Cambiar status a Inactivo (2)
+                unidad.IdStatus = 2;
                 await _context.SaveChangesAsync();
 
-                TempData["Success"] = $"Unidad {unidad.NumUnidad} eliminada correctamente";
+                TempData["Success"] = $"✅ Unidad {unidad.NumUnidad} desactivada correctamente. Se conserva el historial para auditoría.";
                 return RedirectToPage();
             }
             catch (Exception ex)
             {
-                TempData["Error"] = $"Error al eliminar: {ex.Message}";
+                TempData["Error"] = $"Error al desactivar: {ex.Message}";
                 return RedirectToPage();
+            }
+        }
+
+        // ✅ NUEVO: Reactivar unidad
+        public async Task<IActionResult> OnPostReactivarAsync(int id)
+        {
+            try
+            {
+                var unidad = await _context.TblUnidades
+                    .FirstOrDefaultAsync(u => u.Id == id);
+
+                if (unidad == null)
+                {
+                    TempData["Error"] = "Unidad no encontrada";
+                    return RedirectToPage(new { MostrarInactivas = true });
+                }
+
+                // ✅ Reactivar: Cambiar status a Activo (1)
+                unidad.IdStatus = 1;
+                await _context.SaveChangesAsync();
+
+                TempData["Success"] = $"✅ Unidad {unidad.NumUnidad} reactivada correctamente";
+                return RedirectToPage(new { MostrarInactivas = false });
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"Error al reactivar: {ex.Message}";
+                return RedirectToPage(new { MostrarInactivas = true });
             }
         }
     }

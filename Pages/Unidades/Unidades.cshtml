@@ -1,23 +1,42 @@
 ﻿@page
 @model ProyectoRH2025.Pages.Catalogos.UnidadesModel
 @{
-    ViewData["Title"] = "Unidades";
+    ViewData["Title"] = Model.MostrarInactivas ? "Unidades Inactivas" : "Unidades";
 }
 
 <div class="container-fluid mt-4">
     <div class="card">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header @(Model.MostrarInactivas ? "bg-secondary" : "bg-primary") text-white">
             <div class="d-flex justify-content-between align-items-center">
-                <h4 class="mb-0"><i class="fas fa-truck"></i> Catálogo de Unidades</h4>
-                <a asp-page="/Unidades/CrearUnidad" class="btn btn-light btn-sm">
-                    <i class="fas fa-plus"></i> Nueva Unidad
-                </a>
+                <h4 class="mb-0">
+                    <i class="fas fa-truck"></i>
+                    @(Model.MostrarInactivas ? "Unidades Inactivas" : "Catálogo de Unidades")
+                </h4>
+                <div>
+                    @if (!Model.MostrarInactivas)
+                    {
+                        <a asp-page="/Unidades/CrearUnidad" class="btn btn-light btn-sm me-2">
+                            <i class="fas fa-plus"></i> Nueva Unidad
+                        </a>
+                        <a asp-page="/Unidades/Unidades" asp-route-mostrarInactivas="true" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-archive"></i> Ver Inactivas
+                        </a>
+                    }
+                    else
+                    {
+                        <a asp-page="/Unidades/Unidades" asp-route-mostrarInactivas="false" class="btn btn-light btn-sm">
+                            <i class="fas fa-arrow-left"></i> Ver Activas
+                        </a>
+                    }
+                </div>
             </div>
         </div>
         <div class="card-body">
 
             <!-- Filtros -->
             <form method="get" class="row g-2 mb-3">
+                <input type="hidden" name="mostrarInactivas" value="@Model.MostrarInactivas" />
+
                 <div class="col-md-2">
                     <input type="text" name="busqueda" value="@Model.Busqueda"
                            class="form-control form-control-sm" placeholder="Buscar número o placas" />
@@ -63,7 +82,8 @@
                     <button type="submit" class="btn btn-primary btn-sm">
                         <i class="fas fa-search"></i> Buscar
                     </button>
-                    <a asp-page="/Unidades/Unidades" class="btn btn-secondary btn-sm">
+                    <a asp-page="/Unidades/Unidades" asp-route-mostrarInactivas="@Model.MostrarInactivas"
+                       class="btn btn-secondary btn-sm">
                         <i class="fas fa-redo"></i> Limpiar
                     </a>
                 </div>
@@ -90,13 +110,13 @@
                     <thead class="table-dark">
                         <tr>
                             <th style="width: 50px;">ID</th>
-                            <th style="width: 100px;">Unidad</th>
+                            <th style="width: 120px;">Unidad</th>
                             <th style="width: 100px;">Placas</th>
-                            <th style="width: 150px;">Cuenta</th>
-                            <th style="width: 120px;">Pool</th>
-                            <th style="width: 120px;">Cliente</th>
-                            <th style="width: 70px;">Año</th>
-                            <th style="width: 120px;">Sucursal</th>
+                            <th style="width: 120px;">Cuenta</th>
+                            <th style="width: 100px;">Pool</th>
+                            <th style="width: 100px;">Cliente</th>
+                            <th style="width: 60px;">Año</th>
+                            <th style="width: 110px;">Status</th>
                             <th style="width: 100px;" class="text-center">Acciones</th>
                         </tr>
                     </thead>
@@ -105,18 +125,20 @@
                         {
                             @foreach (var unidad in Model.Unidades)
                             {
-                                <tr>
-                                    <td>@unidad.id</td>
-                                    <td><strong>@unidad.NumUnidad</strong></td>
+                                <tr class="@(unidad.EsComodin && unidad.EstaActiva ? "table-warning" : "") @(!unidad.EstaActiva ? "table-secondary" : "")">
+                                    <td>@unidad.Id</td>
                                     <td>
-                                        @if (!string.IsNullOrEmpty(unidad.Placas))
+                                        <strong>@unidad.NumUnidad</strong>
+                                        @if (unidad.EsComodin)
                                         {
-                                            <span class="badge bg-secondary">@unidad.Placas</span>
+                                            <br />
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-clock"></i> COMODÍN
+                                            </span>
                                         }
-                                        else
-                                        {
-                                            <span class="text-muted">-</span>
-                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">@unidad.Placas</span>
                                     </td>
                                     <td>
                                         @if (unidad.Cuenta != null)
@@ -152,24 +174,73 @@
                                     </td>
                                     <td>@unidad.AnoUnidad</td>
                                     <td>
-                                        @if (unidad.Sucursal != null)
+                                        @if (unidad.Status != null)
                                         {
-                                            <text>@unidad.Sucursal.Sucursal</text>
+                                            @if (unidad.IdStatus == 1)
+                                            {
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check-circle"></i> @unidad.Status.Status
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-times-circle"></i> @unidad.Status.Status
+                                                </span>
+                                            }
+
+                                            @if (unidad.EsComodin && unidad.DiasRestantes.HasValue && unidad.IdStatus == 1)
+                                            {
+                                                <br />
+                                                @if (unidad.DiasRestantes.Value > 2)
+                                                {
+                                                    <small class="text-success">
+                                                        <i class="fas fa-calendar-check"></i> @unidad.DiasRestantes días
+                                                    </small>
+                                                }
+                                                else if (unidad.DiasRestantes.Value > 0)
+                                                {
+                                                    <small class="text-warning">
+                                                        <i class="fas fa-exclamation-triangle"></i> @unidad.DiasRestantes días
+                                                    </small>
+                                                }
+                                                else
+                                                {
+                                                    <small class="text-danger">
+                                                        <i class="fas fa-ban"></i> Vencida
+                                                    </small>
+                                                }
+                                            }
                                         }
                                         else
                                         {
-                                            <span class="text-muted">-</span>
+                                            <span class="badge bg-secondary">Sin status</span>
                                         }
                                     </td>
                                     <td class="text-center">
-                                        <a asp-page="/Unidades/EditarUnidad" asp-route-id="@unidad.id"
-                                           class="btn btn-sm btn-warning me-1">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <button type="button" class="btn btn-sm btn-danger"
-                                                onclick="confirmarEliminar(@unidad.id, @unidad.NumUnidad)">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                        @if (unidad.IdStatus == 1)
+                                        {
+                                            <!-- Botones para unidades ACTIVAS -->
+                                            <a asp-page="/Unidades/EditarUnidad" asp-route-id="@unidad.Id"
+                                               class="btn btn-sm btn-warning me-1"
+                                               title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-danger"
+                                                    onclick="confirmarDesactivar(@unidad.Id, '@unidad.NumUnidad')"
+                                                    title="Desactivar">
+                                                <i class="fas fa-ban"></i>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <!-- Botón para unidades INACTIVAS -->
+                                            <button type="button" class="btn btn-sm btn-success"
+                                                    onclick="confirmarReactivar(@unidad.Id, '@unidad.NumUnidad')"
+                                                    title="Reactivar">
+                                                <i class="fas fa-redo"></i> Reactivar
+                                            </button>
+                                        }
                                     </td>
                                 </tr>
                             }
@@ -180,7 +251,9 @@
                                 <td colspan="9" class="text-center py-4">
                                     <div class="text-muted">
                                         <i class="fas fa-inbox fa-2x mb-2"></i>
-                                        <p class="mb-0">No hay unidades registradas</p>
+                                        <p class="mb-0">
+                                            @(Model.MostrarInactivas ? "No hay unidades inactivas" : "No hay unidades registradas")
+                                        </p>
                                     </div>
                                 </td>
                             </tr>
@@ -189,32 +262,97 @@
                 </table>
             </div>
 
-            <div class="mt-2">
-                <small class="text-muted">Total: @Model.Unidades.Count unidades</small>
+            <div class="mt-2 d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                    Total: @Model.Unidades.Count unidades @(Model.MostrarInactivas ? "inactivas" : "activas")
+                    @if (!Model.MostrarInactivas && Model.Unidades.Any(u => u.EsComodin && u.EstaActiva))
+                    {
+                        <span class="ms-2">
+                            | <i class="fas fa-clock text-warning"></i>
+                            Comodines activos: @Model.Unidades.Count(u => u.EsComodin && u.EstaActiva)
+                        </span>
+                    }
+                </small>
+
+                @if (!Model.MostrarInactivas && Model.Unidades.Any(u => u.EsComodin && u.DiasRestantes.HasValue && u.DiasRestantes.Value <= 1 && u.EstaActiva))
+                {
+                    <div class="alert alert-warning alert-sm mb-0 py-1 px-2">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <small>
+                            <strong>Atención:</strong>
+                            @Model.Unidades.Count(u => u.EsComodin && u.DiasRestantes.HasValue && u.DiasRestantes.Value <= 1 && u.EstaActiva)
+                            unidad(es) comodín expira(n) pronto
+                        </small>
+                    </div>
+                }
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal Eliminar -->
-<div class="modal fade" id="modalEliminar" tabindex="-1">
+<!-- Modal Desactivar -->
+<div class="modal fade" id="modalDesactivar" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Eliminar Unidad</h5>
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">
+                    <i class="fas fa-ban"></i> Desactivar Unidad
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p>¿Confirma que desea eliminar la unidad <strong id="unidadNumero"></strong>?</p>
-                <div class="alert alert-warning mb-0">
-                    <small>Esta acción no se puede deshacer. Si la unidad tiene sellos asignados, no podrá eliminarse.</small>
+                <p>¿Confirma que desea desactivar la unidad <strong id="unidadNumeroDesactivar"></strong>?</p>
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle"></i>
+                    <small>
+                        <strong>Importante:</strong> La unidad será marcada como inactiva y no será visible en el catálogo principal.
+                        Se conservará todo el historial para auditoría y podrá reactivarla posteriormente si es necesario.
+                    </small>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <form method="post" id="formEliminar" class="d-inline">
-                    <input type="hidden" name="idEliminar" id="idEliminar" />
-                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+                <form method="post" asp-page-handler="Desactivar" id="formDesactivar" class="d-inline">
+                    <input type="hidden" name="idEliminar" id="idDesactivar" />
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-ban"></i> Desactivar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Reactivar -->
+<div class="modal fade" id="modalReactivar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-redo"></i> Reactivar Unidad
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Confirma que desea reactivar la unidad <strong id="unidadNumeroReactivar"></strong>?</p>
+                <div class="alert alert-success mb-0">
+                    <i class="fas fa-check-circle"></i>
+                    <small>
+                        La unidad volverá a estar disponible en el catálogo principal.
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+                <form method="post" asp-page-handler="Reactivar" id="formReactivar" class="d-inline">
+                    <input type="hidden" name="id" id="idReactivar" />
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-redo"></i> Reactivar
+                    </button>
                 </form>
             </div>
         </div>
@@ -223,16 +361,57 @@
 
 @section Scripts {
     <script>
-        let modalEliminar;
+        let modalDesactivar;
+        let modalReactivar;
 
         document.addEventListener('DOMContentLoaded', function() {
-            modalEliminar = new bootstrap.Modal(document.getElementById('modalEliminar'));
+            modalDesactivar = new bootstrap.Modal(document.getElementById('modalDesactivar'));
+            modalReactivar = new bootstrap.Modal(document.getElementById('modalReactivar'));
         });
 
-        function confirmarEliminar(id, numeroUnidad) {
-            document.getElementById('idEliminar').value = id;
-            document.getElementById('unidadNumero').textContent = numeroUnidad;
-            modalEliminar.show();
+        function confirmarDesactivar(id, numeroUnidad) {
+            document.getElementById('idDesactivar').value = id;
+            document.getElementById('unidadNumeroDesactivar').textContent = numeroUnidad;
+            modalDesactivar.show();
+        }
+
+        function confirmarReactivar(id, numeroUnidad) {
+            document.getElementById('idReactivar').value = id;
+            document.getElementById('unidadNumeroReactivar').textContent = numeroUnidad;
+            modalReactivar.show();
         }
     </script>
+}
+
+@section Styles {
+    <style>
+        /* Resaltar filas de unidades comodín activas */
+        .table-warning {
+            background-color: rgba(255, 193, 7, 0.1) !important;
+        }
+
+            .table-warning:hover {
+                background-color: rgba(255, 193, 7, 0.2) !important;
+            }
+
+        /* Resaltar filas inactivas */
+        .table-secondary {
+            background-color: rgba(108, 117, 125, 0.1) !important;
+        }
+
+            .table-secondary:hover {
+                background-color: rgba(108, 117, 125, 0.2) !important;
+            }
+
+        /* Estilos para badges */
+        .badge {
+            font-size: 0.75rem;
+            padding: 0.35em 0.65em;
+        }
+
+        /* Alerta pequeña */
+        .alert-sm {
+            font-size: 0.875rem;
+        }
+    </style>
 }

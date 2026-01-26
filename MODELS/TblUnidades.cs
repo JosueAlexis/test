@@ -7,37 +7,52 @@ namespace ProyectoRH2025.Models
     public class TblUnidades
     {
         [Key]
-        public int id { get; set; }
+        [Column("id")]
+        public int Id { get; set; }
 
         [Required]
-        [Display(Name = "Número de Unidad")]
-        public int NumUnidad { get; set; }
-
-        [StringLength(15)]
-        [Display(Name = "Placas")]
-        public string? Placas { get; set; }
-
-        [Display(Name = "Pool")]
-        public int? Pool { get; set; }
+        [Column("NumUnidad")]
+        public int NumUnidad { get; set; } // ✅ INT
 
         [Required]
-        [Display(Name = "Código Cliente")]
+        [StringLength(50)]
+        [Column("Placas")]
+        public string Placas { get; set; } = string.Empty; // ✅ VARCHAR(50) NOT NULL
+
+        [Column("Pool")]
+        public int Pool { get; set; }
+
+        [Column("CodCliente")]
         public int CodCliente { get; set; }
 
-        [Required]
-        [Display(Name = "Año")]
+        [Column("AnoUnidad")]
         public int AnoUnidad { get; set; }
 
-        [Display(Name = "Sucursal")]
-        public int? idSucursal { get; set; }
+        [Column("idSucursal")]
+        public int? IdSucursal { get; set; } // ✅ NULLABLE
 
-        // Relación con Cuentas
-        [Required(ErrorMessage = "Debe seleccionar una cuenta")]
         [Column("IdCuenta")]
-        [Display(Name = "Cuenta")]
         public int IdCuenta { get; set; }
 
-        // Propiedades de navegación
+        // ✅ Campos de Comodín
+        [Column("EsComodin")]
+        public bool EsComodin { get; set; } = false;
+
+        [Column("FechaActivacionComodin")]
+        public DateTime? FechaActivacionComodin { get; set; }
+
+        [Column("FechaExpiracionComodin")]
+        public DateTime? FechaExpiracionComodin { get; set; }
+
+        // ✅ Status
+        [Column("idStatus")]
+        public int IdStatus { get; set; } = 1;
+
+        // ===== RELACIONES =====
+
+        [ForeignKey("IdStatus")]
+        public virtual TblStatus? Status { get; set; }
+
         [ForeignKey("IdCuenta")]
         public virtual TblCuentas? Cuenta { get; set; }
 
@@ -47,7 +62,44 @@ namespace ProyectoRH2025.Models
         [ForeignKey("CodCliente")]
         public virtual TblClientes? Cliente { get; set; }
 
-        [ForeignKey("idSucursal")]
+        [ForeignKey("IdSucursal")]
         public virtual TblSucursal? Sucursal { get; set; }
+
+        // ===== PROPIEDADES CALCULADAS =====
+
+        [NotMapped]
+        public bool EstaActiva => IdStatus == 1;
+
+        [NotMapped]
+        public bool EstaVencida => EsComodin &&
+                                   FechaExpiracionComodin.HasValue &&
+                                   FechaExpiracionComodin.Value < DateTime.Now;
+
+        [NotMapped]
+        public int? DiasRestantes
+        {
+            get
+            {
+                if (!EsComodin || !FechaExpiracionComodin.HasValue)
+                    return null;
+
+                var dias = (FechaExpiracionComodin.Value - DateTime.Now).Days;
+                return dias > 0 ? dias : 0;
+            }
+        }
+
+        [NotMapped]
+        public string EstadoComodin
+        {
+            get
+            {
+                if (!EsComodin) return "Normal";
+                if (!DiasRestantes.HasValue) return "Sin fecha";
+                if (DiasRestantes.Value == 0) return "Vencida";
+                if (DiasRestantes.Value == 1) return "Crítica";
+                if (DiasRestantes.Value <= 2) return "Alerta";
+                return "Activa";
+            }
+        }
     }
 }

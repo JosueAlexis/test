@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using ProyectoRH2025.Data;
 using ProyectoRH2025.Models;
+using System.Data;
 
 namespace ProyectoRH2025.Pages.Catalogos
 {
@@ -19,11 +21,17 @@ namespace ProyectoRH2025.Pages.Catalogos
         public TblUnidades Unidad { get; set; } = new();
 
         public string? MensajeError { get; set; }
+        public string? MensajeExito { get; set; }
 
         public List<TblCuentas> Cuentas { get; set; } = new();
         public List<TblPool> Pools { get; set; } = new();
         public List<TblClientes> Clientes { get; set; } = new();
         public List<TblSucursal> Sucursales { get; set; } = new();
+
+        // Información de comodín (solo lectura)
+        public bool EsUnidadComodin { get; set; }
+        public DateTime? FechaExpiracion { get; set; }
+        public int? DiasRestantes { get; set; }
 
         public async Task<IActionResult> OnGetAsync(int id)
         {
@@ -31,10 +39,8 @@ namespace ProyectoRH2025.Pages.Catalogos
             {
                 var unidad = await _context.TblUnidades
                     .Include(u => u.Cuenta)
-                    .Include(u => u.PoolNavigation)
-                    .Include(u => u.Cliente)
-                    .Include(u => u.Sucursal)
-                    .FirstOrDefaultAsync(u => u.id == id);
+                    .Include(u => u.Status)
+                    .FirstOrDefaultAsync(u => u.Id == id);
 
                 if (unidad == null)
                 {
@@ -43,6 +49,17 @@ namespace ProyectoRH2025.Pages.Catalogos
                 }
 
                 Unidad = unidad;
+
+                // Información de comodín
+                EsUnidadComodin = unidad.EsComodin;
+                FechaExpiracion = unidad.FechaExpiracionComodin;
+
+                if (EsUnidadComodin && FechaExpiracion.HasValue)
+                {
+                    DiasRestantes = (FechaExpiracion.Value - DateTime.Now).Days;
+                    if (DiasRestantes < 0) DiasRestantes = 0;
+                }
+
                 await CargarCatalogos();
 
                 return Page();
@@ -64,41 +81,42 @@ namespace ProyectoRH2025.Pages.Catalogos
 
             try
             {
-                var unidadDb = await _context.TblUnidades
-                    .FirstOrDefaultAsync(u => u.id == Unidad.id);
+                // Normalizar datos
+                Unidad.Placas = Unidad.Placas?.Trim().ToUpper();
 
-                if (unidadDb == null)
+                // Preparar parámetros para el SP
+                var parameters = new[]
                 {
-                    MensajeError = "Unidad no encontrada";
-                    await CargarCatalogos();
-                    return Page();
-                }
+                    new SqlParameter("@IdUnidad", Unidad.Id),
+                    new SqlParameter("@Placas", (object?)Unidad.Placas ?? DBNull.Value),
+                    new SqlParameter("@Pool", Unidad.Pool),
+                    new SqlParameter("@CodCliente", Unidad.CodCliente),
+                    new SqlParameter("@AnoUnidad", Unidad.AnoUnidad),
+                    new SqlParameter("@idSucursal", Unidad.IdSucursal),
+                    new SqlParameter("@IdCuenta", Unidad.IdCuenta)
+                };
 
-                var cuentaValida = await _context.TblCuentas
-                    .AnyAsync(c => c.Id == Unidad.IdCuenta && c.EsActiva);
+                // Ejecutar el stored procedure
+                await _context.Database.ExecuteSqlRawAsync(
+                    "EXEC sp_EditarUnidad @IdUnidad, @Placas, @Pool, @CodCliente, " +
+                    "@AnoUnidad, @idSucursal, @IdCuenta",
+                    parameters);
 
-                if (!cuentaValida)
-                {
-                    MensajeError = "La cuenta seleccionada no es válida";
-                    await CargarCatalogos();
-                    return Page();
-                }
-
-                unidadDb.Placas = Unidad.Placas?.Trim().ToUpper();
-                unidadDb.Pool = Unidad.Pool;
-                unidadDb.CodCliente = Unidad.CodCliente;
-                unidadDb.AnoUnidad = Math.Clamp(Unidad.AnoUnidad, 1990, DateTime.Now.Year + 1);
-                unidadDb.idSucursal = Unidad.idSucursal;
-                unidadDb.IdCuenta = Unidad.IdCuenta;
-
-                await _context.SaveChangesAsync();
-
-                TempData["Success"] = $"Unidad {unidadDb.NumUnidad} actualizada correctamente";
+                TempData["Success"] = $"✅ Unidad {Unidad.NumUnidad} actualizada correctamente";
                 return RedirectToPage("/Unidades/Unidades");
+            }
+            catch (SqlException ex)
+            {
+                MensajeError = ex.Message.Contains("Ya existe")
+                    ? ex.Message
+                    : $"Error al actualizar: {ex.Message}";
+
+                await CargarCatalogos();
+                return Page();
             }
             catch (Exception ex)
             {
-                MensajeError = $"Error al actualizar: {ex.Message}";
+                MensajeError = $"Error inesperado: {ex.Message}";
                 await CargarCatalogos();
                 return Page();
             }

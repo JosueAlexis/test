@@ -255,7 +255,7 @@ namespace ProyectoRH2025.Data
             modelBuilder.Entity<TblUnidades>(entity =>
             {
                 entity.ToTable("tblUnidades");
-                entity.HasKey(e => e.id);
+                entity.HasKey(e => e.Id);
 
                 // Mapear la propiedad IdCuenta a la columna de la BD
                 entity.Property(e => e.IdCuenta)
@@ -281,7 +281,7 @@ namespace ProyectoRH2025.Data
                       .HasDatabaseName("IX_Unidades_CodCliente");
 
                 // Índice para búsquedas por sucursal
-                entity.HasIndex(e => e.idSucursal)
+                entity.HasIndex(e => e.IdSucursal)
                       .HasDatabaseName("IX_Unidades_Sucursal");
 
                 // ===== RELACIONES =====
@@ -308,7 +308,7 @@ namespace ProyectoRH2025.Data
                 // Relación con TblSucursal (OPCIONAL)
                 entity.HasOne(u => u.Sucursal)
                       .WithMany(s => s.Unidades)
-                      .HasForeignKey(u => u.idSucursal)
+                      .HasForeignKey(u => u.IdSucursal)
                       .OnDelete(DeleteBehavior.Restrict)
                       .IsRequired(false);
             });

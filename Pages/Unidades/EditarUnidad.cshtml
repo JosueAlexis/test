@@ -5,16 +5,71 @@
 }
 
 <div class="container mt-4">
-    <div class="card">
+    <div class="card shadow">
         <div class="card-header bg-warning text-dark">
-            <h4 class="mb-0"><i class="fas fa-edit"></i> Editar Unidad</h4>
+            <h4 class="mb-0">
+                <i class="fas fa-edit"></i> Editar Unidad
+                @if (Model.EsUnidadComodin)
+                {
+                    <span class="badge bg-danger ms-2">
+                        <i class="fas fa-clock"></i> COMODÍN
+                    </span>
+                }
+            </h4>
         </div>
         <div class="card-body">
+            @if (!string.IsNullOrEmpty(Model.MensajeError))
+            {
+                <div class="alert alert-danger alert-dismissible fade show">
+                    <i class="fas fa-exclamation-circle"></i> @Model.MensajeError
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            <!-- ✅ ALERTA SI ES UNIDAD COMODÍN -->
+            @if (Model.EsUnidadComodin)
+            {
+                <div class="alert alert-warning shadow-sm mb-4">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-exclamation-triangle fa-3x me-3"></i>
+                        <div>
+                            <h5 class="alert-heading mb-1">
+                                <strong>⏰ Unidad Comodín (Temporal)</strong>
+                            </h5>
+                            <p class="mb-1">
+                                Esta unidad se desactivará automáticamente el:
+                                <strong>@Model.FechaExpiracion?.ToString("dd/MM/yyyy HH:mm")</strong>
+                            </p>
+                            @if (Model.DiasRestantes.HasValue)
+                            {
+                                if (Model.DiasRestantes.Value > 0)
+                                {
+                                    <p class="mb-0">
+                                        <i class="fas fa-calendar-check"></i>
+                                        Días restantes: <strong class="text-danger">@Model.DiasRestantes días</strong>
+                                    </p>
+                                }
+                                else
+                                {
+                                    <p class="mb-0 text-danger">
+                                        <i class="fas fa-ban"></i>
+                                        <strong>Esta unidad ya expiró y será desactivada en el próximo proceso automático</strong>
+                                    </p>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
             <form method="post">
-                <input type="hidden" asp-for="Unidad.id" />
+                <input type="hidden" asp-for="Unidad.Id" />
+                <input type="hidden" asp-for="Unidad.NumUnidad" />
 
                 <!-- Información Básica -->
-                <h5 class="mb-3 text-warning">Información Básica</h5>
+                <h5 class="mb-3 text-warning">
+                    <i class="fas fa-info-circle"></i> Información Básica
+                </h5>
                 <div class="row mb-4">
                     <div class="col-md-4">
                         <label class="form-label">Número de Unidad</label>
@@ -37,7 +92,9 @@
                 </div>
 
                 <!-- Clasificación -->
-                <h5 class="mb-3 text-warning">Clasificación y Asignación</h5>
+                <h5 class="mb-3 text-warning">
+                    <i class="fas fa-tags"></i> Clasificación y Asignación
+                </h5>
                 <div class="row mb-4">
                     <div class="col-md-4">
                         <label class="form-label">Cuenta <span class="text-danger">*</span></label>
@@ -45,7 +102,9 @@
                             <option value="">-- Seleccione --</option>
                             @foreach (var cuenta in Model.Cuentas)
                             {
-                                <option value="@cuenta.Id">@cuenta.CodigoCuenta - @cuenta.NombreCuenta</option>
+                                <option value="@cuenta.Id">
+                                    @cuenta.CodigoCuenta - @cuenta.NombreCuenta
+                                </option>
                             }
                         </select>
                         <span asp-validation-for="Unidad.IdCuenta" class="text-danger"></span>
@@ -75,27 +134,22 @@
                 </div>
 
                 <!-- Ubicación -->
-                <h5 class="mb-3 text-warning">Ubicación</h5>
+                <h5 class="mb-3 text-warning">
+                    <i class="fas fa-map-marker-alt"></i> Ubicación
+                </h5>
                 <div class="row mb-4">
                     <div class="col-md-6">
                         <label class="form-label">Sucursal <span class="text-danger">*</span></label>
-                        <select asp-for="Unidad.idSucursal" class="form-select" required>
+                        <select asp-for="Unidad.IdSucursal" class="form-select" required>
                             <option value="">-- Seleccione --</option>
                             @foreach (var sucursal in Model.Sucursales)
                             {
                                 <option value="@sucursal.id">@sucursal.Sucursal</option>
                             }
                         </select>
-                        <span asp-validation-for="Unidad.idSucursal" class="text-danger"></span>
+                        <span asp-validation-for="Unidad.IdSucursal" class="text-danger"></span>
                     </div>
                 </div>
-
-                @if (!string.IsNullOrEmpty(Model.MensajeError))
-                {
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-circle"></i> @Model.MensajeError
-                    </div>
-                }
 
                 <hr />
 
@@ -114,4 +168,13 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        $(document).ready(function() {
+            // Convertir placas a mayúsculas
+            $('input[name="Unidad.Placas"]').on('input', function() {
+                $(this).val($(this).val().toUpperCase());
+            });
+        });
+    </script>
 }
