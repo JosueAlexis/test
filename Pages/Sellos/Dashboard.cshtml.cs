@@ -81,72 +81,22 @@ namespace ProyectoRH2025.Pages.Sellos
         }
 
         // ==========================================
-        // CARGAR SELLOS CON INFO
-        // ==========================================
-        // ==========================================
-        // CARGAR SELLOS CON INFO (CORREGIDO)
+        // CARGAR SELLOS CON INFO - USANDO SP
         // ==========================================
         private async Task CargarSellosAsync()
         {
-            var query = _context.TblSellos.AsQueryable();
+            var filtroEstado = !string.IsNullOrEmpty(FiltroEstado) && int.TryParse(FiltroEstado, out int estado)
+                ? (int?)estado
+                : null;
 
-            // Aplicar filtros
-            if (!string.IsNullOrEmpty(FiltroEstado))
-            {
-                if (int.TryParse(FiltroEstado, out int estado))
-                {
-                    query = query.Where(s => s.Status == estado);
-                }
-            }
+            var filtroBusqueda = string.IsNullOrEmpty(FiltroBusqueda) ? (object)DBNull.Value : FiltroBusqueda;
 
-            if (!string.IsNullOrEmpty(FiltroBusqueda))
-            {
-                query = query.Where(s => s.Sello.Contains(FiltroBusqueda));
-            }
-
-            var sellos = await query.OrderByDescending(s => s.Id).ToListAsync();
-
-            // ✅ Obtener supervisores
-            var supervisorIds = sellos.Where(s => s.SupervisorId.HasValue)
-                .Select(s => s.SupervisorId.Value)
-                .Distinct()
-                .ToList();
-
-            var supervisores = await _context.TblUsuarios
-                .Where(u => supervisorIds.Contains(u.idUsuario))
-                .ToDictionaryAsync(u => u.idUsuario, u => u.UsuarioNombre);
-
-            // ✅ Obtener TODAS las asignaciones (no solo activas)
-            var selloIds = sellos.Select(s => s.Id).ToList();
-
-            var asignacionesPorSello = await _context.TblAsigSellos
-                .Include(a => a.Operador)
-                .Include(a => a.Operador2)
-                .Include(a => a.Unidad)
-                .Where(a => selloIds.Contains(a.idSello))
-                .GroupBy(a => a.idSello)
-                .Select(g => new
-                {
-                    IdSello = g.Key,
-                    UltimaAsignacion = g.OrderByDescending(a => a.Fentrega).FirstOrDefault()
-                })
-                .ToDictionaryAsync(x => x.IdSello, x => x.UltimaAsignacion);
-
-            // Mapear a DTO
-            TodosLosSellos = sellos.Select(s => new SelloDetalleDTO
-            {
-                Id = s.Id,
-                NumeroSello = s.Sello,
-                Status = s.Status,
-                StatusTexto = ObtenerTextoEstado(s.Status),
-                SupervisorNombre = s.SupervisorId.HasValue && supervisores.ContainsKey(s.SupervisorId.Value)
-                    ? supervisores[s.SupervisorId.Value]
-                    : null,
-                FechaAsignacionSupervisor = s.FechaAsignacion,
-                AsignacionActual = asignacionesPorSello.ContainsKey(s.Id)
-                    ? asignacionesPorSello[s.Id]
-                    : null
-            }).ToList();
+            TodosLosSellos = await _context.Database
+                .SqlQuery<SelloDetalleDTO>($@"
+                    EXEC sp_Dashboard_ObtenerSellosCompleto 
+                        @FiltroEstado = {filtroEstado}, 
+                        @FiltroBusqueda = {filtroBusqueda}")
+                .ToListAsync();
         }
 
         // ==========================================
@@ -187,7 +137,7 @@ namespace ProyectoRH2025.Pages.Sellos
             {
                 var supervisor = await _context.TblUsuarios
                     .FirstOrDefaultAsync(u => u.idUsuario == sello.SupervisorId.Value);
-                supervisorNombre = supervisor?.UsuarioNombre;
+                supervisorNombre = supervisor?.NombreCompleto;
             }
 
             // Historial del sello
@@ -241,13 +191,13 @@ namespace ProyectoRH2025.Pages.Sellos
                     e.FSubidaEvidencia,
                     e.TamanoComprimido,
                     e.TamanoOriginal,
-                    // ✅ AGREGAR: Enviar la imagen thumbnail
                     ImagenThumbnail = e.ImagenThumbnail ?? e.Imagen,
-                    Imagen = e.Imagen,  // Para ver en tamaño completo
+                    Imagen = e.Imagen,
                     TieneImagen = !string.IsNullOrEmpty(e.Imagen)
                 })
                 .Take(10)
                 .ToListAsync();
+
             return new JsonResult(new
             {
                 sello = new
@@ -267,7 +217,7 @@ namespace ProyectoRH2025.Pages.Sellos
         }
 
         // ==========================================
-        // DTO PARA SELLOS
+        // DTO PARA SELLOS - ACTUALIZADO PARA SP
         // ==========================================
         public class SelloDetalleDTO
         {
@@ -275,9 +225,16 @@ namespace ProyectoRH2025.Pages.Sellos
             public string NumeroSello { get; set; }
             public int Status { get; set; }
             public string StatusTexto { get; set; }
-            public string SupervisorNombre { get; set; }
-            public DateTime? FechaAsignacionSupervisor { get; set; }
-            public TblAsigSellos AsignacionActual { get; set; }
+            public string? SupervisorNombre { get; set; }
+            public DateTime? FechaUltimaAsignacion { get; set; }
+
+            // Datos de la última asignación
+            public int? AsignacionId { get; set; }
+            public int? AsignacionStatus { get; set; }
+            public string? OperadorNombre { get; set; }
+            public string? Operador2Nombre { get; set; }
+            public int? NumUnidad { get; set; }
+            public string? Ruta { get; set; }
         }
     }
 }

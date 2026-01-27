@@ -6,6 +6,11 @@ using ProyectoRH2025.Data;
 using ProyectoRH2025.Models;
 using ProyectoRH2025.Services;
 using ClosedXML.Excel;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace ProyectoRH2025.Pages.Sellos
 {
@@ -25,7 +30,9 @@ namespace ProyectoRH2025.Pages.Sellos
             _auditoriaService = auditoriaService;
         }
 
-        // --- PROPIEDADES ---
+        // ==========================================
+        // PROPIEDADES
+        // ==========================================
         public IList<TblSellos> ListaSellos { get; set; } = default!;
 
         [BindProperty]
@@ -34,7 +41,6 @@ namespace ProyectoRH2025.Pages.Sellos
         [BindProperty]
         public int CantidadAsignar { get; set; }
 
-        // ✅ UNA SOLA DECLARACIÓN DE SellosSeleccionados
         [BindProperty]
         public List<int> SellosSeleccionados { get; set; } = new List<int>();
 
@@ -46,6 +52,20 @@ namespace ProyectoRH2025.Pages.Sellos
         [BindProperty]
         public int SupervisorADesasignar { get; set; }
 
+        // --- Nuevas Propiedades para Agregar Manualmente ---
+        [BindProperty(SupportsGet = true)]
+        public string NumeroSelloCheck { get; set; }  // Para validación AJAX
+
+        [BindProperty]
+        public string NumeroSello { get; set; }
+
+        [BindProperty]
+        public DateTime? FechaEntregaManual { get; set; }
+
+        [BindProperty]
+        public string RecibioManual { get; set; }
+
+        // --- Mensajes ---
         [TempData]
         public string MensajeExito { get; set; }
 
@@ -53,7 +73,7 @@ namespace ProyectoRH2025.Pages.Sellos
         public string MensajeError { get; set; }
 
         // ==========================================
-        // MÉTODO GET
+        // MÉTODO GET (Carga inicial)
         // ==========================================
         public async Task OnGetAsync()
         {
@@ -77,6 +97,87 @@ namespace ProyectoRH2025.Pages.Sellos
         }
 
         // ==========================================
+        // NUEVO: VALIDACIÓN EN VIVO (AJAX)
+        // ==========================================
+        public async Task<IActionResult> OnGetCheckSelloAsync(string numeroSelloCheck)
+        {
+            if (string.IsNullOrWhiteSpace(numeroSelloCheck))
+            {
+                return new JsonResult(new { existe = false, mensaje = "" });
+            }
+
+            bool existe = await _context.TblSellos
+                .AnyAsync(s => s.Sello.Trim().ToLower() == numeroSelloCheck.Trim().ToLower());
+
+            return new JsonResult(new
+            {
+                existe,
+                mensaje = existe ? $"El sello {numeroSelloCheck} ya existe." : "Disponible ✓"
+            });
+        }
+
+        // ==========================================
+        // NUEVO: AGREGAR SELLO MANUAL
+        // ==========================================
+        public async Task<IActionResult> OnPostAgregarSelloManualAsync()
+        {
+            if (string.IsNullOrWhiteSpace(NumeroSello))
+            {
+                MensajeError = "El número de sello es obligatorio.";
+                await CargarDatosIniciales();
+                return Page();
+            }
+
+            // Validación final (por seguridad)
+            if (await _context.TblSellos.AnyAsync(s => s.Sello.Trim().ToLower() == NumeroSello.Trim().ToLower()))
+            {
+                MensajeError = $"El sello {NumeroSello} ya existe en el sistema.";
+                await CargarDatosIniciales();
+                return Page();
+            }
+
+            try
+            {
+                var nuevoSello = new TblSellos
+                {
+                    Sello = NumeroSello.Trim(),
+                    Status = 1,  // Disponible
+                    Fentrega = FechaEntregaManual ?? DateTime.Now,
+                    Recibio = string.IsNullOrWhiteSpace(RecibioManual) ? null : RecibioManual.Trim(),
+                    Alta = HttpContext.Session.GetInt32("idUsuario"),
+                    SupervisorId = null,
+                    FechaAsignacion = null
+                };
+
+                _context.TblSellos.Add(nuevoSello);
+
+                // Auditoría
+                var usuarioId = HttpContext.Session.GetInt32("idUsuario");
+                var usuarioNombre = HttpContext.Session.GetString("UsuarioNombre");
+                var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+                await _auditoriaService.RegistrarImportacion(
+                    nuevoSello,
+                    usuarioId,
+                    usuarioNombre,
+                    ip,
+                    "Alta manual individual vía interfaz web"
+                );
+
+                await _context.SaveChangesAsync();
+
+                MensajeExito = $"Sello {NumeroSello} agregado correctamente como disponible.";
+                return RedirectToPage();
+            }
+            catch (Exception ex)
+            {
+                MensajeError = $"Error al agregar el sello: {ex.Message}";
+                await CargarDatosIniciales();
+                return Page();
+            }
+        }
+
+        // ==========================================
         // HANDLER: ASIGNAR SUPERVISOR CON AUDITORÍA
         // ==========================================
         public async Task<IActionResult> OnPostAsignarAsync()
@@ -91,8 +192,8 @@ namespace ProyectoRH2025.Pages.Sellos
             // 1. Validar sellos pendientes
             var sellosPendientes = await _context.TblSellos
                 .Where(s => s.SupervisorId == SupervisorSeleccionadoId &&
-                           s.Status == 4 &&
-                           s.FechaAsignacion <= DateTime.Now.AddDays(-4))
+                            s.Status == 4 &&
+                            s.FechaAsignacion <= DateTime.Now.AddDays(-4))
                 .ToListAsync();
 
             if (sellosPendientes.Any())
@@ -187,7 +288,7 @@ namespace ProyectoRH2025.Pages.Sellos
                 var supervisorAnterior = sello.SupervisorId;
                 var supervisorNombreAnterior = sello.Supervisor?.NombreCompleto ?? sello.Supervisor?.UsuarioNombre;
 
-                // ✅ CAMBIO: Status 14 = Asignado a Supervisor
+                // Status 14 = Asignado a Supervisor
                 sello.Status = 14;
                 sello.SupervisorId = SupervisorSeleccionadoId;
                 sello.FechaAsignacion = DateTime.Now;
@@ -244,9 +345,6 @@ namespace ProyectoRH2025.Pages.Sellos
                 return Page();
             }
 
-            // Aquí puedes aplicar validación de no consecutivos si quieres (opcional)
-            // Por ahora, asignamos directamente
-
             var usuarioId = HttpContext.Session.GetInt32("idUsuario");
             var usuarioNombre = HttpContext.Session.GetString("UsuarioNombre");
             var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
@@ -296,7 +394,6 @@ namespace ProyectoRH2025.Pages.Sellos
             {
                 var sellos = await _context.TblSellos
                     .Include(s => s.Supervisor)
-                    // ✅ CAMBIO: Buscar Status 14
                     .Where(s => s.SupervisorId == SupervisorADesasignar && s.Status == 14)
                     .ToListAsync();
 
@@ -318,7 +415,7 @@ namespace ProyectoRH2025.Pages.Sellos
                     var supervisorNombreAnterior = sello.Supervisor?.NombreCompleto ?? sello.Supervisor?.UsuarioNombre;
                     var fechaAsignacionAnterior = sello.FechaAsignacion;
 
-                    // ✅ Volver a Status 1 (Activo)
+                    // Volver a Status 1 (Activo)
                     sello.Status = 1;
                     sello.SupervisorId = null;
                     sello.FechaAsignacion = null;
@@ -363,7 +460,6 @@ namespace ProyectoRH2025.Pages.Sellos
             {
                 var sellos = await _context.TblSellos
                     .Include(s => s.Supervisor)
-                    // ✅ CAMBIO: Buscar Status 14
                     .Where(s => SellosSeleccionados.Contains(s.Id) && s.Status == 14)
                     .ToListAsync();
 
@@ -385,7 +481,7 @@ namespace ProyectoRH2025.Pages.Sellos
                     var supervisorNombreAnterior = sello.Supervisor?.NombreCompleto ?? sello.Supervisor?.UsuarioNombre;
                     var fechaAsignacionAnterior = sello.FechaAsignacion;
 
-                    // ✅ Volver a Status 1 (Activo)
+                    // Volver a Status 1 (Activo)
                     sello.Status = 1;
                     sello.SupervisorId = null;
                     sello.FechaAsignacion = null;

@@ -24,6 +24,11 @@ namespace ProyectoRH2025.Models
         public int? idSeAsigno { get; set; }
         public DateTime? FechaStatus4 { get; set; }
         public int TipoAsignacion { get; set; }
+        // ✅ NUEVOS CAMPOS DE AUDITORÍA
+        public int? UsuarioDevolucionId { get; set; }
+        public DateTime? FechaDevolucionRegistro { get; set; }
+        public int? UsuarioEvidenciaId { get; set; }
+        public DateTime? FechaEvidenciaRegistro { get; set; }
 
         // ✅ CAMPOS PARA QR
         public string? QR_Code { get; set; }

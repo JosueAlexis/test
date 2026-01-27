@@ -10,6 +10,7 @@
         --primary-purple: #7c3aed;
         --primary-blue: #2563eb;
         --primary-orange: #ea580c;
+        --primary-pink: #ec4899; /* Nuevo color para diferenciar */
         --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
         --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
         --shadow-lg: 0 8px 32px rgba(0,0,0,0.16);
@@ -123,7 +124,7 @@
     /* Action Buttons */
     .actions-container {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
         gap: 1rem;
         margin-bottom: 2rem;
     }
@@ -143,7 +144,7 @@
         gap: 0.75rem;
         color: white;
         font-weight: 600;
-        font-size: 1rem;
+        font-size: 0.9rem;
     }
 
         .action-btn:hover {
@@ -167,11 +168,15 @@
             background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
         }
 
+        .action-btn.pink {
+            background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+        }
+
     .action-icon {
         font-size: 2rem;
     }
 
-    /* Tables Container */
+    /* Tables */
     .tables-container {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
@@ -277,7 +282,7 @@
             color: #92400e;
         }
 
-    /* Modal Styles */
+    /* Modals & Forms */
     .modal-content {
         border: none;
         border-radius: 16px;
@@ -341,6 +346,16 @@
             color: white;
         }
 
+        .btn-modern.purple {
+            background: var(--primary-purple);
+            color: white;
+        }
+
+        .btn-modern.pink {
+            background: var(--primary-pink);
+            color: white;
+        }
+
     .alert-modern {
         border: none;
         border-radius: 12px;
@@ -348,7 +363,7 @@
         box-shadow: var(--shadow-sm);
     }
 
-    /* Estilos para checkboxes */
+    /* Checkboxes & Action Buttons inside Tables */
     .sello-checkbox {
         width: 18px;
         height: 18px;
@@ -359,12 +374,10 @@
             transform: scale(1.1);
         }
 
-    /* Fila seleccionada resaltada */
     .modern-table tbody tr:has(.sello-checkbox:checked) {
         background: #fef3c7 !important;
     }
 
-    /* Botón de desasignar mejorado */
     .btn-danger {
         background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
         color: white;
@@ -384,7 +397,6 @@
             cursor: not-allowed;
         }
 
-    /* Botón de asignar mejorado */
     .btn-success {
         background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
         color: white;
@@ -403,6 +415,19 @@
             opacity: 0.6;
             cursor: not-allowed;
         }
+
+    /* Feedbacks de Validación */
+    .feedback-valid {
+        color: #16a34a;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    .feedback-invalid {
+        color: #ea580c;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
 </style>
 
 <div class="dashboard-header">
@@ -429,25 +454,17 @@
 
     <div class="stats-container">
         <div class="stat-card green">
-            <div class="stat-icon green">
-                <i class="fas fa-shield-alt"></i>
-            </div>
+            <div class="stat-icon green"><i class="fas fa-shield-alt"></i></div>
             <div class="stat-label">Total de Sellos</div>
             <div class="stat-value">@Model.ListaSellos.Count</div>
         </div>
-
         <div class="stat-card purple">
-            <div class="stat-icon purple">
-                <i class="fas fa-check-circle"></i>
-            </div>
+            <div class="stat-icon purple"><i class="fas fa-check-circle"></i></div>
             <div class="stat-label">Sellos Disponibles</div>
             <div class="stat-value">@Model.ListaSellos.Count(s => s.Status == 1)</div>
         </div>
-
         <div class="stat-card blue">
-            <div class="stat-icon blue">
-                <i class="fas fa-user-check"></i>
-            </div>
+            <div class="stat-icon blue"><i class="fas fa-user-check"></i></div>
             <div class="stat-label">Sellos Asignados</div>
             <div class="stat-value">@Model.ListaSellos.Count(s => s.Status == 14)</div>
         </div>
@@ -469,6 +486,11 @@
             <div>DESASIGNAR SELLO</div>
         </button>
 
+        <button class="action-btn pink" data-bs-toggle="modal" data-bs-target="#addSelloManualModal">
+            <div class="action-icon">➕</div>
+            <div>AGREGAR MANUAL</div>
+        </button>
+
         <button class="action-btn purple" onclick="window.location.href='/Sellos/HistorialSellos'">
             <div class="action-icon">📊</div>
             <div>VER HISTORIAL</div>
@@ -476,17 +498,14 @@
     </div>
 
     <div class="tables-container">
-        <!-- TABLA DE SELLOS DISPONIBLES CON CHECKBOXES -->
         <div class="table-card">
             <div class="table-header">
                 <h3 class="table-title">Sellos Disponibles (@Model.ListaSellos.Count(s => s.Status == 1))</h3>
                 <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-sm btn-success" onclick="asignarSeleccionadosDisponibles()">
+                    <button type="button" class="btn btn-sm btn-success disabled" onclick="asignarSeleccionadosDisponibles()">
                         <i class="fas fa-check-circle me-1"></i> Asignar Seleccionados
                     </button>
-                    <button class="download-btn" onclick="downloadAvailable()">
-                        <i class="fas fa-download"></i>
-                    </button>
+                    <button class="download-btn" onclick="downloadAvailable()"><i class="fas fa-download"></i></button>
                 </div>
             </div>
             <div class="table-responsive">
@@ -495,8 +514,7 @@
                         <thead>
                             <tr>
                                 <th width="50" class="text-center">
-                                    <input type="checkbox" id="selectAllAvailable" onclick="toggleSelectAllAvailable(this)"
-                                           title="Seleccionar todos">
+                                    <input type="checkbox" id="selectAllAvailable" onclick="toggleSelectAllAvailable(this)" title="Seleccionar todos">
                                 </th>
                                 <th>Sello</th>
                                 <th>Fecha Entrega</th>
@@ -511,10 +529,7 @@
                                 {
                                     <tr>
                                         <td class="text-center">
-                                            <input type="checkbox"
-                                                   name="SellosSeleccionados"
-                                                   value="@item.Id"
-                                                   class="sello-checkbox sello-checkbox-available form-check-input" />
+                                            <input type="checkbox" name="SellosSeleccionados" value="@item.Id" class="sello-checkbox sello-checkbox-available form-check-input" />
                                         </td>
                                         <td class="fw-bold">@item.Sello</td>
                                         <td>@(item.Fentrega?.ToString("dd/MM/yyyy") ?? "-")</td>
@@ -538,17 +553,14 @@
             </div>
         </div>
 
-        <!-- TABLA DE SELLOS ASIGNADOS CON CHECKBOXES -->
         <div class="table-card">
             <div class="table-header">
                 <h3 class="table-title">Sellos Asignados (@Model.ListaSellos.Count(s => s.Status == 14))</h3>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-sm btn-danger" onclick="desasignarSeleccionados()" style="border-radius: 8px;">
+                    <button class="btn btn-sm btn-danger disabled" onclick="desasignarSeleccionados()" style="border-radius: 8px;">
                         <i class="fas fa-times-circle me-1"></i> Desasignar Seleccionados
                     </button>
-                    <button class="download-btn" onclick="downloadAssigned()">
-                        <i class="fas fa-download"></i>
-                    </button>
+                    <button class="download-btn" onclick="downloadAssigned()"><i class="fas fa-download"></i></button>
                 </div>
             </div>
             <div class="table-responsive">
@@ -557,8 +569,7 @@
                         <thead>
                             <tr>
                                 <th width="50" class="text-center">
-                                    <input type="checkbox" id="selectAllAssigned" onclick="toggleSelectAllAssigned(this)"
-                                           title="Seleccionar todos">
+                                    <input type="checkbox" id="selectAllAssigned" onclick="toggleSelectAllAssigned(this)" title="Seleccionar todos">
                                 </th>
                                 <th>Sello</th>
                                 <th>Asignado a</th>
@@ -573,10 +584,7 @@
                                 {
                                     <tr>
                                         <td class="text-center">
-                                            <input type="checkbox"
-                                                   name="SellosSeleccionados"
-                                                   value="@item.Id"
-                                                   class="sello-checkbox sello-checkbox-assigned form-check-input">
+                                            <input type="checkbox" name="SellosSeleccionados" value="@item.Id" class="sello-checkbox sello-checkbox-assigned form-check-input">
                                         </td>
                                         <td class="fw-bold">@item.Sello</td>
                                         <td>@(item.Supervisor?.NombreCompleto ?? item.Supervisor?.UsuarioNombre ?? "Sin Supervisor")</td>
@@ -602,12 +610,11 @@
     </div>
 </div>
 
-<!-- MODAL ASIGNAR SELLOS -->
-<div class="modal fade" id="assignModal" tabindex="-1" aria-labelledby="assignModalLabel" aria-hidden="true">
+<div class="modal fade" id="assignModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="assignModalLabel">🔄 Asignar Sellos a Supervisor</h5>
+                <h5 class="modal-title">🔄 Asignar Sellos a Supervisor</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -618,17 +625,14 @@
                             <option value="">-- Seleccionar Supervisor --</option>
                         </select>
                     </div>
-
                     <div class="mb-3">
                         <label class="form-label">Cantidad de Sellos</label>
                         <input asp-for="CantidadAsignar" type="number" min="1" class="form-control" placeholder="Ingresa la cantidad" />
                     </div>
-
                     <div class="alert alert-info alert-modern">
                         <i class="fas fa-info-circle me-2"></i>
                         <small>El sistema asignará sellos no consecutivos automáticamente.</small>
                     </div>
-
                     <button type="submit" class="btn btn-modern blue w-100">
                         <i class="fas fa-random me-2"></i> Asignar Aleatoriamente
                     </button>
@@ -638,12 +642,11 @@
     </div>
 </div>
 
-<!-- MODAL IMPORTAR SELLOS -->
-<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+<div class="modal fade" id="importModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="importModalLabel">🏛️ Importar Sellos (Excel)</h5>
+                <h5 class="modal-title">🏛️ Importar Sellos (Excel)</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -653,7 +656,6 @@
                         <input type="file" asp-for="ArchivoExcel" class="form-control" accept=".xlsx, .xls" />
                         <small class="text-muted">Formato: Columna 1: Número Sello | Columna 2: Fecha | Columna 3: Recibió</small>
                     </div>
-
                     <button type="submit" class="btn btn-modern green w-100">
                         <i class="fas fa-upload me-2"></i> Subir e Importar
                     </button>
@@ -663,12 +665,11 @@
     </div>
 </div>
 
-<!-- MODAL DESASIGNAR SELLOS POR SUPERVISOR -->
-<div class="modal fade" id="unassignModal" tabindex="-1" aria-labelledby="unassignModalLabel" aria-hidden="true">
+<div class="modal fade" id="unassignModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="unassignModalLabel">❌ Desasignar Sellos de Supervisor</h5>
+                <h5 class="modal-title">❌ Desasignar Sellos de Supervisor</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -679,14 +680,53 @@
                             <option value="">-- Seleccionar Supervisor --</option>
                         </select>
                     </div>
-
                     <div class="alert alert-warning alert-modern">
                         <i class="fas fa-exclamation-triangle me-2"></i>
-                        <small>Se desasignarán TODOS los sellos del supervisor seleccionado y quedarán registrados en el historial.</small>
+                        <small>Se desasignarán TODOS los sellos del supervisor seleccionado.</small>
+                    </div>
+                    <button type="submit" class="btn btn-modern orange w-100">
+                        <i class="fas fa-times-circle me-2"></i> Desasignar Todos
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addSelloManualModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">➕ Agregar Sello Manual</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formAgregarSelloManual" method="post" asp-page-handler="AgregarSelloManual">
+                    <div class="mb-3 position-relative">
+                        <label class="form-label">Número de Sello *</label>
+                        <input type="text" id="inputNumeroSello" name="NumeroSello" class="form-control"
+                               placeholder="Ej: 123456" maxlength="20" required autocomplete="off" />
+                        <div id="feedbackSello" class="mt-1"></div>
                     </div>
 
-                    <button type="submit" class="btn btn-modern orange w-100">
-                        <i class="fas fa-times-circle me-2"></i> Desasignar Todos los Sellos
+                    <div class="mb-3">
+                        <label class="form-label">Fecha de Entrega (opcional)</label>
+                        <input type="date" id="inputFechaEntrega" name="FechaEntregaManual" class="form-control" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Recibió (opcional)</label>
+                        <input type="text" id="inputRecibio" name="RecibioManual" class="form-control"
+                               placeholder="Nombre o código" maxlength="100" />
+                    </div>
+
+                    <div class="alert alert-info alert-modern mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        El sello se agregará como <strong>Disponible (Status 1)</strong>.
+                    </div>
+
+                    <button type="submit" id="btnGuardarSelloManual" class="btn btn-modern pink w-100" disabled>
+                        <i class="fas fa-plus me-2"></i> Agregar Sello
                     </button>
                 </form>
             </div>
@@ -696,36 +736,101 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        // Función para seleccionar/deseleccionar todos los checkboxes DISPONIBLES
+        // ==========================================
+        // 1. LÓGICA DE CHECKBOXES Y TABLAS (ORIGINAL)
+        // ==========================================
+
+        // Checkboxes Disponibles
         function toggleSelectAllAvailable(checkbox) {
             const checkboxes = document.querySelectorAll('.sello-checkbox-available');
             checkboxes.forEach(cb => cb.checked = checkbox.checked);
             actualizarContadorDisponibles();
         }
 
-        // Función para seleccionar/deseleccionar todos los checkboxes ASIGNADOS
+        // Checkboxes Asignados
         function toggleSelectAllAssigned(checkbox) {
             const checkboxes = document.querySelectorAll('.sello-checkbox-assigned');
             checkboxes.forEach(cb => cb.checked = checkbox.checked);
             actualizarContadorAsignados();
         }
 
-        // Función para asignar sellos seleccionados disponibles
+        // Actualizar botón "Asignar Seleccionados"
+        function actualizarContadorDisponibles() {
+            const checkboxes = document.querySelectorAll('.sello-checkbox-available:checked');
+            // Buscamos el botón dentro del header de la tabla de disponibles
+            const container = document.querySelector('.table-card:has(.sello-checkbox-available)');
+            const botonAsignar = container ? container.querySelector('.btn-success') : null;
+
+            if (botonAsignar) {
+                if (checkboxes.length > 0) {
+                    botonAsignar.innerHTML = `<i class="fas fa-check-circle me-1"></i> Asignar (${checkboxes.length})`;
+                    botonAsignar.classList.remove('disabled');
+                } else {
+                    botonAsignar.innerHTML = '<i class="fas fa-check-circle me-1"></i> Asignar Seleccionados';
+                    botonAsignar.classList.add('disabled');
+                }
+            }
+        }
+
+        // Actualizar botón "Desasignar Seleccionados"
+        function actualizarContadorAsignados() {
+            const checkboxes = document.querySelectorAll('.sello-checkbox-assigned:checked');
+            const container = document.querySelector('.table-card:has(.sello-checkbox-assigned)');
+            const botonDesasignar = container ? container.querySelector('.btn-danger') : null;
+
+            if (botonDesasignar) {
+                if (checkboxes.length > 0) {
+                    botonDesasignar.innerHTML = `<i class="fas fa-times-circle me-1"></i> Desasignar (${checkboxes.length})`;
+                    botonDesasignar.classList.remove('disabled');
+                } else {
+                    botonDesasignar.innerHTML = '<i class="fas fa-times-circle me-1"></i> Desasignar Seleccionados';
+                    botonDesasignar.classList.add('disabled');
+                }
+            }
+        }
+
+        // Listeners para checkboxes individuales
+        document.addEventListener('DOMContentLoaded', function () {
+            // Disponibles
+            const checkboxesAvailable = document.querySelectorAll('.sello-checkbox-available');
+            const selectAllAvailable = document.getElementById('selectAllAvailable');
+            checkboxesAvailable.forEach(cb => {
+                cb.addEventListener('change', function () {
+                    const all = Array.from(checkboxesAvailable).every(c => c.checked);
+                    const some = Array.from(checkboxesAvailable).some(c => c.checked);
+                    if (selectAllAvailable) {
+                        selectAllAvailable.checked = all;
+                        selectAllAvailable.indeterminate = some && !all;
+                    }
+                    actualizarContadorDisponibles();
+                });
+            });
+
+            // Asignados
+            const checkboxesAssigned = document.querySelectorAll('.sello-checkbox-assigned');
+            const selectAllAssigned = document.getElementById('selectAllAssigned');
+            checkboxesAssigned.forEach(cb => {
+                cb.addEventListener('change', function () {
+                    const all = Array.from(checkboxesAssigned).every(c => c.checked);
+                    const some = Array.from(checkboxesAssigned).some(c => c.checked);
+                    if (selectAllAssigned) {
+                        selectAllAssigned.checked = all;
+                        selectAllAssigned.indeterminate = some && !all;
+                    }
+                    actualizarContadorAsignados();
+                });
+            });
+        });
+
+        // Lógica SweetAlert para Asignar
         function asignarSeleccionadosDisponibles() {
             const form = document.getElementById('formAsignarSeleccionados');
             const checkboxes = document.querySelectorAll('.sello-checkbox-available:checked');
 
-            if (checkboxes.length === 0) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Sin Selección',
-                    text: 'Selecciona al menos un sello para asignar.',
-                    confirmButtonColor: '#16a34a'
-                });
-                return;
-            }
+            if (checkboxes.length === 0) return;
 
             let sellosTexto = '';
             checkboxes.forEach((cb, index) => {
@@ -739,7 +844,7 @@
                 html: `
                     <div class="text-start">
                         <p>Vas a asignar <strong>${checkboxes.length}</strong> sello(s):</p>
-                        <div class="alert alert-info">${sellosTexto}</div>
+                        <div class="alert alert-info" style="max-height: 100px; overflow-y: auto;">${sellosTexto}</div>
                         <p>Selecciona el supervisor:</p>
                         <select id="supervisorSelect" class="form-select mt-2">
                             <option value="">-- Seleccionar Supervisor --</option>
@@ -766,7 +871,6 @@
                 }
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Agregar el supervisor seleccionado al form (hidden input)
                     let hiddenInput = document.createElement('input');
                     hiddenInput.type = 'hidden';
                     hiddenInput.name = 'SupervisorSeleccionadoId';
@@ -777,39 +881,16 @@
             });
         }
 
-        // Función para desasignar sellos seleccionados
+        // Lógica SweetAlert para Desasignar
         function desasignarSeleccionados() {
             const form = document.getElementById('formDesasignarSeleccionados');
             const checkboxes = document.querySelectorAll('.sello-checkbox-assigned:checked');
 
-            if (checkboxes.length === 0) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Sin Selección',
-                    text: 'Selecciona al menos un sello para desasignar.',
-                    confirmButtonColor: '#ea580c'
-                });
-                return;
-            }
-
-            let sellosTexto = '';
-            checkboxes.forEach((cb, index) => {
-                const fila = cb.closest('tr');
-                const numeroSello = fila.querySelector('td:nth-child(2)').textContent;
-                sellosTexto += numeroSello + (index < checkboxes.length - 1 ? ', ' : '');
-            });
+            if (checkboxes.length === 0) return;
 
             Swal.fire({
                 title: '¿Confirmar Desasignación?',
-                html: `
-                    <div class="text-start">
-                        <p class="mb-2">Vas a desasignar <strong>${checkboxes.length}</strong> sello(s):</p>
-                        <div class="alert alert-info">
-                            ${sellosTexto}
-                        </div>
-                        <p class="text-muted small mb-0">Esta acción quedará registrada en el historial.</p>
-                    </div>
-                `,
+                text: `Se desasignarán ${checkboxes.length} sellos seleccionados.`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#ea580c',
@@ -823,80 +904,62 @@
             });
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            // Manejar checkboxes de sellos disponibles
-            const checkboxesAvailable = document.querySelectorAll('.sello-checkbox-available');
-            const selectAllAvailable = document.getElementById('selectAllAvailable');
+        function downloadAvailable() { alert('Descargando lista de sellos disponibles...'); }
+        function downloadAssigned() { alert('Descargando lista de sellos asignados...'); }
 
-            checkboxesAvailable.forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    const todosSeleccionados = Array.from(checkboxesAvailable).every(cb => cb.checked);
-                    const algunoSeleccionado = Array.from(checkboxesAvailable).some(cb => cb.checked);
 
-                    if (selectAllAvailable) {
-                        selectAllAvailable.checked = todosSeleccionados;
-                        selectAllAvailable.indeterminate = algunoSeleccionado && !todosSeleccionados;
+        // ==========================================
+        // 2. NUEVA LÓGICA: VALIDACIÓN EN VIVO (AGREGAR MANUAL)
+        // ==========================================
+
+        const inputSello = document.getElementById('inputNumeroSello');
+        const feedback = document.getElementById('feedbackSello');
+        const btnGuardar = document.getElementById('btnGuardarSelloManual');
+
+        if (inputSello) {
+            let timeoutValida;
+            inputSello.addEventListener('input', function () {
+                clearTimeout(timeoutValida);
+                const valor = this.value.trim();
+
+                // Resetear estado
+                feedback.innerHTML = '';
+                btnGuardar.disabled = true;
+
+                if (valor.length < 3) return; // Esperar al menos 3 caracteres
+
+                timeoutValida = setTimeout(async () => {
+                    try {
+                        // Importante: Asegúrate de tener el handler CheckSello en tu Backend (.cs)
+                        const url = `/Sellos/GestionSellos?handler=CheckSello&numeroSelloCheck=${encodeURIComponent(valor)}`;
+                        const response = await fetch(url);
+
+                        if (!response.ok) throw new Error('Network response was not ok');
+
+                        const data = await response.json();
+
+                        if (data.existe) {
+                            // Sello YA existe -> Error
+                            feedback.innerHTML = `
+                                <span class="feedback-invalid">
+                                    <i class="fas fa-times-circle me-1"></i> ${data.mensaje}
+                                </span>`;
+                            btnGuardar.disabled = true;
+                        } else {
+                            // Sello NO existe -> OK
+                            feedback.innerHTML = `
+                                <span class="feedback-valid">
+                                    <i class="fas fa-check-circle me-1"></i> ${data.mensaje}
+                                </span>`;
+                            btnGuardar.disabled = false;
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        feedback.innerHTML = '<span class="text-danger small">Error al verificar disponibilidad</span>';
+                        btnGuardar.disabled = true;
                     }
-
-                    actualizarContadorDisponibles();
-                });
+                }, 500); // Debounce de 500ms
             });
-
-            // Manejar checkboxes de sellos asignados
-            const checkboxesAssigned = document.querySelectorAll('.sello-checkbox-assigned');
-            const selectAllAssigned = document.getElementById('selectAllAssigned');
-
-            checkboxesAssigned.forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    const todosSeleccionados = Array.from(checkboxesAssigned).every(cb => cb.checked);
-                    const algunoSeleccionado = Array.from(checkboxesAssigned).some(cb => cb.checked);
-
-                    if (selectAllAssigned) {
-                        selectAllAssigned.checked = todosSeleccionados;
-                        selectAllAssigned.indeterminate = algunoSeleccionado && !todosSeleccionados;
-                    }
-
-                    actualizarContadorAsignados();
-                });
-            });
-        });
-
-        function actualizarContadorDisponibles() {
-            const checkboxes = document.querySelectorAll('.sello-checkbox-available:checked');
-            const botonAsignar = document.querySelector('.btn-success');
-
-            if (botonAsignar) {
-                if (checkboxes.length > 0) {
-                    botonAsignar.innerHTML = `<i class="fas fa-check-circle me-1"></i> Asignar (${checkboxes.length})`;
-                    botonAsignar.classList.remove('disabled');
-                } else {
-                    botonAsignar.innerHTML = '<i class="fas fa-check-circle me-1"></i> Asignar Seleccionados';
-                }
-            }
-        }
-
-        function actualizarContadorAsignados() {
-            const checkboxes = document.querySelectorAll('.sello-checkbox-assigned:checked');
-            const botonDesasignar = document.querySelector('.btn-danger');
-
-            if (botonDesasignar) {
-                if (checkboxes.length > 0) {
-                    botonDesasignar.innerHTML = `<i class="fas fa-times-circle me-1"></i> Desasignar (${checkboxes.length})`;
-                    botonDesasignar.classList.remove('disabled');
-                } else {
-                    botonDesasignar.innerHTML = '<i class="fas fa-times-circle me-1"></i> Desasignar Seleccionados';
-                }
-            }
-        }
-
-        function downloadAvailable() {
-            alert('Descargando lista de sellos disponibles...');
-        }
-
-        function downloadAssigned() {
-            alert('Descargando lista de sellos asignados...');
         }
     </script>
-
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 }

@@ -43,6 +43,11 @@
                     <p class="mb-2">El código QR ha sido generado. Imprímelo o muéstralo al operador.</p>
                     <hr />
                     <p class="mb-0"><strong>Código:</strong> <code>@codigoQR</code></p>
+                    <p class="mb-0 mt-2">
+                        <span class="badge bg-warning text-dark">
+                            <i class="fas fa-clock"></i> Válido por 1 hora
+                        </span>
+                    </p>
                 </div>
                 <div class="col-md-4 text-center">
                     <img src="data:image/png;base64,@qrBase64"
@@ -52,6 +57,124 @@
                     <button class="btn btn-sm btn-outline-primary mt-2" onclick="window.print()">
                         <i class="fas fa-print"></i> Imprimir
                     </button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- ✅ TABLA DE SELLOS PRIORITARIOS (3+ DÍAS) -->
+    @if (Model.SellosPrioritarios.Any())
+    {
+        <div class="card shadow mb-4 border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>⚠️ SELLOS PRIORITARIOS - Requieren Seguimiento Urgente
+                    <span class="badge bg-dark float-end">@Model.SellosPrioritarios.Count</span>
+                </h5>
+                <small class="d-block mt-1">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Sellos con más de 3 días en el mismo estado
+                </small>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Estado Actual</th>
+                                <th>Sello</th>
+                                <th>Operador(es)</th>
+                                <th>Unidad</th>
+                                <th>Días Transcurridos</th>
+                                <th>Fecha Inicio</th>
+                                <th width="250">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.SellosPrioritarios)
+                            {
+                                var diasTranscurridos = (int)(DateTime.Now - item.Fentrega).TotalDays;
+                                var esEnTramite = item.Status == 4;
+                                var esEnUso = item.Status == 3;
+                                var fechaReferencia = esEnUso && item.FechaEntrega.HasValue ? item.FechaEntrega.Value : item.Fentrega;
+
+                                <tr class="table-danger">
+                                    <td>
+                                        @if (esEnTramite)
+                                        {
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="fas fa-clock"></i> EN TRÁMITE
+                                            </span>
+                                        }
+                                        else if (esEnUso)
+                                        {
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-truck"></i> EN USO
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="fw-bold text-danger">@item.Sello?.Sello</td>
+                                    <td>
+                                        <div>@item.Operador?.Names @item.Operador?.Apellido</div>
+                                        @if (item.TipoAsignacion == 1 && item.Operador2 is not null)
+                                        {
+                                            <small class="text-muted">
+                                                <i class="fas fa-user-friends"></i> + @item.Operador2.Names @item.Operador2.Apellido
+                                            </small>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">@item.Unidad?.NumUnidad</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-danger fs-6">
+                                            <i class="fas fa-calendar-alt"></i> @diasTranscurridos días
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small>@fechaReferencia.ToString("dd/MM/yyyy HH:mm")</small>
+                                    </td>
+                                    <td>
+                                        @if (esEnTramite)
+                                        {
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <button class="btn btn-success"
+                                                        onclick="entregarSello(@item.id)"
+                                                        title="Entregar">
+                                                    <i class="fas fa-check-circle"></i>
+                                                </button>
+                                                <button class="btn btn-primary"
+                                                        onclick="modificarAsignacion(@item.id)"
+                                                        title="Modificar">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                            </div>
+                                        }
+                                        else if (esEnUso)
+                                        {
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <button class="btn btn-warning"
+                                                        onclick="devolverSello(@item.id)"
+                                                        title="Devolver">
+                                                    <i class="fas fa-undo"></i>
+                                                </button>
+                                                <button class="btn btn-info"
+                                                        onclick="subirEvidencia(@item.id)"
+                                                        title="Evidencia">
+                                                    <i class="fas fa-camera"></i>
+                                                </button>
+                                                <button class="btn btn-secondary"
+                                                        onclick="verEvidencias(@item.id)"
+                                                        title="Ver Evidencias">
+                                                    <i class="fas fa-images"></i>
+                                                </button>
+                                            </div>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -85,8 +208,20 @@
                         <tbody>
                             @foreach (var item in Model.SellosEnTramite)
                             {
-                                <tr>
-                                    <td class="fw-bold text-primary">@item.Sello?.Sello</td>
+                                var diasTranscurridos = (int)(DateTime.Now - item.Fentrega).TotalDays;
+                                var esPrioritario = diasTranscurridos >= 3;
+
+                                <tr class="@(esPrioritario ? "table-warning" : "")">
+                                    <td>
+                                        <span class="fw-bold text-primary">@item.Sello?.Sello</span>
+                                        @if (esPrioritario)
+                                        {
+                                            <br />
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="fas fa-exclamation-triangle"></i> @diasTranscurridos días
+                                            </span>
+                                        }
+                                    </td>
                                     <td>
                                         <div>@item.Operador?.Names @item.Operador?.Apellido</div>
                                         @if (item.TipoAsignacion == 1 && item.Operador2 is not null)
@@ -168,8 +303,20 @@
                         <tbody>
                             @foreach (var item in Model.SellosEnUso)
                             {
-                                <tr>
-                                    <td class="fw-bold text-success">@item.Sello?.Sello</td>
+                                var diasTranscurridos = item.FechaEntrega.HasValue ? (int)(DateTime.Now - item.FechaEntrega.Value).TotalDays : 0;
+                                var esPrioritario = diasTranscurridos >= 3;
+
+                                <tr class="@(esPrioritario ? "table-warning" : "")">
+                                    <td>
+                                        <span class="fw-bold text-success">@item.Sello?.Sello</span>
+                                        @if (esPrioritario)
+                                        {
+                                            <br />
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="fas fa-exclamation-triangle"></i> @diasTranscurridos días
+                                            </span>
+                                        }
+                                    </td>
                                     <td>
                                         <div>@item.Operador?.Names @item.Operador?.Apellido</div>
                                         @if (item.TipoAsignacion == 1 && item.Operador2 is not null)
@@ -362,7 +509,7 @@
     </div>
 </div>
 
-<!-- MODAL: SUBIR EVIDENCIA -->
+<!-- MODAL: SUBIR EVIDENCIA - MÚLTIPLES IMÁGENES -->
 <div class="modal fade" id="modalEvidencia" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -388,13 +535,21 @@
                         </select>
                     </div>
 
+                    <!-- ✅ MÚLTIPLES ARCHIVOS -->
                     <div class="mb-3">
-                        <label class="form-label">Archivo (Foto/PDF)</label>
-                        <input type="file" name="ArchivoEvidencia" class="form-control"
-                               accept="image/*,application/pdf" required />
+                        <label class="form-label">Fotos de Evidencia (Mínimo 1, Máximo 3)</label>
+                        <input type="file"
+                               name="ArchivosEvidencia"
+                               class="form-control"
+                               accept="image/*"
+                               multiple
+                               required
+                               id="inputEvidencias"
+                               onchange="validarCantidadArchivos()" />
                         <small class="form-text text-muted">
-                            Formatos: JPG, PNG, PDF (Máx. 10MB)
+                            Formatos: JPG, PNG (Máx. 10MB por imagen)
                         </small>
+                        <div id="contadorArchivos" class="mt-2"></div>
                     </div>
 
                     <div class="mb-3">
@@ -410,7 +565,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-info">
+                    <button type="submit" class="btn btn-info" id="btnSubirEvidencia">
                         <i class="fas fa-upload"></i> Subir Evidencia
                     </button>
                 </div>
@@ -446,6 +601,45 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
+        // ✅ VALIDAR CANTIDAD DE ARCHIVOS (1-3)
+        function validarCantidadArchivos() {
+            const input = document.getElementById('inputEvidencias');
+            const contador = document.getElementById('contadorArchivos');
+            const btnSubmit = document.getElementById('btnSubirEvidencia');
+
+            const archivos = input.files;
+            const cantidad = archivos.length;
+
+            if (cantidad < 1) {
+                contador.innerHTML = '<span class="badge bg-danger">⚠️ Debes seleccionar al menos 1 imagen</span>';
+                btnSubmit.disabled = true;
+                return;
+            }
+
+            if (cantidad > 3) {
+                contador.innerHTML = '<span class="badge bg-danger">⚠️ Máximo 3 imágenes permitidas</span>';
+                btnSubmit.disabled = true;
+                input.value = '';
+                return;
+            }
+
+            // Validar tamaño de cada archivo
+            let hayError = false;
+            for (let i = 0; i < archivos.length; i++) {
+                if (archivos[i].size > 10 * 1024 * 1024) {
+                    contador.innerHTML = `<span class="badge bg-danger">⚠️ El archivo "${archivos[i].name}" supera 10MB</span>`;
+                    btnSubmit.disabled = true;
+                    hayError = true;
+                    break;
+                }
+            }
+
+            if (!hayError) {
+                contador.innerHTML = `<span class="badge bg-success">✅ ${cantidad} imagen(es) seleccionada(s)</span>`;
+                btnSubmit.disabled = false;
+            }
+        }
+
         // ENTREGAR SELLO - Cargar confirmación
         async function entregarSello(idAsignacion) {
             try {
@@ -472,10 +666,8 @@
                 document.getElementById('modIdAsignacion').value = idAsignacion;
                 document.getElementById('modTipoAsignacion').value = data.tipoAsignacion;
 
-                // 1. Primero cargamos la lista
                 await cargarOperadores();
 
-                // 2. Esperamos un momento para asegurar que el DOM se actualizó y luego asignamos valores
                 setTimeout(() => {
                     $('#modOperador1').val(data.idOperador).trigger('change');
 
@@ -531,23 +723,19 @@
             }
         }
 
-        // ✅ CARGAR OPERADORES (CORREGIDO PARA MODAL)
+        // CARGAR OPERADORES
         async function cargarOperadores() {
             try {
                 const response = await fetch('/Sellos/InventarioCoordinador?handler=ListaOperadores');
                 const operadores = await response.json();
 
-                // Limpiar opciones anteriores
                 $('#modOperador1, #modOperador2').empty();
                 $('#modOperador1, #modOperador2').append(new Option('-- Seleccionar --', ''));
 
-                // Llenar select
                 operadores.forEach(op => {
                     $('#modOperador1, #modOperador2').append(new Option(op.text, op.value));
                 });
 
-                // ✅ SOLUCIÓN CRÍTICA: dropdownParent
-                // Esto hace que la lista desplegable se renderice DENTRO del modal y sea visible/clicable
                 $('.operador-select').select2({
                     width: '100%',
                     placeholder: '-- Seleccionar Operador --',

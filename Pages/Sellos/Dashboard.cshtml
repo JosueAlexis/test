@@ -341,14 +341,14 @@
                                 }
                             </td>
                             <td>
-                                @if (sello.AsignacionActual != null && sello.AsignacionActual.Operador != null)
+                                @if (!string.IsNullOrEmpty(sello.OperadorNombre))
                                 {
                                     <small>
-                                        @sello.AsignacionActual.Operador.Names @sello.AsignacionActual.Operador.Apellido
-                                        @if (sello.AsignacionActual.Operador2 != null)
+                                        @sello.OperadorNombre
+                                        @if (!string.IsNullOrEmpty(sello.Operador2Nombre))
                                         {
                                             <br />
-                                            <span class="text-muted">+ @sello.AsignacionActual.Operador2.Names</span>
+                                            <span class="text-muted">+ @sello.Operador2Nombre</span>
                                         }
                                     </small>
                                 }
@@ -358,9 +358,9 @@
                                 }
                             </td>
                             <td>
-                                @if (sello.AsignacionActual?.Unidad != null)
+                                @if (sello.NumUnidad.HasValue)
                                 {
-                                    <span class="badge bg-secondary">@sello.AsignacionActual.Unidad.NumUnidad</span>
+                                    <span class="badge bg-secondary">@sello.NumUnidad</span>
                                 }
                                 else
                                 {
@@ -368,7 +368,7 @@
                                 }
                             </td>
                             <td>
-                                <small>@(sello.FechaAsignacionSupervisor?.ToString("dd/MM/yyyy") ?? "-")</small>
+                                <small>@(sello.FechaUltimaAsignacion?.ToString("dd/MM/yyyy HH:mm") ?? "-")</small>
                             </td>
                             <td>
                                 <button class="btn btn-sm btn-outline-primary"
