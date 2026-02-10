@@ -7,7 +7,7 @@ namespace ProyectoRH2025.Models
     public class TblClientes
     {
         [Key]
-        public int codCliente { get; set; }
+        public int? codCliente { get; set; }
 
         [Required]
         [StringLength(200)]

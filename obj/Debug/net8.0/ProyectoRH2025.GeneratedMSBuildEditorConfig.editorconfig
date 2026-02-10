@@ -100,8 +100,20 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTG9nb3V0LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/jdelarosa/Desktop/Desarrollos Local/ProyectoRH2025/ProyectoRH2025/Pages/Operadores/AltaDocumentos.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcT3BlcmFkb3Jlc1xBbHRhRG9jdW1lbnRvcy5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/jdelarosa/Desktop/Desarrollos Local/ProyectoRH2025/ProyectoRH2025/Pages/Operadores/AltaEmpleado.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcT3BlcmFkb3Jlc1xBbHRhRW1wbGVhZG8uY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/jdelarosa/Desktop/Desarrollos Local/ProyectoRH2025/ProyectoRH2025/Pages/Operadores/AltaGeneral.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcT3BlcmFkb3Jlc1xBbHRhR2VuZXJhbC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/jdelarosa/Desktop/Desarrollos Local/ProyectoRH2025/ProyectoRH2025/Pages/Operadores/AltaVivienda.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcT3BlcmFkb3Jlc1xBbHRhVml2aWVuZGEuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/jdelarosa/Desktop/Desarrollos Local/ProyectoRH2025/ProyectoRH2025/Pages/Operadores/Buscar.cshtml]
@@ -112,8 +124,8 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcT3BlcmFkb3Jlc1xEZXRhbGxlcy5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/jdelarosa/Desktop/Desarrollos Local/ProyectoRH2025/ProyectoRH2025/Pages/Operadores/_ViviendaPartialModel.cshtml]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXNcT3BlcmFkb3Jlc1xfVml2aWVuZGFQYXJ0aWFsTW9kZWwuY3NodG1s
+[C:/Users/jdelarosa/Desktop/Desarrollos Local/ProyectoRH2025/ProyectoRH2025/Pages/Operadores/EditarBasico.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcT3BlcmFkb3Jlc1xFZGl0YXJCYXNpY28uY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/jdelarosa/Desktop/Desarrollos Local/ProyectoRH2025/ProyectoRH2025/Pages/Privacy.cshtml]

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+ï»¿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Data.SqlClient;
 using ProyectoRH2025.Models;
@@ -44,7 +44,6 @@ namespace ProyectoRH2025.Pages.Operadores
             }
         }
 
-        // Propiedades para mensajes (mantienen la misma interfaz)
         public string SearchMessage { get; set; }
         public string SearchType { get; set; }
 
@@ -54,12 +53,12 @@ namespace ProyectoRH2025.Pages.Operadores
             {
                 if (_selectedCompany == null)
                 {
-                    SearchMessage = "Seleccione una compañía para ver los empleados";
+                    SearchMessage = "Seleccione una compaÃ±Ã­a para ver los empleados";
                     SearchType = "info";
                 }
                 else
                 {
-                    SearchMessage = "Ingrese un término de búsqueda para filtrar empleados";
+                    SearchMessage = "Ingrese un tÃ©rmino de bÃºsqueda para filtrar empleados";
                     SearchType = "info";
                 }
             }
@@ -68,7 +67,7 @@ namespace ProyectoRH2025.Pages.Operadores
                 SearchMessage = $"No se encontraron empleados que coincidan con '{SearchTerm}'";
                 if (_selectedCompany == null)
                 {
-                    SearchMessage += ". Seleccione una compañía";
+                    SearchMessage += ". Seleccione una compaÃ±Ã­a";
                 }
                 SearchType = "warning";
             }
@@ -93,7 +92,6 @@ namespace ProyectoRH2025.Pages.Operadores
                 SelectedCompany = selectedCompany.Value;
             }
 
-            // Buscar empleados usando stored procedure
             await BuscarEmpleadosConSPAsync();
             SetSearchMessage();
         }
@@ -107,18 +105,16 @@ namespace ProyectoRH2025.Pages.Operadores
 
                 command.CommandType = CommandType.StoredProcedure;
 
-                // Convertir tu lógica a parámetros del SP
                 bool cheboxStil = _selectedCompany == 1;
                 bool cheboxAkna = _selectedCompany == 2;
 
-                // Parámetros del SP (adaptando tu lógica original)
                 command.Parameters.AddWithValue("@IdUsuario", HttpContext.Session.GetInt32("idUsuario") ?? 1);
                 command.Parameters.AddWithValue("@CheboxStil", cheboxStil);
                 command.Parameters.AddWithValue("@CheboxAkna", cheboxAkna);
                 command.Parameters.AddWithValue("@TxtConsulta", (object?)SearchTerm ?? DBNull.Value);
-                command.Parameters.AddWithValue("@Tipempleado", 1); // Ajustar según tu lógica
+                command.Parameters.AddWithValue("@Tipempleado", 1);
                 command.Parameters.AddWithValue("@PageNumber", 1);
-                command.Parameters.AddWithValue("@PageSize", 1000); // Cargar todos para mantener interfaz
+                command.Parameters.AddWithValue("@PageSize", 1000);
 
                 await connection.OpenAsync();
 
@@ -126,7 +122,6 @@ namespace ProyectoRH2025.Pages.Operadores
 
                 var empleadosTemp = new List<Empleado>();
 
-                // Leer empleados y convertir a tu modelo Empleado
                 while (await reader.ReadAsync())
                 {
                     empleadosTemp.Add(new Empleado
@@ -143,12 +138,11 @@ namespace ProyectoRH2025.Pages.Operadores
                         Curp = reader.IsDBNull("Curp") ? null : reader.GetString("Curp"),
                         NumSSocial = reader.IsDBNull("NumSSocial") ? null : reader.GetString("NumSSocial"),
                         CodClientes = reader.IsDBNull("CodClientes") ? null : reader.GetString("CodClientes"),
-                        Status = reader.IsDBNull("Status") ? null : reader.GetInt32("Status"),
+                        Status = reader.IsDBNull("Status") ? 0 : reader.GetInt32("Status"),
                         TipEmpleado = reader.IsDBNull("TipEmpleado") ? null : reader.GetInt32("TipEmpleado"),
                         FechaAlta = reader.IsDBNull("FechaAlta") ? null : reader.GetDateTime("FechaAlta"),
-                        IdUsuarioAlta = reader.IsDBNull("IdUsuarioAlta") ? null : reader.GetInt32("IdUsuarioAlta"),
+                        IdUsuarioAlta = reader.IsDBNull("IdUsuarioAlta") ? 0 : reader.GetInt32("IdUsuarioAlta"),
                         Editor = reader.IsDBNull("Editor") ? null : reader.GetInt32("Editor"),
-                        // Campos adicionales que pueden venir del SP
                         Fnacimiento = reader.IsDBNull("Fnacimiento") ? null : reader.GetDateTime("Fnacimiento"),
                         Puesto = reader.IsDBNull("Puesto") ? null : reader.GetInt32("Puesto"),
                         Fegreso = reader.IsDBNull("Fegreso") ? null : reader.GetDateTime("Fegreso"),
@@ -158,14 +152,10 @@ namespace ProyectoRH2025.Pages.Operadores
                 }
 
                 Empleados = empleadosTemp;
-
-                // Saltar las otras tablas del SP (conteo y permisos) ya que no se usan en esta interfaz
-                // pero si las necesitas, puedes leerlas aquí con reader.NextResult()
             }
             catch (Exception ex)
             {
-                // Log del error si es necesario
-                Console.WriteLine($"Error en búsqueda: {ex.Message}");
+                Console.WriteLine($"Error en bÃºsqueda: {ex.Message}");
                 Empleados = new List<Empleado>();
             }
         }

@@ -32,6 +32,8 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<QRCodeService>();
 builder.Services.AddScoped<ImagenService>();
 
+// Servicio que maneja el progreso de migraciones (necesario para que no se caiga la página)
+builder.Services.AddSingleton<MigracionSharePointService>();
 //SERIVIO DE PERMISOS//
 builder.Services.AddScoped<PermisosService>();
 

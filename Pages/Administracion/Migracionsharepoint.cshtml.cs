@@ -4,6 +4,7 @@ using Microsoft.Data.SqlClient;
 using ProyectoRH2025.Services;
 using System.Data;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace ProyectoRH2025.Pages.Administracion
 {
@@ -12,56 +13,41 @@ namespace ProyectoRH2025.Pages.Administracion
         private readonly IConfiguration _configuration;
         private readonly ILogger<MigracionSharePointModel> _logger;
         private readonly ISharePointTestService _sharePointService;
-
-        // Diccionario estático para mantener el progreso entre peticiones
-        private static ProgresoMigracion? _progresoActual;
-        private static readonly object _lockProgreso = new object();
+        private readonly MigracionSharePointService _migracionService;
 
         public MigracionSharePointModel(
             IConfiguration configuration,
             ILogger<MigracionSharePointModel> logger,
-            ISharePointTestService sharePointService)
+            ISharePointTestService sharePointService,
+            MigracionSharePointService migracionService)
         {
             _configuration = configuration;
             _logger = logger;
             _sharePointService = sharePointService;
+            _migracionService = migracionService;
         }
 
-        // PROPIEDADES PÚBLICAS
         public int TotalImagenes { get; set; }
         public int ImagenesPendientes { get; set; }
         public int ImagenesMigradas { get; set; }
         public decimal TamanoTotalMB { get; set; }
-        public string? MensajeExito { get; set; }
-        public string? MensajeError { get; set; }
+        public decimal TamanoMigradoMB { get; set; }
+        public decimal TamanoPendienteMB { get; set; }
 
-        // PROPIEDADES DE FILTROS
         [BindProperty(SupportsGet = true)]
         public DateTime? FechaInicio { get; set; }
 
         [BindProperty(SupportsGet = true)]
         public DateTime? FechaFin { get; set; }
 
-        // ========================================================================
-        // ON GET - CARGAR PÁGINA
-        // ========================================================================
         public async Task<IActionResult> OnGetAsync()
         {
-            // Verificar permisos (solo Administradores o IT)
             var rolId = HttpContext.Session.GetInt32("idRol");
-            if (rolId != 5 && rolId != 7) // Solo Admin(5) o IT(7)
-            {
-                return RedirectToPage("/Login");
-            }
-
-            await CargarEstadisticas();
-
+            if (rolId != 5 && rolId != 7) return RedirectToPage("/Login");
+            await CargarEstadisticasAsync();
             return Page();
         }
 
-        // ========================================================================
-        // HANDLER: INICIAR MIGRACIÓN
-        // ========================================================================
         public async Task<IActionResult> OnPostIniciarMigracionAsync(
             DateTime? FechaInicio,
             DateTime? FechaFin,
@@ -71,478 +57,407 @@ namespace ProyectoRH2025.Pages.Administracion
         {
             try
             {
-                _logger.LogInformation("=== INICIANDO MIGRACIÓN ===");
-                _logger.LogInformation("Filtros: FechaInicio={FechaInicio}, FechaFin={FechaFin}, Lote={Lote}, SoloPendientes={Pendientes}",
-                    FechaInicio, FechaFin, TamanoLote, SoloPendientes);
-
-                // Inicializar progreso
-                lock (_lockProgreso)
-                {
-                    _progresoActual = new ProgresoMigracion
-                    {
-                        TotalProcesar = 0,
-                        Procesadas = 0,
-                        Exitosas = 0,
-                        Fallidas = 0,
-                        Completado = false,
-                        InicioMigracion = DateTime.Now
-                    };
-                }
-
-                // Ejecutar migración en tarea en segundo plano
-                _ = Task.Run(async () =>
-                {
-                    await EjecutarMigracionAsync(FechaInicio, FechaFin, TamanoLote, SoloPendientes, SobreescribirExistentes);
-                });
-
-                return new JsonResult(new
-                {
-                    success = true,
-                    mensaje = $"Migración iniciada con lotes de {TamanoLote} imágenes"
-                });
+                var usuario = HttpContext.Session.GetString("UsuarioNombre") ?? "Sistema";
+                var migrationId = _migracionService.IniciarMigracion(
+                    FechaInicio, FechaFin, TamanoLote, SoloPendientes, SobreescribirExistentes, usuario,
+                    () => EjecutarMigracionAsync(FechaInicio, FechaFin, TamanoLote, SoloPendientes, SobreescribirExistentes, usuario));
+                return new JsonResult(new { success = true, migrationId = migrationId.ToString(), mensaje = "Migración iniciada" });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error iniciando migración");
-                return new JsonResult(new
-                {
-                    success = false,
-                    error = ex.Message
-                });
+                return new JsonResult(new { success = false, error = ex.Message });
             }
         }
 
-        // ========================================================================
-        // HANDLER: OBTENER PROGRESO
-        // ========================================================================
-        public IActionResult OnGetObtenerProgreso()
+        public IActionResult OnGetObtenerProgreso(string? migrationId)
         {
-            lock (_lockProgreso)
+            if (string.IsNullOrEmpty(migrationId) || !Guid.TryParse(migrationId, out var id))
             {
-                if (_progresoActual == null)
-                {
-                    return new JsonResult(new
-                    {
-                        porcentaje = 0,
-                        procesadas = 0,
-                        exitosas = 0,
-                        fallidas = 0,
-                        velocidad = 0,
-                        completado = false
-                    });
-                }
-
-                // Calcular velocidad (imágenes por minuto)
-                var tiempoTranscurrido = DateTime.Now - _progresoActual.InicioMigracion;
-                var velocidad = tiempoTranscurrido.TotalMinutes > 0
-                    ? (int)(_progresoActual.Procesadas / tiempoTranscurrido.TotalMinutes)
-                    : 0;
-
-                return new JsonResult(new
-                {
-                    porcentaje = _progresoActual.Porcentaje,
-                    procesadas = _progresoActual.Procesadas,
-                    exitosas = _progresoActual.Exitosas,
-                    fallidas = _progresoActual.Fallidas,
-                    velocidad,
-                    completado = _progresoActual.Completado,
-                    ultimoLog = _progresoActual.UltimoLog
-                });
+                return new JsonResult(new { success = false, error = "ID de migración inválido" });
             }
+            var progreso = _migracionService.ObtenerProgreso(id);
+            if (progreso == null)
+            {
+                return new JsonResult(new { success = false, completado = true, mensaje = "Migración no encontrada" });
+            }
+            var tiempo = DateTime.Now - progreso.Inicio;
+            var velocidad = tiempo.TotalMinutes > 0 ? (int)(progreso.Procesadas / tiempo.TotalMinutes) : 0;
+            return new JsonResult(new
+            {
+                success = true,
+                porcentaje = progreso.Porcentaje,
+                procesadas = progreso.Procesadas,
+                exitosas = progreso.Exitosas,
+                fallidas = progreso.Fallidas,
+                velocidad,
+                completado = progreso.Completado,
+                logs = progreso.Logs.TakeLast(50).ToList()
+            });
         }
 
-        // ========================================================================
-        // HANDLER: ACTUALIZAR ESTADÍSTICAS
-        // ========================================================================
         public async Task<IActionResult> OnGetActualizarEstadisticasAsync()
         {
-            try
+            await CargarEstadisticasAsync();
+            return new JsonResult(new
             {
-                await CargarEstadisticas();
-
-                return new JsonResult(new
-                {
-                    total = TotalImagenes,
-                    pendientes = ImagenesPendientes,
-                    migradas = ImagenesMigradas,
-                    tamanoMB = TamanoTotalMB
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error actualizando estadísticas");
-                return new JsonResult(new { error = ex.Message });
-            }
+                total = TotalImagenes,
+                pendientes = ImagenesPendientes,
+                migradas = ImagenesMigradas,
+                tamanoMB = TamanoTotalMB,
+                tamanoMigradoMB = TamanoMigradoMB,
+                tamanoPendienteMB = TamanoPendienteMB
+            });
         }
 
-        // ========================================================================
-        // HANDLER: VERIFICAR CONEXIÓN SHAREPOINT
-        // ========================================================================
         public async Task<IActionResult> OnGetVerificarConexionAsync()
         {
             try
             {
                 var resultado = await _sharePointService.TestConnectionAsync();
-
-                return new JsonResult(new
-                {
-                    success = resultado.IsSuccess,
-                    mensaje = resultado.Message,
-                    error = resultado.Error
-                });
+                return new JsonResult(new { success = resultado.IsSuccess, mensaje = resultado.Message, error = resultado.Error });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error verificando conexión");
-                return new JsonResult(new
-                {
-                    success = false,
-                    error = ex.Message
-                });
+                _logger.LogError(ex, "Error verificando conexión SharePoint");
+                return new JsonResult(new { success = false, error = ex.Message });
             }
         }
 
-        // ========================================================================
-        // MÉTODO PRIVADO: CARGAR ESTADÍSTICAS
-        // ========================================================================
-        private async Task CargarEstadisticas()
+        private async Task CargarEstadisticasAsync()
         {
             try
             {
-                using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
-                await connection.OpenAsync();
-
-                var query = @"
-                    SELECT 
-                        COUNT(*) as Total,
-                        SUM(CASE WHEN MigradaSharePoint = 0 OR MigradaSharePoint IS NULL THEN 1 ELSE 0 END) as Pendientes,
-                        SUM(CASE WHEN MigradaSharePoint = 1 THEN 1 ELSE 0 END) as Migradas,
-                        ISNULL(SUM(DATALENGTH(ImageData)) / 1024.0 / 1024.0, 0) as TamanoMB
-                    FROM POD_Evidencias_Imagenes
-                    WHERE ImageData IS NOT NULL";
-
-                using var command = new SqlCommand(query, connection);
-                using var reader = await command.ExecuteReaderAsync();
-
+                using var conn = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+                await conn.OpenAsync();
+                using var cmd = new SqlCommand("SP_ObtenerEstadisticasMigracion", conn) { CommandType = CommandType.StoredProcedure };
+                using var reader = await cmd.ExecuteReaderAsync();
                 if (await reader.ReadAsync())
                 {
-                    TotalImagenes = reader.GetInt32("Total");
-                    ImagenesPendientes = reader.GetInt32("Pendientes");
-                    ImagenesMigradas = reader.GetInt32("Migradas");
-                    TamanoTotalMB = Math.Round(reader.GetDecimal("TamanoMB"), 2);
+                    TotalImagenes = reader.GetInt32("TotalImagenes");
+                    ImagenesMigradas = reader.GetInt32("ImagenesMigradas");
+                    ImagenesPendientes = reader.GetInt32("ImagenesPendientes");
+                    TamanoTotalMB = Math.Round(reader.GetDecimal("TamanoTotalMB"), 2);
+                    TamanoMigradoMB = Math.Round(reader.GetDecimal("TamanoMigradoMB"), 2);
+                    TamanoPendienteMB = Math.Round(reader.GetDecimal("TamanoPendienteMB"), 2);
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error cargando estadísticas");
-                throw;
             }
         }
 
-        // ========================================================================
-        // MÉTODO PRIVADO: EJECUTAR MIGRACIÓN
-        // ========================================================================
         private async Task EjecutarMigracionAsync(
             DateTime? fechaInicio,
             DateTime? fechaFin,
             int tamanoLote,
             bool soloPendientes,
-            bool sobreescribirExistentes)
+            bool sobreescribir,
+            string usuario)
         {
-            var stopwatch = Stopwatch.StartNew();
+            var sw = Stopwatch.StartNew();
+            int procesadas = 0;
+            int exitosas = 0;
+            int fallidas = 0;
 
             try
             {
-                _logger.LogInformation("🚀 EJECUCIÓN DE MIGRACIÓN INICIADA");
+                // Obtener el progreso actual
+                var progreso = _migracionService.ObtenerProgreso(_migracionService.MigrationIdActual ?? Guid.Empty);
 
-                // 1. OBTENER IMÁGENES A MIGRAR
-                var imagenes = await ObtenerImagenesParaMigrar(fechaInicio, fechaFin, soloPendientes);
+                // Calcular total a procesar
+                var totalImagenes = await ObtenerTotalImagenesAsync(fechaInicio, fechaFin, soloPendientes);
 
-                lock (_lockProgreso)
+                if (progreso != null)
                 {
-                    _progresoActual!.TotalProcesar = imagenes.Count;
-                    _progresoActual.AgregarLog("info", $"Total de imágenes a procesar: {imagenes.Count}");
+                    progreso.TotalProcesar = totalImagenes;
+                    progreso.AgregarLog("info", $"📊 Total de imágenes a procesar: {totalImagenes:N0}");
                 }
 
-                _logger.LogInformation("📊 Total imágenes a migrar: {Count}", imagenes.Count);
-
-                if (imagenes.Count == 0)
+                while (true)
                 {
-                    lock (_lockProgreso)
+                    var lote = await ObtenerLoteImagenesAsync(fechaInicio, fechaFin, soloPendientes, procesadas, tamanoLote);
+                    if (lote.Count == 0) break;
+
+                    if (progreso != null)
                     {
-                        _progresoActual!.Completado = true;
-                        _progresoActual.AgregarLog("warning", "No hay imágenes para migrar");
-                    }
-                    return;
-                }
-
-                // 2. PROCESAR POR LOTES
-                var totalLotes = (int)Math.Ceiling(imagenes.Count / (double)tamanoLote);
-                _logger.LogInformation("📦 Total de lotes: {Lotes} (tamaño: {Tamaño})", totalLotes, tamanoLote);
-
-                for (int i = 0; i < totalLotes; i++)
-                {
-                    var lote = imagenes.Skip(i * tamanoLote).Take(tamanoLote).ToList();
-
-                    _logger.LogInformation("📦 Procesando lote {Actual}/{Total} ({Count} imágenes)",
-                        i + 1, totalLotes, lote.Count);
-
-                    lock (_lockProgreso)
-                    {
-                        _progresoActual!.AgregarLog("info",
-                            $"Procesando lote {i + 1}/{totalLotes} ({lote.Count} imágenes)");
+                        progreso.AgregarLog("info", $"📦 Procesando lote de {lote.Count} imágenes (offset: {procesadas})");
                     }
 
-                    await ProcesarLoteAsync(lote, sobreescribirExistentes);
+                    foreach (var imagen in lote)
+                    {
+                        try
+                        {
+                            var carpetaDestino = DeterminarCarpetaSharePoint(imagen);
+                            var nombreArchivoSeguro = SanitizarNombreArchivo(imagen.FileName);
 
-                    // Pequeña pausa entre lotes para no saturar SharePoint
-                    await Task.Delay(500);
+                            bool subidoExitoso = sobreescribir || !imagen.YaMigrada
+                                ? await _sharePointService.UploadFileAsync(carpetaDestino, nombreArchivoSeguro, imagen.ImageData)
+                                : true;
+
+                            if (subidoExitoso)
+                            {
+                                await MarcarComoMigradaAsync(imagen.EvidenciaID, usuario);
+                                exitosas++;
+
+                                // Log cada 10 exitosas
+                                if (exitosas % 10 == 0 && progreso != null)
+                                {
+                                    progreso.AgregarLog("success", $"✅ {exitosas} imágenes migradas exitosamente");
+                                }
+                            }
+                            else
+                            {
+                                fallidas++;
+                                if (progreso != null)
+                                {
+                                    progreso.AgregarLog("warning", $"⚠️ Fallo al subir imagen {imagen.EvidenciaID}");
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error procesando imagen {EvidenciaID}", imagen.EvidenciaID);
+                            fallidas++;
+
+                            if (progreso != null)
+                            {
+                                progreso.AgregarLog("error", $"❌ Error en imagen {imagen.EvidenciaID}: {ex.Message}");
+                            }
+                        }
+
+                        procesadas++;
+
+                        // Actualizar contadores en progreso
+                        if (progreso != null)
+                        {
+                            progreso.Procesadas = procesadas;
+                            progreso.Exitosas = exitosas;
+                            progreso.Fallidas = fallidas;
+                        }
+                    }
+
+                    await Task.Delay(400);
                 }
 
-                // 3. FINALIZAR
-                stopwatch.Stop();
+                sw.Stop();
 
-                lock (_lockProgreso)
+                if (progreso != null)
                 {
-                    _progresoActual!.Completado = true;
-                    _progresoActual.AgregarLog("success",
-                        $"Migración completada en {stopwatch.Elapsed.TotalMinutes:F1} minutos. " +
-                        $"Exitosas: {_progresoActual.Exitosas}, Fallidas: {_progresoActual.Fallidas}");
+                    progreso.AgregarLog("success", $"🎉 Migración completada: {exitosas} exitosas, {fallidas} fallidas en {sw.Elapsed.TotalMinutes:F2} minutos");
                 }
 
-                _logger.LogInformation("✅ MIGRACIÓN COMPLETADA - Tiempo: {Tiempo}min, Exitosas: {Exitosas}, Fallidas: {Fallidas}",
-                    stopwatch.Elapsed.TotalMinutes, _progresoActual.Exitosas, _progresoActual.Fallidas);
+                await RegistrarLogEnBDAsync(
+                    usuario,
+                    "MIGRACION",
+                    procesadas,
+                    exitosas,
+                    fallidas,
+                    sw.Elapsed.TotalMinutes,
+                    fechaInicio,
+                    fechaFin,
+                    tamanoLote,
+                    $"Migración completada - {exitosas} exitosas, {fallidas} fallidas"
+                );
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ ERROR EN MIGRACIÓN");
+                sw.Stop();
 
-                lock (_lockProgreso)
+                var progreso = _migracionService.ObtenerProgreso(_migracionService.MigrationIdActual ?? Guid.Empty);
+
+                if (progreso != null)
                 {
-                    _progresoActual!.Completado = true;
-                    _progresoActual.AgregarLog("error", $"Error crítico: {ex.Message}");
+                    progreso.AgregarLog("error", $"💥 Error crítico: {ex.Message}");
                 }
+
+                await RegistrarLogEnBDAsync(
+                    usuario,
+                    "MIGRACION_ERROR",
+                    procesadas,
+                    exitosas,
+                    fallidas,
+                    sw.Elapsed.TotalMinutes,
+                    fechaInicio,
+                    fechaFin,
+                    tamanoLote,
+                    ex.Message
+                );
             }
         }
 
-        // ========================================================================
-        // MÉTODO PRIVADO: OBTENER IMÁGENES PARA MIGRAR
-        // ========================================================================
-        private async Task<List<ImagenParaMigrar>> ObtenerImagenesParaMigrar(
+        private async Task<int> ObtenerTotalImagenesAsync(
             DateTime? fechaInicio,
             DateTime? fechaFin,
             bool soloPendientes)
         {
+            using var conn = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+            await conn.OpenAsync();
+
+            var query = @"
+                SELECT COUNT(*)
+                FROM POD_Evidencias_Imagenes e
+                INNER JOIN POD_Records p ON e.POD_ID_FK = p.POD_ID
+                WHERE e.ImageData IS NOT NULL
+                  AND DATALENGTH(e.ImageData) > 0";
+
+            if (soloPendientes)
+                query += " AND (e.MigradaSharePoint = 0 OR e.MigradaSharePoint IS NULL)";
+
+            if (fechaInicio.HasValue)
+                query += " AND e.CaptureDate >= @FechaInicio";
+
+            if (fechaFin.HasValue)
+                query += " AND e.CaptureDate < @FechaFin";
+
+            using var cmd = new SqlCommand(query, conn);
+
+            if (fechaInicio.HasValue)
+                cmd.Parameters.AddWithValue("@FechaInicio", fechaInicio.Value);
+
+            if (fechaFin.HasValue)
+                cmd.Parameters.AddWithValue("@FechaFin", fechaFin.Value.AddDays(1));
+
+            return (int)await cmd.ExecuteScalarAsync();
+        }
+
+        private async Task<List<ImagenParaMigrar>> ObtenerLoteImagenesAsync(
+            DateTime? fechaInicio,
+            DateTime? fechaFin,
+            bool soloPendientes,
+            int offset,
+            int take)
+        {
             var imagenes = new List<ImagenParaMigrar>();
-
-            try
+            using var conn = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+            await conn.OpenAsync();
+            var query = @"
+                SELECT
+                    e.EvidenciaID,
+                    e.POD_ID_FK,
+                    e.FileName,
+                    e.ImageData,
+                    e.MimeType,
+                    e.CaptureDate,
+                    ISNULL(e.MigradaSharePoint, 0) AS YaMigrada,
+                    p.Folio,
+                    p.FechaSalida
+                FROM POD_Evidencias_Imagenes e
+                INNER JOIN POD_Records p ON e.POD_ID_FK = p.POD_ID
+                WHERE e.ImageData IS NOT NULL
+                  AND DATALENGTH(e.ImageData) > 0";
+            if (soloPendientes)
+                query += " AND (e.MigradaSharePoint = 0 OR e.MigradaSharePoint IS NULL)";
+            if (fechaInicio.HasValue)
+                query += " AND e.CaptureDate >= @FechaInicio";
+            if (fechaFin.HasValue)
+                query += " AND e.CaptureDate < @FechaFin";
+            query += @"
+                ORDER BY e.CaptureDate
+                OFFSET @Offset ROWS
+                FETCH NEXT @Take ROWS ONLY";
+            using var cmd = new SqlCommand(query, conn);
+            if (fechaInicio.HasValue)
+                cmd.Parameters.AddWithValue("@FechaInicio", fechaInicio.Value);
+            if (fechaFin.HasValue)
+                cmd.Parameters.AddWithValue("@FechaFin", fechaFin.Value.AddDays(1));
+            cmd.Parameters.AddWithValue("@Offset", offset);
+            cmd.Parameters.AddWithValue("@Take", take);
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
             {
-                using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
-                await connection.OpenAsync();
-
-                var query = @"
-                    SELECT 
-                        e.EvidenciaID,
-                        e.POD_ID_FK,
-                        e.FileName,
-                        e.ImageData,
-                        e.MimeType,
-                        e.CaptureDate,
-                        e.MigradaSharePoint,
-                        p.Folio,
-                        p.FechaSalida
-                    FROM POD_Evidencias_Imagenes e
-                    INNER JOIN POD_Records p ON e.POD_ID_FK = p.POD_ID
-                    WHERE e.ImageData IS NOT NULL
-                        AND DATALENGTH(e.ImageData) > 0";
-
-                // Agregar filtro de pendientes
-                if (soloPendientes)
+                imagenes.Add(new ImagenParaMigrar
                 {
-                    query += " AND (e.MigradaSharePoint = 0 OR e.MigradaSharePoint IS NULL)";
-                }
-
-                // Agregar filtros de fecha
-                if (fechaInicio.HasValue)
-                {
-                    query += " AND e.CaptureDate >= @FechaInicio";
-                }
-
-                if (fechaFin.HasValue)
-                {
-                    query += " AND e.CaptureDate <= @FechaFin";
-                }
-
-                query += " ORDER BY e.CaptureDate DESC";
-
-                using var command = new SqlCommand(query, connection);
-
-                if (fechaInicio.HasValue)
-                    command.Parameters.AddWithValue("@FechaInicio", fechaInicio.Value);
-
-                if (fechaFin.HasValue)
-                    command.Parameters.AddWithValue("@FechaFin", fechaFin.Value.AddDays(1).AddSeconds(-1));
-
-                using var reader = await command.ExecuteReaderAsync();
-
-                while (await reader.ReadAsync())
-                {
-                    imagenes.Add(new ImagenParaMigrar
-                    {
-                        EvidenciaID = reader.GetInt32("EvidenciaID"),
-                        PodIdFK = reader.GetInt32("POD_ID_FK"),
-                        FileName = reader["FileName"]?.ToString() ?? $"Evidencia_{reader.GetInt32("EvidenciaID")}.jpg",
-                        ImageData = (byte[])reader["ImageData"],
-                        MimeType = reader["MimeType"]?.ToString(),
-                        CaptureDate = reader["CaptureDate"] as DateTime?,
-                        Folio = reader["Folio"]?.ToString(),
-                        FechaSalida = reader["FechaSalida"] as DateTime?,
-                        YaMigrada = reader["MigradaSharePoint"] as bool? ?? false
-                    });
-                }
+                    EvidenciaID = reader.GetInt32("EvidenciaID"),
+                    PodIdFK = reader.GetInt32("POD_ID_FK"),
+                    FileName = reader["FileName"]?.ToString() ?? $"Evidencia_{reader.GetInt32("EvidenciaID")}.jpg",
+                    ImageData = (byte[])reader["ImageData"],
+                    MimeType = reader["MimeType"]?.ToString(),
+                    CaptureDate = reader["CaptureDate"] as DateTime?,
+                    Folio = reader["Folio"]?.ToString(),
+                    FechaSalida = reader["FechaSalida"] as DateTime?,
+                    YaMigrada = reader.GetBoolean("YaMigrada")
+                });
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error obteniendo imágenes para migrar");
-                throw;
-            }
-
             return imagenes;
         }
 
-        // ========================================================================
-        // MÉTODO PRIVADO: PROCESAR LOTE
-        // ========================================================================
-        private async Task ProcesarLoteAsync(List<ImagenParaMigrar> lote, bool sobreescribir)
-        {
-            foreach (var imagen in lote)
-            {
-                try
-                {
-                    // Determinar carpeta de destino en SharePoint
-                    var carpetaDestino = DeterminarCarpetaSharePoint(imagen);
-
-                    _logger.LogInformation("📤 Subiendo: {FileName} a {Carpeta}",
-                        imagen.FileName, carpetaDestino);
-
-                    // Subir a SharePoint
-                    bool exitoso;
-
-                    if (sobreescribir || !imagen.YaMigrada)
-                    {
-                        exitoso = await _sharePointService.UploadFileAsync(
-                            carpetaDestino,
-                            imagen.FileName,
-                            imagen.ImageData);
-                    }
-                    else
-                    {
-                        _logger.LogInformation("⏭️ Saltando {FileName} (ya migrada)", imagen.FileName);
-                        exitoso = true;
-                    }
-
-                    if (exitoso)
-                    {
-                        // Marcar como migrada en BD
-                        await MarcarComoMigradaAsync(imagen.EvidenciaID);
-
-                        lock (_lockProgreso)
-                        {
-                            _progresoActual!.Exitosas++;
-                            _progresoActual.Procesadas++;
-                        }
-
-                        _logger.LogInformation("✅ Migrada: {FileName}", imagen.FileName);
-                    }
-                    else
-                    {
-                        lock (_lockProgreso)
-                        {
-                            _progresoActual!.Fallidas++;
-                            _progresoActual!.Procesadas++;
-                            _progresoActual.AgregarLog("error", $"Error subiendo {imagen.FileName}");
-                        }
-
-                        _logger.LogWarning("❌ Fallo: {FileName}", imagen.FileName);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error procesando imagen {Id}", imagen.EvidenciaID);
-
-                    lock (_lockProgreso)
-                    {
-                        _progresoActual!.Fallidas++;
-                        _progresoActual!.Procesadas++;
-                        _progresoActual.AgregarLog("error", $"Excepción en {imagen.FileName}: {ex.Message}");
-                    }
-                }
-            }
-        }
-
-        // ========================================================================
-        // MÉTODO PRIVADO: DETERMINAR CARPETA SHAREPOINT
-        // ========================================================================
         private string DeterminarCarpetaSharePoint(ImagenParaMigrar imagen)
         {
-            // Lógica:
-            // - Si tiene FechaSalida: usar (FechaSalida + 1 día) / POD_{PodId}
-            // - Si no: usar (CaptureDate) / POD_{PodId}
-
-            DateTime fechaBase;
-
-            if (imagen.FechaSalida.HasValue)
-            {
-                fechaBase = imagen.FechaSalida.Value.AddDays(1);
-            }
-            else if (imagen.CaptureDate.HasValue)
-            {
-                fechaBase = imagen.CaptureDate.Value;
-            }
-            else
-            {
-                fechaBase = DateTime.Today;
-            }
-
-            var carpetaFecha = fechaBase.ToString("yyyy-MM-dd");
+            DateTime fechaBase = imagen.FechaSalida ?? imagen.CaptureDate ?? DateTime.Today;
+            var carpetaFecha = fechaBase.AddDays(1).ToString("yyyy-MM-dd");
             var carpetaPod = $"POD_{imagen.PodIdFK}";
-
             return $"{carpetaFecha}/{carpetaPod}";
         }
 
-        // ========================================================================
-        // MÉTODO PRIVADO: MARCAR COMO MIGRADA
-        // ========================================================================
-        private async Task MarcarComoMigradaAsync(int evidenciaId)
+        private string SanitizarNombreArchivo(string nombre)
+        {
+            if (string.IsNullOrEmpty(nombre)) return "sin_nombre.jpg";
+            var invalido = new[] { '#', '%', '&', '*', ':', '<', '>', '?', '/', '\\', '{', '}', '|', '"', '\'' };
+            var limpio = string.Concat(nombre.Where(c => !invalido.Contains(c)));
+            if (limpio.Length > 200) limpio = limpio.Substring(0, 200);
+            var extension = Path.GetExtension(limpio).ToLower();
+            if (string.IsNullOrEmpty(extension) || !Regex.IsMatch(extension, @"\.(jpg|jpeg|png|gif|bmp|pdf)$"))
+                limpio += ".jpg";
+            return limpio;
+        }
+
+        private async Task MarcarComoMigradaAsync(int evidenciaId, string usuario)
+        {
+            using var conn = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+            await conn.OpenAsync();
+            var query = @"
+                UPDATE POD_Evidencias_Imagenes
+                SET MigradaSharePoint = 1,
+                    FechaMigracionSharePoint = GETDATE(),
+                    UsuarioMigracion = @Usuario
+                WHERE EvidenciaID = @EvidenciaID";
+            using var cmd = new SqlCommand(query, conn);
+            cmd.Parameters.AddWithValue("@EvidenciaID", evidenciaId);
+            cmd.Parameters.AddWithValue("@Usuario", usuario ?? "Sistema");
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        private async Task RegistrarLogEnBDAsync(
+            string usuario,
+            string tipoOperacion,
+            int imagenesAfectadas,
+            int exitosas,
+            int fallidas,
+            double tiempoMinutos,
+            DateTime? fechaInicio,
+            DateTime? fechaFin,
+            int tamanoLote,
+            string observaciones)
         {
             try
             {
-                using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
-                await connection.OpenAsync();
-
-                var query = @"
-                    UPDATE POD_Evidencias_Imagenes
-                    SET MigradaSharePoint = 1,
-                        FechaMigracionSharePoint = GETDATE(),
-                        UsuarioMigracion = @Usuario
-                    WHERE EvidenciaID = @EvidenciaID";
-
-                using var command = new SqlCommand(query, connection);
-                command.Parameters.AddWithValue("@EvidenciaID", evidenciaId);
-                command.Parameters.AddWithValue("@Usuario",
-                    HttpContext.Session.GetString("UsuarioNombre") ?? "Sistema");
-
-                await command.ExecuteNonQueryAsync();
+                using var conn = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+                await conn.OpenAsync();
+                using var cmd = new SqlCommand("SP_RegistrarLogMigracion", conn)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+                cmd.Parameters.AddWithValue("@Usuario", usuario ?? "Sistema");
+                cmd.Parameters.AddWithValue("@TipoOperacion", tipoOperacion);
+                cmd.Parameters.AddWithValue("@ImagenesAfectadas", imagenesAfectadas);
+                cmd.Parameters.AddWithValue("@ImagenesExitosas", exitosas);
+                cmd.Parameters.AddWithValue("@ImagenesFallidas", fallidas);
+                cmd.Parameters.AddWithValue("@TiempoMinutos", Math.Round(tiempoMinutos, 2));
+                cmd.Parameters.AddWithValue("@FechaInicio", (object?)fechaInicio ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@FechaFin", (object?)fechaFin ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@TamanoLote", tamanoLote);
+                cmd.Parameters.AddWithValue("@Observaciones", observaciones ?? "");
+                cmd.Parameters.AddWithValue("@DetallesError", DBNull.Value);
+                await cmd.ExecuteNonQueryAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error marcando evidencia {Id} como migrada", evidenciaId);
+                _logger.LogError(ex, "Error registrando log de migración en BD");
             }
         }
 
-        // ========================================================================
-        // CLASES AUXILIARES
-        // ========================================================================
         private class ImagenParaMigrar
         {
             public int EvidenciaID { get; set; }
@@ -554,37 +469,6 @@ namespace ProyectoRH2025.Pages.Administracion
             public string? Folio { get; set; }
             public DateTime? FechaSalida { get; set; }
             public bool YaMigrada { get; set; }
-        }
-
-        private class ProgresoMigracion
-        {
-            public int TotalProcesar { get; set; }
-            public int Procesadas { get; set; }
-            public int Exitosas { get; set; }
-            public int Fallidas { get; set; }
-            public bool Completado { get; set; }
-            public DateTime InicioMigracion { get; set; }
-            public LogEntry? UltimoLog { get; set; }
-
-            public int Porcentaje =>
-                TotalProcesar > 0 ? (int)((Procesadas / (double)TotalProcesar) * 100) : 0;
-
-            public void AgregarLog(string tipo, string mensaje)
-            {
-                UltimoLog = new LogEntry
-                {
-                    Tipo = tipo,
-                    Mensaje = mensaje,
-                    Timestamp = DateTime.Now
-                };
-            }
-        }
-
-        private class LogEntry
-        {
-            public string Tipo { get; set; } = "info";
-            public string Mensaje { get; set; } = "";
-            public DateTime Timestamp { get; set; }
         }
     }
 }

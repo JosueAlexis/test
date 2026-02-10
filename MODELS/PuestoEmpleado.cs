@@ -15,5 +15,8 @@ namespace ProyectoRH2025.Models
 
         [Column("idtipempleado")]
         public int idtipempleado { get; set; }
+
+        // Propiedad de navegación (SIN atributo [ForeignKey])
+        public virtual TblTipoEmpleado? TipoEmpleado { get; set; }
     }
 }

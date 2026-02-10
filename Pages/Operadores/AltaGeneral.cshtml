@@ -1,0 +1,346 @@
+﻿@page "{id:int}"
+@model ProyectoRH2025.Pages.Operadores.AltaGeneralModel
+
+@using ProyectoRH2025.Models.Enums
+@using ProyectoRH2025.Pages.Operadores
+@using static ProyectoRH2025.Pages.Operadores.AltaGeneralModel
+
+@{
+    ViewData["Title"] = Model.EsEdicion ? "Editar Información General" : "Alta Empleado - Información General";
+}
+
+<style>
+    .wizard-progress {
+        display: flex;
+        justify-content: center;
+        margin: 2rem 0;
+        gap: 1rem;
+    }
+
+    .wizard-step {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+        .wizard-step .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border: 2px solid #dee2e6;
+            background: white;
+        }
+
+        .wizard-step.completed .step-number {
+            background: #28a745;
+            border-color: #28a745;
+            color: white;
+        }
+
+        .wizard-step.active .step-number {
+            background: #007bff;
+            border-color: #007bff;
+            color: white;
+        }
+
+    .form-section {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+        .form-section h5 {
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+    .referencias-table {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 4px;
+    }
+</style>
+
+<!-- Barra de progreso (solo se muestra en modo wizard) -->
+@if (!Model.EsEdicion)
+{
+    <div class="wizard-progress">
+        <div class="wizard-step completed">
+            <div class="step-number">✓</div>
+            <span>Datos Básicos</span>
+        </div>
+        <div class="wizard-step active">
+            <div class="step-number">2</div>
+            <span>Información General</span>
+        </div>
+        <div class="wizard-step">
+            <div class="step-number">3</div>
+            <span>Vivienda</span>
+        </div>
+    </div>
+}
+
+<div class="container">
+    <div class="card">
+        <div class="card-header @(Model.EsEdicion ? "bg-warning text-dark" : "bg-primary text-white")">
+            <h4 class="mb-0">
+                <i class="fas fa-user-edit"></i>
+                @(Model.EsEdicion ? "Editar" : "Paso 2:") Información General - @Model.NombreEmpleado
+            </h4>
+        </div>
+
+        <div class="card-body">
+            @if (!string.IsNullOrEmpty(Model.Mensaje))
+            {
+                var esExito = Model.Mensaje.StartsWith("✅");
+                <div class="alert @(esExito ? "alert-success" : "alert-danger") alert-dismissible fade show">
+                    @Model.Mensaje
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            <form method="post">
+                <input type="hidden" name="id" value="@Model.Empleado.Id" />
+
+                <!-- Datos Familiares -->
+                <div class="form-section">
+                    <h5><i class="fas fa-users"></i> Datos Familiares</h5>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Estado Civil</label>
+                            <select class="form-select" name="Empleado.EstadoCivil" id="estadoCivil">
+                                <option value="">Seleccione...</option>
+                                <option value="1" selected="@(Model.Empleado?.EstadoCivil == EstadoCivil.Soltero)">Soltero</option>
+                                <option value="2" selected="@(Model.Empleado?.EstadoCivil == EstadoCivil.Casado)">Casado</option>
+                                <option value="3" selected="@(Model.Empleado?.EstadoCivil == EstadoCivil.Divorciado)">Divorciado</option>
+                                <option value="4" selected="@(Model.Empleado?.EstadoCivil == EstadoCivil.Viudo)">Viudo</option>
+                                <option value="5" selected="@(Model.Empleado?.EstadoCivil == EstadoCivil.Otro)">Otro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4" id="conyugeContainer" style="display: @(Model.Empleado?.EstadoCivil == EstadoCivil.Casado ? "block" : "none");">
+                            <label class="form-label">Nombre del Cónyuge</label>
+                            <input type="text" class="form-control" name="Empleado.NombreConyuge" value="@Model.Empleado?.NombreConyuge" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Número de Hijos</label>
+                            <input type="number" class="form-control" name="Empleado.NumHijos" value="@Model.Empleado?.NumHijos" min="0" max="20" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Educación -->
+                <div class="form-section">
+                    <h5><i class="fas fa-graduation-cap"></i> Educación</h5>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Escolaridad</label>
+                            <select class="form-select" name="Empleado.Escolaridad">
+                                <option value="">Seleccione...</option>
+                                <option value="1" selected="@(Model.Empleado?.Escolaridad == Escolaridad.Primaria)">Primaria</option>
+                                <option value="2" selected="@(Model.Empleado?.Escolaridad == Escolaridad.Secundaria)">Secundaria</option>
+                                <option value="3" selected="@(Model.Empleado?.Escolaridad == Escolaridad.Preparatoria)">Preparatoria</option>
+                                <option value="4" selected="@(Model.Empleado?.Escolaridad == Escolaridad.TecnicoBachillerato)">Técnico / Bachillerato tecnológico</option>
+                                <option value="5" selected="@(Model.Empleado?.Escolaridad == Escolaridad.Licenciatura)">Licenciatura</option>
+                                <option value="6" selected="@(Model.Empleado?.Escolaridad == Escolaridad.Postgrado)">Posgrado</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Nivel de Inglés</label>
+                            <select class="form-select" name="Empleado.NivelIngles">
+                                <option value="">Seleccione...</option>
+                                <option value="0" selected="@(Model.Empleado?.NivelIngles == NivelIngles.Ninguno)">Ninguno</option>
+                                <option value="1" selected="@(Model.Empleado?.NivelIngles == NivelIngles.Basico)">Básico</option>
+                                <option value="2" selected="@(Model.Empleado?.NivelIngles == NivelIngles.Intermedio)">Intermedio</option>
+                                <option value="3" selected="@(Model.Empleado?.NivelIngles == NivelIngles.Avanzado)">Avanzado</option>
+                                <option value="4" selected="@(Model.Empleado?.NivelIngles == NivelIngles.Nativo)">Nativo</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Fuente de Reclutamiento</label>
+                            <select class="form-select" name="Empleado.FuenteReclutamiento">
+                                <option value="">Seleccione...</option>
+                                <option value="1" selected="@(Model.Empleado?.FuenteReclutamiento == FuenteReclutamiento.RecomendacionEmpleado)">Recomendación de Empleado</option>
+                                <option value="2" selected="@(Model.Empleado?.FuenteReclutamiento == FuenteReclutamiento.InternetRedesSociales)">Internet / Redes Sociales</option>
+                                <option value="3" selected="@(Model.Empleado?.FuenteReclutamiento == FuenteReclutamiento.FeriaEmpleo)">Feria de Empleo</option>
+                                <option value="4" selected="@(Model.Empleado?.FuenteReclutamiento == FuenteReclutamiento.AgenciaReclutamiento)">Agencia de Reclutamiento</option>
+                                <option value="5" selected="@(Model.Empleado?.FuenteReclutamiento == FuenteReclutamiento.Otro)">Otro</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Salud y Hábitos -->
+                <div class="form-section">
+                    <h5><i class="fas fa-heartbeat"></i> Salud y Hábitos</h5>
+                    <!-- ✅ NUEVO: Tipo de Sangre -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                <i class="fas fa-tint text-danger me-1"></i>Tipo de Sangre
+                            </label>
+                            <select name="Empleado.TipoSangre" class="form-select">
+                                <option value="">-- Seleccione --</option>
+                                <option value="O+" selected="@(Model.Empleado?.TipoSangre == "O+")">O+</option>
+                                <option value="O-" selected="@(Model.Empleado?.TipoSangre == "O-")">O-</option>
+                                <option value="A+" selected="@(Model.Empleado?.TipoSangre == "A+")">A+</option>
+                                <option value="A-" selected="@(Model.Empleado?.TipoSangre == "A-")">A-</option>
+                                <option value="B+" selected="@(Model.Empleado?.TipoSangre == "B+")">B+</option>
+                                <option value="B-" selected="@(Model.Empleado?.TipoSangre == "B-")">B-</option>
+                                <option value="AB+" selected="@(Model.Empleado?.TipoSangre == "AB+")">AB+</option>
+                                <option value="AB-" selected="@(Model.Empleado?.TipoSangre == "AB-")">AB-</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="Empleado.Fuma" value="true" id="fuma" @(Model.Empleado?.Fuma == true ? "checked" : "") />
+                                <label class="form-check-label" for="fuma">Fuma</label>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="Empleado.Alcohol" value="true" id="alcohol" @(Model.Empleado?.Alcohol == true ? "checked" : "") />
+                                <label class="form-check-label" for="alcohol">Consume Alcohol</label>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="Empleado.Dopping" value="true" id="dopping" @(Model.Empleado?.Dopping == true ? "checked" : "") />
+                                <label class="form-check-label" for="dopping">Dopping</label>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="Empleado.Diabetes" value="true" id="diabetes" @(Model.Empleado?.Diabetes == true ? "checked" : "") />
+                                <label class="form-check-label" for="diabetes">Diabetes</label>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="Empleado.Hipertension" value="true" id="hipertension" @(Model.Empleado?.Hipertension == true ? "checked" : "") />
+                                <label class="form-check-label" for="hipertension">Hipertensión</label>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="Empleado.EnfermedadCronica" value="true" id="cronica" @(Model.Empleado?.EnfermedadCronica == true ? "checked" : "") />
+                                <label class="form-check-label" for="cronica">Enf. Crónica</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="Empleado.ConocePersEmple" value="true" id="conoce" @(Model.Empleado?.ConocePersEmple == true ? "checked" : "") />
+                                <label class="form-check-label" for="conoce">¿Conoce empleados de la empresa?</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Referencias Personales -->
+                <div class="form-section">
+                    <h5><i class="fas fa-address-book"></i> Referencias Personales</h5>
+                    <div id="referenciasContainer">
+                        @for (int i = 0; i < 3; i++)
+                        {
+                            var refActual = i < Model.Referencias.Count ? Model.Referencias[i] : new ReferenciaTemp();
+                            <div class="row mb-2 referencia-row">
+                                <div class="col-md-4">
+                                    <input type="text" class="form-control" name="Referencias[@i].NombreReferencia"
+                                           value="@refActual.Nombre" placeholder="Nombre completo" />
+                                    <input type="hidden" name="Referencias[@i].Id" value="@refActual.Id" />
+                                </div>
+                                <div class="col-md-3">
+                                    <input type="text" class="form-control" name="Referencias[@i].RelacionReferencia"
+                                           value="@refActual.Relacion" placeholder="Relación (ej: Amigo, Familiar)" />
+                                </div>
+                                <div class="col-md-3">
+                                    <input type="tel" class="form-control" name="Referencias[@i].TelefonoReferencia"
+                                           value="@refActual.Telefono" placeholder="Teléfono" />
+                                </div>
+                                <div class="col-md-2">
+                                    <span class="text-muted">Referencia @(i + 1)</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <small class="text-muted">Agregue hasta 3 referencias personales (opcional)</small>
+                </div>
+
+                <!-- ✅ NUEVO: INFONAVIT -->
+                <div class="form-section">
+                    <h5><i class="fas fa-home"></i> INFONAVIT</h5>
+                    <div class="form-check form-switch">
+                        <input type="checkbox"
+                               name="Empleado.CuentaInfonavit"
+                               value="true"
+                               class="form-check-input"
+                               role="switch"
+                               id="switchInfonavit"
+                               @(Model.Empleado?.CuentaInfonavit == true ? "checked" : "")>
+                        <label class="form-check-label fw-bold" for="switchInfonavit">
+                            ¿El empleado cuenta con crédito INFONAVIT?
+                        </label>
+                    </div>
+                    <small class="text-muted d-block mt-2">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Activar si el empleado tiene un crédito INFONAVIT activo
+                    </small>
+                </div>
+
+                <!-- Botones de Navegación -->
+                <div class="d-flex justify-content-between mt-4">
+                    @if (Model.EsEdicion)
+                    {
+                        <a href="/Operadores/Detalles/@Model.Empleado.Id" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> Guardar Cambios
+                        </button>
+                    }
+                    else
+                    {
+                        <a href="/Operadores/Buscar" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancelar
+                        </a>
+                        <div>
+                            <button type="submit" name="accion" value="salir" class="btn btn-outline-primary">
+                                Omitir <i class="fas fa-forward"></i>
+                            </button>
+                            <button type="submit" name="accion" value="continuar" class="btn btn-primary">
+                                Guardar y Continuar <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    }
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Mostrar campo cónyuge si es casado
+    document.getElementById('estadoCivil')?.addEventListener('change', function() {
+        const conyugeContainer = document.getElementById('conyugeContainer');
+        if (this.value == '2') { // Casado
+            conyugeContainer.style.display = 'block';
+        } else {
+            conyugeContainer.style.display = 'none';
+        }
+    });
+
+    // Si ya está casado al cargar (modo edición o precarga)
+    if (document.getElementById('estadoCivil')?.value == '2') {
+        document.getElementById('conyugeContainer').style.display = 'block';
+    }
+</script>

@@ -1,0 +1,155 @@
+﻿@page "{id:int}"
+@model ProyectoRH2025.Pages.Operadores.EditarBasicoModel
+@{
+    ViewData["Title"] = "Editar Datos Básicos";
+}
+
+<div class="container py-4">
+    <div class="card shadow-lg border-0">
+        <div class="card-header bg-warning text-dark">
+            <h4 class="mb-0">
+                <i class="fas fa-user-edit me-2"></i> Editar Datos Básicos - @Model.NombreCompleto
+            </h4>
+        </div>
+
+        <div class="card-body">
+            @if (!string.IsNullOrEmpty(Model.Mensaje))
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    @Model.Mensaje
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            <form method="post" enctype="multipart/form-data">
+                <input type="hidden" asp-for="Empleado.Id" />
+
+                <!-- Foto actual + cambio -->
+                <div class="row mb-5 justify-content-center">
+                    <div class="col-md-4 text-center">
+                        @if (!string.IsNullOrEmpty(Model.ImagenBase64Actual))
+                        {
+                            <img src="data:image/jpeg;base64,@Model.ImagenBase64Actual"
+                                 class="rounded-circle img-fluid shadow-lg"
+                                 style="width:220px; height:220px; object-fit:cover; border:5px solid #fff;" />
+                        }
+                        else
+                        {
+                            <div class="rounded-circle bg-light d-flex align-items-center justify-content-center shadow-lg"
+                                 style="width:220px; height:220px; font-size:6rem; color:#adb5bd;">
+                                <i class="fas fa-user"></i>
+                            </div>
+                        }
+                        <div class="mt-3">
+                            <small class="text-muted">Foto actual</small>
+                        </div>
+                    </div>
+
+                    <div class="col-md-8 align-self-center">
+                        <label class="form-label fw-bold">Cambiar fotografía (opcional, máx. 5MB)</label>
+                        <input type="file" class="form-control form-control-lg" asp-for="FotoNueva" accept="image/*" />
+                        <small class="text-muted">JPG, PNG — solo si deseas actualizarla</small>
+                    </div>
+                </div>
+
+                <hr class="my-4" />
+
+                <!-- Campos básicos -->
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold required">Nombres</label>
+                        <input asp-for="Empleado.Names" class="form-control" required />
+                        <div class="invalid-feedback">Campo obligatorio</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold required">Apellido Paterno</label>
+                        <input asp-for="Empleado.Apellido" class="form-control" required />
+                        <div class="invalid-feedback">Campo obligatorio</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Apellido Materno</label>
+                        <input asp-for="Empleado.Apellido2" class="form-control" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold required">Correo electrónico</label>
+                        <input asp-for="Empleado.Email" class="form-control" type="email" required />
+                        <div class="invalid-feedback">Ingresa un email válido</div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold required">RFC</label>
+                        <input asp-for="Empleado.Rfc" class="form-control text-uppercase" required maxlength="13" />
+                        <div class="invalid-feedback">Campo obligatorio (13 caracteres)</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold required">CURP</label>
+                        <input asp-for="Empleado.Curp" class="form-control text-uppercase" required maxlength="18" />
+                        <div class="invalid-feedback">Campo obligatorio (18 caracteres)</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold required">NSS</label>
+                        <input asp-for="Empleado.NumSSocial" class="form-control" required />
+                        <div class="invalid-feedback">Campo obligatorio</div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Teléfono</label>
+                        <input asp-for="Empleado.Telefono" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Teléfono de emergencia</label>
+                        <input asp-for="Empleado.TelEmergencia" class="form-control" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold required">Fecha de nacimiento</label>
+                        <input asp-for="Empleado.Fnacimiento" class="form-control" type="date" required />
+                        <div class="invalid-feedback">Campo obligatorio</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold required">Empresa</label>
+                        <select asp-for="Empleado.CodClientes" class="form-select" required>
+                            <option value="">Seleccione...</option>
+                            <option value="1" selected="@(Model.Empleado.CodClientes == "1")">STIL</option>
+                            <option value="2" selected="@(Model.Empleado.CodClientes == "2")">AKNA</option>
+                        </select>
+                        <div class="invalid-feedback">Selecciona una empresa</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold required">Puesto</label>
+                        <select asp-for="PuestoNombre" class="form-select" required>
+                            <option value="">Seleccione...</option>
+                            @foreach (var puesto in Model.Puestos)
+                            {
+                                <option value="@puesto.Puesto"
+                                        selected="@(puesto.Puesto?.Trim() == Model.PuestoNombre?.Trim())">
+                                    @puesto.Puesto
+                                </option>
+                            }
+                        </select>
+                        <div class="invalid-feedback">Selecciona un puesto</div>
+                    </div>
+                </div>
+
+                <hr class="my-4" />
+
+                <div class="d-flex justify-content-between mt-5 pt-4 border-top">
+                    <a href="/Operadores/Detalles/@Model.Empleado.Id" class="btn btn-lg btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-lg btn-success">
+                        <i class="fas fa-save me-2"></i>Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

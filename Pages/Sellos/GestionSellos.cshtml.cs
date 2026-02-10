@@ -117,7 +117,7 @@ namespace ProyectoRH2025.Pages.Sellos
         }
 
         // ==========================================
-        // NUEVO: AGREGAR SELLO MANUAL
+        // NUEVO: AGREGAR SELLO MANUAL (CORREGIDO)
         // ==========================================
         public async Task<IActionResult> OnPostAgregarSelloManualAsync()
         {
@@ -136,6 +136,17 @@ namespace ProyectoRH2025.Pages.Sellos
                 return Page();
             }
 
+            // ✅ Obtener datos de sesión PRIMERO y validar
+            var usuarioId = HttpContext.Session.GetInt32("idUsuario");
+            var usuarioNombre = HttpContext.Session.GetString("UsuarioNombre");
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            if (!usuarioId.HasValue)
+            {
+                MensajeError = "Sesión expirada. Por favor inicia sesión nuevamente.";
+                return RedirectToPage("/Login");
+            }
+
             try
             {
                 var nuevoSello = new TblSellos
@@ -144,18 +155,15 @@ namespace ProyectoRH2025.Pages.Sellos
                     Status = 1,  // Disponible
                     Fentrega = FechaEntregaManual ?? DateTime.Now,
                     Recibio = string.IsNullOrWhiteSpace(RecibioManual) ? null : RecibioManual.Trim(),
-                    Alta = HttpContext.Session.GetInt32("idUsuario"),
+                    Alta = usuarioId.Value, // ✅ Usar .Value para obtener el int
                     SupervisorId = null,
                     FechaAsignacion = null
                 };
 
                 _context.TblSellos.Add(nuevoSello);
+                await _context.SaveChangesAsync(); // ✅ Guardar PRIMERO para obtener el ID del sello
 
-                // Auditoría
-                var usuarioId = HttpContext.Session.GetInt32("idUsuario");
-                var usuarioNombre = HttpContext.Session.GetString("UsuarioNombre");
-                var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
-
+                // ✅ LUEGO registrar auditoría (el sello ya tiene ID)
                 await _auditoriaService.RegistrarImportacion(
                     nuevoSello,
                     usuarioId,
@@ -164,14 +172,29 @@ namespace ProyectoRH2025.Pages.Sellos
                     "Alta manual individual vía interfaz web"
                 );
 
-                await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync(); // Guardar la auditoría
 
-                MensajeExito = $"Sello {NumeroSello} agregado correctamente como disponible.";
+                MensajeExito = $"✅ Sello {NumeroSello} agregado correctamente como disponible.";
                 return RedirectToPage();
+            }
+            catch (DbUpdateException dbEx)
+            {
+                // Error específico de base de datos
+                var innerMessage = dbEx.InnerException?.Message ?? dbEx.Message;
+                MensajeError = $"Error de base de datos al agregar el sello: {innerMessage}";
+                await CargarDatosIniciales();
+                return Page();
             }
             catch (Exception ex)
             {
                 MensajeError = $"Error al agregar el sello: {ex.Message}";
+
+                // Log adicional para debugging
+                if (ex.InnerException != null)
+                {
+                    MensajeError += $" | Detalle: {ex.InnerException.Message}";
+                }
+
                 await CargarDatosIniciales();
                 return Page();
             }

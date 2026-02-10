@@ -17,50 +17,17 @@ namespace ProyectoRH2025.Services
         Task<bool> ReplaceFileAsync(string folderPath, string fileName, byte[] newContent);
         Task<bool> DeleteFileAsync(string folderPath, string fileName);
 
-        // ========== NUEVOS MÉTODOS PARA CARTELERA DIGITAL ==========
+        // ✅ NUEVO: Verificar si un archivo existe en SharePoint
+        Task<bool> FileExistsAsync(string folderPath, string fileName);
 
-        /// <summary>
-        /// Sube un archivo a la carpeta Activos de Cartelera Digital en SharePoint
-        /// </summary>
-        /// <param name="fileStream">Stream del archivo a subir</param>
-        /// <param name="fileName">Nombre del archivo</param>
-        /// <param name="contentType">Tipo MIME del archivo</param>
-        /// <returns>URL del archivo en SharePoint</returns>
+        // ========== MÉTODOS PARA CARTELERA DIGITAL ==========
         Task<string> UploadCarteleraFileAsync(Stream fileStream, string fileName, string contentType);
-
-        /// <summary>
-        /// Obtiene la lista de archivos activos en la Cartelera Digital
-        /// </summary>
-        /// <returns>Lista de archivos con su información</returns>
         Task<List<CarteleraFileInfo>> GetCarteleraActivosAsync();
-
-        /// <summary>
-        /// Mueve un archivo de la carpeta Activos a la carpeta Archivo
-        /// </summary>
-        /// <param name="fileName">Nombre del archivo a archivar</param>
-        /// <returns>True si se archivó correctamente</returns>
         Task<bool> ArchivarCarteleraItemAsync(string fileName);
-
-        /// <summary>
-        /// Elimina un archivo de SharePoint (de Activos o Archivo)
-        /// </summary>
-        /// <param name="fileName">Nombre del archivo a eliminar</param>
-        /// <param name="isArchived">True si el archivo está en la carpeta Archivo, False si está en Activos</param>
-        /// <returns>True si se eliminó correctamente</returns>
         Task<bool> DeleteCarteleraFileAsync(string fileName, bool isArchived = false);
-
-        /// <summary>
-        /// Obtiene la URL de descarga directa de un archivo en SharePoint
-        /// </summary>
-        /// <param name="fileName">Nombre del archivo</param>
-        /// <param name="isArchived">True si el archivo está en la carpeta Archivo</param>
-        /// <returns>URL de descarga directa</returns>
         Task<string> GetCarteleraFileDownloadUrlAsync(string fileName, bool isArchived = false);
     }
 
-    /// <summary>
-    /// Clase auxiliar para retornar información de archivos de Cartelera Digital
-    /// </summary>
     public class CarteleraFileInfo
     {
         public string FileName { get; set; }

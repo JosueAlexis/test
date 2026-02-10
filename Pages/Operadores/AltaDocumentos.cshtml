@@ -1,0 +1,316 @@
+﻿@page "/Operadores/AltaDocumentos/{id:int}"
+@model ProyectoRH2025.Pages.Operadores.AltaDocumentosModel
+
+@{
+    ViewData["Title"] = "Documentos del Operador";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Documentos de: <strong>@Model.NombreEmpleado</strong></h3>
+        @if (Model.EsEdicion)
+        {
+            <a asp-page="/Operadores/Detalles" asp-route-id="@Model.IdEmpleado" class="btn btn-secondary">← Volver a Detalles</a>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.Mensaje))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @Model.Mensaje
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <form method="post">
+        <input type="hidden" asp-for="EsEdicion" />
+        <input type="hidden" asp-for="IdEmpleado" />
+
+        <!-- 1. LICENCIA -->
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">1. Licencia (GENERAL)</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Número de Licencia</label>
+                        <input asp-for="Documentos.NumLicencia" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Vigencia de la Licencia</label>
+                        <input type="date" asp-for="Documentos.VigenciaLicencia" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Antigüedad (años)</label>
+                        <input type="number" asp-for="Documentos.AnosAntiguedadLicencia" class="form-control" min="0" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Categoría</label>
+                        <input asp-for="Documentos.CategoriaLicencia" class="form-control" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. APTO MÉDICO -->
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">2. Apto Médico</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Número del expediente médico</label>
+                        <input asp-for="Documentos.NumExpedienteMedico" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Vigente Apto desde</label>
+                        <input type="date" asp-for="Documentos.VigenteAptoDesde" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Vigente Apto hasta</label>
+                        <input type="date" asp-for="Documentos.VigenteAptoHasta" class="form-control" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. ANTECEDENTES NO PENALES -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">3. Carta de Antecedentes No Penales</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Fecha de última carta</label>
+                        <input type="date" asp-for="Documentos.FechaAntecedentesNoPenales" class="form-control" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. ESTUDIO SOCIOECONÓMICO -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">4. Estudio Socioeconómico / Verificación de Domicilio</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Fecha de realización</label>
+                        <input type="date" asp-for="Documentos.FechaEstudioSocioeconomico" class="form-control" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. EVALUACIÓN DE MANEJO -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">5. Evaluación de Operadores (Prueba de Manejo)</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Fecha de realización</label>
+                        <input type="date" asp-for="Documentos.FechaEvaluacionManejo" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Propósito</label>
+                        <input asp-for="Documentos.PropositoEvaluacion" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Documentos.NotaEvaluacion" class="form-label"></label>
+                        <input asp-for="Documentos.NotaEvaluacion"
+                               type="number"
+                               step="0.01"
+                               min="0"
+                               max="100"
+                               class="form-control"
+                               placeholder="ej: 85.50" />
+                        <span asp-validation-for="Documentos.NotaEvaluacion" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Evaluador</label>
+                        <input asp-for="Documentos.NombreEvaluador" class="form-control" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Comentarios</label>
+                        <textarea asp-for="Documentos.ComentarioEvaluacion" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. PÓLIZA DE SEGURO DE VIDA -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">6. Póliza de Seguro de Vida</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Fecha de llenado</label>
+                        <input type="date" asp-for="Documentos.FechaPolizaVida" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Nombre del beneficiario</label>
+                        <input asp-for="Documentos.NombreBeneficiarioVida" class="form-control" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Parentesco</label>
+                        <input asp-for="Documentos.ParentescoVida" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">% Asignado</label>
+                        <input type="number" step="0.01" asp-for="Documentos.PorcentajeVida" class="form-control" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Dirección del beneficiario</label>
+                        <input asp-for="Documentos.DireccionBeneficiarioVida" class="form-control" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. DATOS BANORTE -->
+        <div class="card mb-4">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">7. Datos de Pago - Banorte</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Número de cuenta</label>
+                        <input asp-for="Documentos.NumCuentaBanorte" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">CLABE interbancaria</label>
+                        <input asp-for="Documentos.ClaveInterbancariaBanorte" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Número de tarjeta</label>
+                        <input asp-for="Documentos.NumTarjetaBanorte" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Nombre beneficiario</label>
+                        <input asp-for="Documentos.NombreBeneficiarioBanorte" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Parentesco</label>
+                        <input asp-for="Documentos.ParentescoBanorte" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">% Asignado</label>
+                        <input type="number" step="0.01" asp-for="Documentos.PorcentajeBanorte" class="form-control" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Dirección del beneficiario</label>
+                        <input asp-for="Documentos.DireccionBeneficiarioBanorte" class="form-control" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ✅ CAMPOS AKNA: Solo para codClientes=2 AND TipEmpleado=1 AND Puesto=2 -->
+        @if (Model.MostrarCamposAkna)
+        {
+            <!-- 8. VISA LASER -->
+            <div class="card mb-4">
+                <div class="card-header text-white" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);">
+                    <h5 class="mb-0">
+                        <i class="fas fa-passport me-2"></i>8. Visa Laser
+                        <span class="badge bg-warning text-dark ms-2 fs-6">Solo AKNA</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Número de Visa</label>
+                            <input asp-for="Documentos.VisaLaserNumero" class="form-control" placeholder="ej: B123456789" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Vigencia</label>
+                            <input type="date" asp-for="Documentos.VisaLaserVigencia" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 9. FAST -->
+            <div class="card mb-4">
+                <div class="card-header text-white" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%);">
+                    <h5 class="mb-0">
+                        <i class="fas fa-truck me-2"></i>9. FAST (Free and Secure Trade)
+                        <span class="badge bg-warning text-dark ms-2 fs-6">Solo AKNA</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Número de Identificación</label>
+                            <input asp-for="Documentos.FastNumero" class="form-control" placeholder="ej: FAST123456" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Vigencia</label>
+                            <input type="date" asp-for="Documentos.FastVigencia" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 10. GAFETE ANAM -->
+            <div class="card mb-4">
+                <div class="card-header text-white" style="background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%);">
+                    <h5 class="mb-0">
+                        <i class="fas fa-id-badge me-2"></i>10. Gafete ANAM
+                        <span class="badge bg-warning text-dark ms-2 fs-6">Solo AKNA</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Vigencia</label>
+                            <input type="date" asp-for="Documentos.GafeteANAMVigencia" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Número de Chip</label>
+                            <input asp-for="Documentos.GafeteANAMChip" class="form-control" placeholder="ej: 12345678" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Usuario ANAM</label>
+                            <input asp-for="Documentos.GafeteANAMUsuario" class="form-control" placeholder="ej: usuario.anam" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Correo Registrado</label>
+                            <input type="email" asp-for="Documentos.GafeteANAMCorreo" class="form-control" placeholder="usuario@ejemplo.com" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="text-end mt-4">
+            <button type="submit" class="btn btn-success btn-lg px-5">
+                @if (Model.EsEdicion)
+                {
+                    <text>Guardar cambios</text>
+                }
+                else
+                {
+                    <text>Guardar documentos y finalizar</text>
+                }
+            </button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('input[type="date"]').forEach(input => {
+            if (!input.value) input.value = '';
+        });
+    </script>
+}

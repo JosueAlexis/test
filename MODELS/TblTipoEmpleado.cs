@@ -13,7 +13,7 @@ namespace ProyectoRH2025.Models
         [StringLength(50)]
         public string TipEmpleado { get; set; } = string.Empty;
 
-        // Un tipo de empleado puede tener muchos puestos
+        // Colección de puestos que pertenecen a este tipo
         public virtual ICollection<PuestoEmpleado> Puestos { get; set; } = new List<PuestoEmpleado>();
     }
 }

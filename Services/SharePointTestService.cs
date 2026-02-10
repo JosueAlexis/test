@@ -1096,7 +1096,7 @@ namespace ProyectoRH2025.Services
             }
         }
 
-        private async Task<bool> FileExistsAsync(string folderPath, string fileName)
+        public async Task<bool> FileExistsAsync(string folderPath, string fileName)
         {
             try
             {
