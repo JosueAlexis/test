@@ -365,12 +365,9 @@
     }
 
     @@keyframes spin {
-        to
-
-    {
-        transform: rotate(360deg);
-    }
-
+        to {
+            transform: rotate(360deg);
+        }
     }
 
     .empty-state {
@@ -386,13 +383,11 @@
 </style>
 
 <div class="container-fluid py-4">
-    <!-- Header -->
     <div class="admin-header">
         <h1>📺 Cartelera Digital - Administración</h1>
         <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">Gestiona el contenido que se muestra en las pantallas</p>
     </div>
 
-    <!-- Estadísticas -->
     <div class="stats-container">
         <div class="stat-card">
             <div class="stat-value" id="totalItems">@Model.TotalItems</div>
@@ -408,7 +403,6 @@
         </div>
     </div>
 
-    <!-- Configuración Global -->
     <div class="config-section">
         <h2>⚙️ Configuración Global</h2>
         <form method="post" asp-page-handler="UpdateConfig">
@@ -427,15 +421,30 @@
                     </select>
                 </div>
             </div>
+
+            <div class="form-group" style="margin-top: 1.5rem;">
+                <label for="tickerText">Mensajes de la Barra Inferior (Ticker)</label>
+                <input type="text" class="form-control" id="tickerText" name="tickerText"
+                       value="@Model.TickerText" placeholder="Ej: 🟢 Bienvenidos | ⚠️ Aviso importante">
+                <small style="color: #666; margin-top: 0.5rem; display: block;">
+                    💡 <strong>Tip:</strong> Usa el símbolo <strong>|</strong> para separar diferentes mensajes en la TV.
+                </small>
+            </div>
+
             <button type="submit" class="btn btn-primary mt-3">
                 💾 Guardar Configuración
             </button>
         </form>
     </div>
 
-    <!-- Zona de Carga -->
     <div class="upload-section">
-        <h2>📤 Subir Nuevo Contenido</h2>
+        <h2>📥 Agregar Nuevo Contenido</h2>
+
+        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 2px solid #e0e0e0; padding-bottom: 0.5rem;">
+            <button type="button" class="btn" id="tabFile" style="background: var(--primary-gradient); color: white;" onclick="switchTab('file')">📁 Subir Archivo</button>
+            <button type="button" class="btn" id="tabLink" style="background: #e0e0e0; color: #333;" onclick="switchTab('link')">🌐 Cámara / Enlace Web</button>
+        </div>
+
         <form method="post" asp-page-handler="Upload" enctype="multipart/form-data" id="uploadForm">
             <div class="upload-zone" id="uploadZone">
                 <div class="upload-icon">📁</div>
@@ -469,9 +478,35 @@
                 ⬆️ Subir Archivo
             </button>
         </form>
+
+        <form method="post" asp-page-handler="AddLink" id="linkForm" style="display: none;">
+            <div class="form-group">
+                <label for="url">URL de la Cámara o Web (Debe empezar con https://)</label>
+                <input type="url" class="form-control" id="url" name="url" placeholder="Ej: https://puertocolombianl.mx/camaras" required>
+            </div>
+
+            <div class="form-group mt-3">
+                <label for="linkDescription">Descripción</label>
+                <input type="text" class="form-control" id="linkDescription" name="description" placeholder="Ej: Cámara C25 Puente Colombia">
+            </div>
+
+            <div class="config-grid mt-2">
+                <div class="form-group">
+                    <label for="linkDuration">Duración en pantalla (segundos)</label>
+                    <input type="number" class="form-control" id="linkDuration" name="duration" value="30" min="1" max="999">
+                </div>
+                <div class="form-group">
+                    <label for="linkCategory">Categoría</label>
+                    <input type="text" class="form-control" id="linkCategory" name="category" value="Cámaras">
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary mt-3">
+                ➕ Agregar Cámara
+            </button>
+        </form>
     </div>
 
-    <!-- Grid de Contenido -->
     <div class="config-section">
         <h2>🎬 Contenido de Cartelera</h2>
         <div class="content-grid" id="contentGrid">
@@ -480,7 +515,7 @@
                 <div class="empty-state" style="grid-column: 1 / -1;">
                     <div class="empty-state-icon">📭</div>
                     <h3>No hay contenido todavía</h3>
-                    <p>Sube tu primer archivo para comenzar</p>
+                    <p>Sube tu primer archivo o enlace para comenzar</p>
                 </div>
             }
             else
@@ -494,18 +529,25 @@
 
                         @if (item.ContentType == "image")
                         {
-                            <img src="@item.SharePointUrl" class="content-preview" alt="@item.FileName">
+                            <img src="/api/Cartelera/GetImage/@item.Id" class="content-preview" alt="@item.FileName">
                         }
                         else if (item.ContentType == "video")
                         {
-                            <video class="content-preview" muted>
-                                <source src="@item.SharePointUrl" type="@item.MimeType">
+                            <video class="content-preview" muted loop autoplay playsinline>
+                                <source src="/api/Cartelera/GetImage/@item.Id" type="@item.MimeType">
                             </video>
                         }
                         else if (item.ContentType == "pdf")
                         {
-                            <div class="content-preview" style="display: flex; align-items: center; justify-content: center; font-size: 4rem;">
+                            <div class="content-preview" style="display: flex; align-items: center; justify-content: center; font-size: 4rem; background: #e2e8f0; color: #4a5568;">
                                 📄
+                            </div>
+                        }
+                        else if (item.ContentType == "iframe")
+                        {
+                            <div class="content-preview" style="display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 3rem; background: #1a202c; color: #63b3ed;">
+                                🌐
+                                <span style="font-size: 1rem; margin-top: 0.5rem; color: white;">Cámara en vivo</span>
                             </div>
                         }
 
@@ -513,8 +555,12 @@
                             <div class="content-name" title="@item.FileName">@item.FileName</div>
                             <div class="content-meta">
                                 <span>⏱️ @item.DurationSeconds s</span>
-                                <span>📏 @((item.FileSize / 1024.0 / 1024.0).ToString("F2")) MB</span>
+                                @if (item.ContentType != "iframe")
+                                {
+                                    <span>📏 @((item.FileSize / 1024.0 / 1024.0).ToString("F2")) MB</span>
+                                }
                             </div>
+
                             @if (!string.IsNullOrEmpty(item.Description))
                             {
                                 <p style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">@item.Description</p>
@@ -544,13 +590,11 @@
         </div>
     </div>
 
-    <!-- Link Flotante a TV Display -->
     <a href="/Cartelera/Display" target="_blank" class="floating-tv-link">
         📺 Abrir Vista TV
     </a>
 </div>
 
-<!-- Modal para Editar -->
 <div id="editModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
@@ -567,7 +611,7 @@
 
             <div class="form-group">
                 <label for="editDuration">Duración (segundos)</label>
-                <input type="number" class="form-control" id="editDuration" name="duration" min="1" max="300">
+                <input type="number" class="form-control" id="editDuration" name="duration" min="1" max="999">
             </div>
 
             <div class="form-group">
@@ -605,6 +649,30 @@
 
 @section Scripts {
     <script>
+        // Logica de pestañas para la subida
+        function switchTab(tab) {
+            const uploadForm = document.getElementById('uploadForm');
+            const linkForm = document.getElementById('linkForm');
+            const tabFile = document.getElementById('tabFile');
+            const tabLink = document.getElementById('tabLink');
+
+            if (tab === 'file') {
+                uploadForm.style.display = 'block';
+                linkForm.style.display = 'none';
+                tabFile.style.background = 'var(--primary-gradient)';
+                tabFile.style.color = 'white';
+                tabLink.style.background = '#e0e0e0';
+                tabLink.style.color = '#333';
+            } else {
+                uploadForm.style.display = 'none';
+                linkForm.style.display = 'block';
+                tabLink.style.background = 'var(--primary-gradient)';
+                tabLink.style.color = 'white';
+                tabFile.style.background = '#e0e0e0';
+                tabFile.style.color = '#333';
+            }
+        }
+
         // Drag & Drop Upload
         const uploadZone = document.getElementById('uploadZone');
         const fileInput = document.getElementById('fileInput');
@@ -638,7 +706,6 @@
             }
         });
 
-        // Toggle Active/Inactive
         async function toggleActive(id, currentState) {
             try {
                 const response = await fetch(`/Cartelera/Admin?handler=ToggleActive&id=${id}`, {
@@ -647,7 +714,6 @@
                         'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
                     }
                 });
-
                 if (response.ok) {
                     location.reload();
                 } else {
@@ -659,12 +725,7 @@
             }
         }
 
-        // Edit Item
         function editItem(id) {
-            // Cargar datos del item
-            const card = document.querySelector(`[data-id="${id}"]`);
-            // Aquí cargarías los datos reales desde el servidor
-
             document.getElementById('editId').value = id;
             document.getElementById('editModal').classList.add('show');
         }
@@ -673,10 +734,8 @@
             document.getElementById('editModal').classList.remove('show');
         }
 
-        // Delete Item
         async function deleteItem(id, fileName) {
-            if (!confirm(`¿Eliminar "${fileName}"?`)) return;
-
+            if (!confirm(`¿Eliminar contenido?`)) return;
             try {
                 const response = await fetch(`/Cartelera/Admin?handler=Delete&id=${id}`, {
                     method: 'POST',
@@ -684,7 +743,6 @@
                         'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
                     }
                 });
-
                 if (response.ok) {
                     location.reload();
                 } else {
@@ -696,7 +754,6 @@
             }
         }
 
-        // Form Submit Animation
         document.getElementById('uploadForm').addEventListener('submit', function() {
             const btn = document.getElementById('uploadBtn');
             btn.innerHTML = '<span class="loading"></span> Subiendo...';

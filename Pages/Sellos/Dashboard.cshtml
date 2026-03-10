@@ -303,6 +303,7 @@
                         <th>Supervisor</th>
                         <th>Operador</th>
                         <th>Unidad</th>
+                        <th>QR</th>
                         <th>Última Actualización</th>
                         <th>Acciones</th>
                     </tr>
@@ -361,6 +362,20 @@
                                 @if (sello.NumUnidad.HasValue)
                                 {
                                     <span class="badge bg-secondary">@sello.NumUnidad</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                @if (sello.Status == 3 && !string.IsNullOrEmpty(sello.QRCode))
+                                {
+                                    <button class="btn btn-sm btn-outline-info"
+                                            onclick="verQRSello('@sello.QRCode', '@sello.NumeroSello')"
+                                            title="Ver QR activo">
+                                        <i class="fas fa-qrcode"></i> Ver QR
+                                    </button>
                                 }
                                 else
                                 {
@@ -621,6 +636,16 @@
                                             <br/><small class="text-muted">Asignado: ${a.fentrega ? new Date(a.fentrega).toLocaleString('es-MX') : '-'}</small>
                                             ${a.fechaEntrega ? `<br/><small class="text-success">Entregado: ${new Date(a.fechaEntrega).toLocaleString('es-MX')}</small>` : ''}
                                             ${a.fechaDevolucion ? `<br/><small class="text-info">Devuelto: ${new Date(a.fechaDevolucion).toLocaleString('es-MX')}</small>` : ''}
+                                            ${a.usuarioDevolucionNombre ? `
+                                                <br/><small class="text-secondary">
+                                                    <i class="fas fa-user-check"></i> Devolvió: <strong>${a.usuarioDevolucionNombre}</strong>
+                                                    ${a.fechaDevolucionRegistro ? `<span class="ms-1">(${new Date(a.fechaDevolucionRegistro).toLocaleString('es-MX')})</span>` : ''}
+                                                </small>` : ''}
+                                            ${a.usuarioEvidenciaNombre ? `
+                                                <br/><small class="text-secondary">
+                                                    <i class="fas fa-camera"></i> Evidencia: <strong>${a.usuarioEvidenciaNombre}</strong>
+                                                    ${a.fechaEvidenciaRegistro ? `<span class="ms-1">(${new Date(a.fechaEvidenciaRegistro).toLocaleString('es-MX')})</span>` : ''}
+                                                </small>` : ''}
                                             ${a.qR_Code ? `<br/><span class="badge bg-primary mt-1"><i class="fas fa-qrcode"></i> QR Generado</span>` : ''}
                                             ${a.statusEvidencia ? `<br/><span class="badge bg-warning mt-1">${a.statusEvidencia}</span>` : ''}
                                         </div>
@@ -682,6 +707,34 @@
             }
 
             new bootstrap.Modal(document.getElementById('modalImagenCompleta')).show();
+        }
+
+        // ==========================================
+        // VER QR DEL SELLO
+        // ==========================================
+        function verQRSello(qrCode, numeroSello) {
+            // Construir URL de Google Charts para renderizar el QR
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrCode)}`;
+
+            const html = `
+                <div class="text-center">
+                    <p class="text-muted mb-2"><strong>Código:</strong> <code>${qrCode}</code></p>
+                    <img src="${qrUrl}" alt="QR Sello ${numeroSello}" class="img-fluid border rounded p-2" style="max-width:300px;" />
+                    <div class="mt-3">
+                        <a href="${qrUrl}" download="QR_Sello_${numeroSello}.png" class="btn btn-sm btn-primary">
+                            <i class="fas fa-download"></i> Descargar QR
+                        </a>
+                    </div>
+                </div>
+            `;
+
+            Swal.fire({
+                title: `<i class="fas fa-qrcode me-2"></i>QR - Sello ${numeroSello}`,
+                html: html,
+                showConfirmButton: false,
+                showCloseButton: true,
+                width: 420
+            });
         }
 
         // ==========================================

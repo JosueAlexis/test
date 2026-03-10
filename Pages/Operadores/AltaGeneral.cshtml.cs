@@ -86,6 +86,9 @@ namespace ProyectoRH2025.Pages.Operadores
                 return NotFound();
             }
 
+            // ← Detectar modo edición desde el formulario
+            EsEdicion = Request.Form["esEdicion"] == "true" || Request.Query["edit"] == "true";
+
             try
             {
                 var empleadoPost = Request.Form;
@@ -138,44 +141,76 @@ namespace ProyectoRH2025.Pages.Operadores
                 // Marcar como modificado
                 _context.Entry(Empleado).State = EntityState.Modified;
 
-                // Procesar referencias personales
+                // 📌 PROCESAR REFERENCIAS PERSONALES
+                Console.WriteLine($"[DEBUG REFERENCIAS] Total referencias recibidas: {Referencias?.Count ?? 0}");
+
+                if (Referencias != null)
+                {
+                    for (int i = 0; i < Referencias.Count; i++)
+                    {
+                        var r = Referencias[i];
+                        Console.WriteLine($"[DEBUG REFERENCIAS] Ref[{i}]: Id={r.Id}, Nombre='{r.Nombre}', Relacion='{r.Relacion}', Tel='{r.Telefono}'");
+                    }
+                }
+
+                // Primero, marcar todas las referencias existentes como inactivas
+                var refExistentesCount = Empleado.ReferenciasPersonales.Count(r => r.Status);
+                Console.WriteLine($"[DEBUG REFERENCIAS] Referencias existentes activas en BD: {refExistentesCount}");
+
                 foreach (var refExistente in Empleado.ReferenciasPersonales.Where(r => r.Status))
                 {
+                    Console.WriteLine($"[DEBUG REFERENCIAS] Desactivando referencia ID={refExistente.Id}");
                     refExistente.Status = false;
                 }
 
-                if (Referencias != null && Referencias.Any())
+                // Procesar las referencias del formulario
+                var referenciasConNombre = Referencias?.Where(r => !string.IsNullOrWhiteSpace(r.Nombre)).ToList();
+                Console.WriteLine($"[DEBUG REFERENCIAS] Referencias con nombre válido: {referenciasConNombre?.Count ?? 0}");
+
+                if (referenciasConNombre != null && referenciasConNombre.Any())
                 {
-                    foreach (var refTemp in Referencias.Where(r => !string.IsNullOrWhiteSpace(r.Nombre)))
+                    foreach (var refTemp in referenciasConNombre)
                     {
                         if (refTemp.Id > 0)
                         {
+                            // Actualizar referencia existente
                             var refExistente = Empleado.ReferenciasPersonales.FirstOrDefault(r => r.Id == refTemp.Id);
                             if (refExistente != null)
                             {
-                                refExistente.NombreReferencia = refTemp.Nombre;
-                                refExistente.RelacionReferencia = refTemp.Relacion;
-                                refExistente.TelefonoReferencia = refTemp.Telefono;
+                                Console.WriteLine($"[DEBUG REFERENCIAS] ✓ Actualizando referencia existente ID={refTemp.Id}");
+                                refExistente.NombreReferencia = refTemp.Nombre?.Trim();
+                                refExistente.RelacionReferencia = refTemp.Relacion?.Trim();
+                                refExistente.TelefonoReferencia = refTemp.Telefono?.Trim();
                                 refExistente.Status = true;
+                            }
+                            else
+                            {
+                                Console.WriteLine($"[DEBUG REFERENCIAS] ✗ No se encontró referencia ID={refTemp.Id}");
                             }
                         }
                         else
                         {
+                            // Crear nueva referencia
+                            Console.WriteLine($"[DEBUG REFERENCIAS] ✓ Creando nueva referencia: '{refTemp.Nombre}'");
                             _context.ReferenciasPersonalesEmpleados.Add(new ReferenciaPersEmpleado
                             {
                                 IdEmpleado = Empleado.Id,
-                                NombreReferencia = refTemp.Nombre,
-                                RelacionReferencia = refTemp.Relacion,
-                                TelefonoReferencia = refTemp.Telefono,
+                                NombreReferencia = refTemp.Nombre?.Trim(),
+                                RelacionReferencia = refTemp.Relacion?.Trim(),
+                                TelefonoReferencia = refTemp.Telefono?.Trim(),
                                 Status = true
                             });
                         }
                     }
                 }
+                else
+                {
+                    Console.WriteLine($"[DEBUG REFERENCIAS] ✗ No hay referencias válidas para procesar");
+                }
 
                 await _context.SaveChangesAsync();
 
-                // ← NUEVO: Lógica diferenciada para edición vs wizard
+                // ← Lógica diferenciada para edición vs wizard
                 if (EsEdicion)
                 {
                     TempData["Mensaje"] = $"✅ Información general de {Empleado.Names} {Empleado.Apellido} actualizada correctamente.";

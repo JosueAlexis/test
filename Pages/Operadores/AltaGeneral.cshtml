@@ -255,16 +255,16 @@
                             var refActual = i < Model.Referencias.Count ? Model.Referencias[i] : new ReferenciaTemp();
                             <div class="row mb-2 referencia-row">
                                 <div class="col-md-4">
-                                    <input type="text" class="form-control" name="Referencias[@i].NombreReferencia"
+                                    <input type="text" class="form-control" name="Referencias[@i].Nombre"
                                            value="@refActual.Nombre" placeholder="Nombre completo" />
                                     <input type="hidden" name="Referencias[@i].Id" value="@refActual.Id" />
                                 </div>
                                 <div class="col-md-3">
-                                    <input type="text" class="form-control" name="Referencias[@i].RelacionReferencia"
+                                    <input type="text" class="form-control" name="Referencias[@i].Relacion"
                                            value="@refActual.Relacion" placeholder="Relación (ej: Amigo, Familiar)" />
                                 </div>
                                 <div class="col-md-3">
-                                    <input type="tel" class="form-control" name="Referencias[@i].TelefonoReferencia"
+                                    <input type="tel" class="form-control" name="Referencias[@i].Telefono"
                                            value="@refActual.Telefono" placeholder="Teléfono" />
                                 </div>
                                 <div class="col-md-2">

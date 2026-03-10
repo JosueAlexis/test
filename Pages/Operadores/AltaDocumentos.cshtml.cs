@@ -4,8 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ProyectoRH2025.Data;
 using ProyectoRH2025.Models;
 using System;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -31,10 +30,15 @@ namespace ProyectoRH2025.Pages.Operadores
         [BindProperty]
         public DocumentosEmpleadoViewModel Documentos { get; set; } = new DocumentosEmpleadoViewModel();
 
+        // 🆕 Beneficiarios
+        [BindProperty]
+        public List<BeneficiarioTemp> BeneficiariosPoliza { get; set; } = new List<BeneficiarioTemp>();
+
+        [BindProperty]
+        public List<BeneficiarioTemp> BeneficiariosBanorte { get; set; } = new List<BeneficiarioTemp>();
+
         public string Mensaje { get; set; }
 
-        // ✅ Propiedad calculada: indica si mostrar campos AKNA
-        // codClientes=2 AND TipEmpleado=1 AND Puesto=2
         public bool MostrarCamposAkna { get; set; }
 
         public async Task<IActionResult> OnGetAsync(int? id)
@@ -51,12 +55,10 @@ namespace ProyectoRH2025.Pages.Operadores
             NombreEmpleado = $"{empleado.Names} {empleado.Apellido}".Trim();
             EsEdicion = Request.Query["edit"] == "true";
 
-            // ✅ Calcular si debe mostrar campos AKNA
             MostrarCamposAkna = empleado.CodClientes == "2"
                              && empleado.TipEmpleado == 1
                              && empleado.Puesto == 2;
 
-            // Cargar TODOS los documentos del empleado
             var docs = await _context.tblDocumentosEmpleado
                 .Where(d => d.idEmpleado == id.Value)
                 .ToListAsync();
@@ -111,10 +113,26 @@ namespace ProyectoRH2025.Pages.Operadores
             if (poliza != null)
             {
                 Documentos.FechaPolizaVida = poliza.FechaPolizaVida;
-                Documentos.NombreBeneficiarioVida = poliza.NombreBeneficiarioVida;
-                Documentos.ParentescoVida = poliza.ParentescoVida;
-                Documentos.PorcentajeVida = poliza.PorcentajeVida;
-                Documentos.DireccionBeneficiarioVida = poliza.DireccionBeneficiarioVida;
+
+                // 🆕 Cargar beneficiarios de póliza
+                BeneficiariosPoliza = await _context.Beneficiarios
+                    .Where(b => b.IdDocumento == poliza.id && b.TipoBeneficiario == "PolizaVida" && b.Status)
+                    .OrderBy(b => b.Orden)
+                    .Select(b => new BeneficiarioTemp
+                    {
+                        Id = b.Id,
+                        Nombre = b.Nombre,
+                        Parentesco = b.Parentesco,
+                        Porcentaje = b.Porcentaje,
+                        Direccion = b.Direccion
+                    })
+                    .ToListAsync();
+            }
+
+            // Asegurar mínimo 3 filas para captura
+            while (BeneficiariosPoliza.Count < 3)
+            {
+                BeneficiariosPoliza.Add(new BeneficiarioTemp());
             }
 
             // 9 - Datos Banorte
@@ -124,14 +142,29 @@ namespace ProyectoRH2025.Pages.Operadores
                 Documentos.NumCuentaBanorte = banorte.NumCuentaBanorte;
                 Documentos.ClaveInterbancariaBanorte = banorte.ClaveInterbancariaBanorte;
                 Documentos.NumTarjetaBanorte = banorte.NumTarjetaBanorte;
-                Documentos.NombreBeneficiarioBanorte = banorte.NombreBeneficiarioBanorte;
-                Documentos.ParentescoBanorte = banorte.ParentescoBanorte;
-                Documentos.PorcentajeBanorte = banorte.PorcentajeBanorte;
-                Documentos.DireccionBeneficiarioBanorte = banorte.DireccionBeneficiarioBanorte;
+
+                // 🆕 Cargar beneficiarios de Banorte
+                BeneficiariosBanorte = await _context.Beneficiarios
+                    .Where(b => b.IdDocumento == banorte.id && b.TipoBeneficiario == "Banorte" && b.Status)
+                    .OrderBy(b => b.Orden)
+                    .Select(b => new BeneficiarioTemp
+                    {
+                        Id = b.Id,
+                        Nombre = b.Nombre,
+                        Parentesco = b.Parentesco,
+                        Porcentaje = b.Porcentaje,
+                        Direccion = b.Direccion
+                    })
+                    .ToListAsync();
             }
 
-            // ✅ Cargar campos AKNA desde cualquier registro existente del empleado
-            // (se guardan en el registro de Licencia por simplicidad, idTipDocumento=1)
+            // Asegurar mínimo 3 filas para captura
+            while (BeneficiariosBanorte.Count < 3)
+            {
+                BeneficiariosBanorte.Add(new BeneficiarioTemp());
+            }
+
+            // Campos AKNA
             if (MostrarCamposAkna)
             {
                 var docAkna = docs.FirstOrDefault(d => d.idTipDocumento == 1) ?? docs.FirstOrDefault();
@@ -159,17 +192,47 @@ namespace ProyectoRH2025.Pages.Operadores
 
             if (empleado == null) return NotFound();
 
-            // ✅ Recalcular en POST para que MostrarCamposAkna esté disponible en caso de error
             MostrarCamposAkna = empleado.CodClientes == "2"
                              && empleado.TipEmpleado == 1
                              && empleado.Puesto == 2;
 
             NombreEmpleado = $"{empleado.Names} {empleado.Apellido}".Trim();
 
+            // 🆕 Validar beneficiarios (Mínimo 1, Máximo 3)
+            var beneficiariosPolizaValidos = BeneficiariosPoliza?.Where(b => !string.IsNullOrWhiteSpace(b.Nombre)).ToList() ?? new List<BeneficiarioTemp>();
+            var beneficiariosBanorteValidos = BeneficiariosBanorte?.Where(b => !string.IsNullOrWhiteSpace(b.Nombre)).ToList() ?? new List<BeneficiarioTemp>();
+
+            if (beneficiariosPolizaValidos.Count < 1 || beneficiariosPolizaValidos.Count > 3)
+            {
+                Mensaje = "❌ Debe ingresar entre 1 y 3 beneficiarios para la Póliza de Seguro de Vida.";
+                return Page();
+            }
+
+            if (beneficiariosBanorteValidos.Count < 1 || beneficiariosBanorteValidos.Count > 3)
+            {
+                Mensaje = "❌ Debe ingresar entre 1 y 3 beneficiarios para Datos Banorte.";
+                return Page();
+            }
+
+            // Validar que los porcentajes sumen 100%
+            var totalPoliza = beneficiariosPolizaValidos.Sum(b => b.Porcentaje ?? 0);
+            if (Math.Abs(totalPoliza - 100) > 0.01m)
+            {
+                Mensaje = $"❌ Los porcentajes de beneficiarios de Póliza deben sumar 100%. Suma actual: {totalPoliza}%";
+                return Page();
+            }
+
+            var totalBanorte = beneficiariosBanorteValidos.Sum(b => b.Porcentaje ?? 0);
+            if (Math.Abs(totalBanorte - 100) > 0.01m)
+            {
+                Mensaje = $"❌ Los porcentajes de beneficiarios de Banorte deben sumar 100%. Suma actual: {totalBanorte}%";
+                return Page();
+            }
+
             try
             {
                 // 1 - LICENCIA
-                await GuardarOActualizarDocumento(
+                var docLicenciaId = await GuardarOActualizarDocumento(
                     idTipoDoc: 1,
                     actualizarCampos: (doc) =>
                     {
@@ -181,7 +244,6 @@ namespace ProyectoRH2025.Pages.Operadores
                             ? null : Documentos.CategoriaLicencia.Trim();
                         doc.Fechaantiguedad = Documentos.FechaAntiguedadLicencia;
 
-                        // ✅ Guardar campos AKNA en el mismo registro de Licencia
                         if (MostrarCamposAkna)
                         {
                             doc.VisaLaserNumero = string.IsNullOrWhiteSpace(Documentos.VisaLaserNumero)
@@ -248,23 +310,19 @@ namespace ProyectoRH2025.Pages.Operadores
                 );
 
                 // 8 - PÓLIZA SEGURO VIDA
-                await GuardarOActualizarDocumento(
+                var docPolizaId = await GuardarOActualizarDocumento(
                     idTipoDoc: 8,
                     actualizarCampos: (doc) =>
                     {
                         doc.FechaPolizaVida = Documentos.FechaPolizaVida;
-                        doc.NombreBeneficiarioVida = string.IsNullOrWhiteSpace(Documentos.NombreBeneficiarioVida)
-                            ? null : Documentos.NombreBeneficiarioVida.Trim();
-                        doc.ParentescoVida = string.IsNullOrWhiteSpace(Documentos.ParentescoVida)
-                            ? null : Documentos.ParentescoVida.Trim();
-                        doc.PorcentajeVida = Documentos.PorcentajeVida;
-                        doc.DireccionBeneficiarioVida = string.IsNullOrWhiteSpace(Documentos.DireccionBeneficiarioVida)
-                            ? null : Documentos.DireccionBeneficiarioVida.Trim();
                     }
                 );
 
+                // 🆕 Guardar beneficiarios de Póliza
+                await GuardarBeneficiarios(docPolizaId, "PolizaVida", beneficiariosPolizaValidos);
+
                 // 9 - DATOS BANORTE
-                await GuardarOActualizarDocumento(
+                var docBanorteId = await GuardarOActualizarDocumento(
                     idTipoDoc: 9,
                     actualizarCampos: (doc) =>
                     {
@@ -274,27 +332,23 @@ namespace ProyectoRH2025.Pages.Operadores
                             ? null : Documentos.ClaveInterbancariaBanorte.Trim();
                         doc.NumTarjetaBanorte = string.IsNullOrWhiteSpace(Documentos.NumTarjetaBanorte)
                             ? null : Documentos.NumTarjetaBanorte.Trim();
-                        doc.NombreBeneficiarioBanorte = string.IsNullOrWhiteSpace(Documentos.NombreBeneficiarioBanorte)
-                            ? null : Documentos.NombreBeneficiarioBanorte.Trim();
-                        doc.ParentescoBanorte = string.IsNullOrWhiteSpace(Documentos.ParentescoBanorte)
-                            ? null : Documentos.ParentescoBanorte.Trim();
-                        doc.PorcentajeBanorte = Documentos.PorcentajeBanorte;
-                        doc.DireccionBeneficiarioBanorte = string.IsNullOrWhiteSpace(Documentos.DireccionBeneficiarioBanorte)
-                            ? null : Documentos.DireccionBeneficiarioBanorte.Trim();
                     }
                 );
+
+                // 🆕 Guardar beneficiarios de Banorte
+                await GuardarBeneficiarios(docBanorteId, "Banorte", beneficiariosBanorteValidos);
 
                 await _context.SaveChangesAsync();
 
                 TempData["Mensaje"] = EsEdicion
-                    ? $"Información de documentos de {empleado.Names} {empleado.Apellido} actualizada correctamente."
-                    : $"Registro de {empleado.Names} {empleado.Apellido} completado exitosamente.";
+                    ? $"✅ Información de documentos de {empleado.Names} {empleado.Apellido} actualizada correctamente."
+                    : $"✅ Registro de {empleado.Names} {empleado.Apellido} completado exitosamente.";
 
                 return RedirectToPage("/Operadores/Detalles", new { id = IdEmpleado });
             }
             catch (Exception ex)
             {
-                Mensaje = $"Error al guardar: {ex.Message}";
+                Mensaje = $"❌ Error al guardar: {ex.Message}";
                 if (ex.InnerException != null)
                     Mensaje += $" | {ex.InnerException.Message}";
 
@@ -302,7 +356,7 @@ namespace ProyectoRH2025.Pages.Operadores
             }
         }
 
-        private async Task GuardarOActualizarDocumento(int idTipoDoc, Action<tblDocumentosEmpleado> actualizarCampos)
+        private async Task<int> GuardarOActualizarDocumento(int idTipoDoc, Action<tblDocumentosEmpleado> actualizarCampos)
         {
             var doc = await _context.tblDocumentosEmpleado
                 .FirstOrDefaultAsync(d => d.idEmpleado == IdEmpleado && d.idTipDocumento == idTipoDoc);
@@ -316,11 +370,72 @@ namespace ProyectoRH2025.Pages.Operadores
                     FechaAlta = DateTime.Now
                 };
                 _context.tblDocumentosEmpleado.Add(doc);
+                await _context.SaveChangesAsync(); // Necesario para obtener el ID
             }
 
             actualizarCampos(doc);
+            return doc.id;
+        }
+
+        // 🆕 Método para guardar beneficiarios
+        private async Task GuardarBeneficiarios(int idDocumento, string tipoBeneficiario, List<BeneficiarioTemp> beneficiarios)
+        {
+            // Desactivar beneficiarios existentes
+            var beneficiariosExistentes = await _context.Beneficiarios
+                .Where(b => b.IdDocumento == idDocumento && b.TipoBeneficiario == tipoBeneficiario)
+                .ToListAsync();
+
+            foreach (var benef in beneficiariosExistentes)
+            {
+                benef.Status = false;
+            }
+
+            // Guardar nuevos beneficiarios
+            byte orden = 1;
+            foreach (var benefTemp in beneficiarios)
+            {
+                if (benefTemp.Id > 0)
+                {
+                    // Actualizar existente
+                    var benef = beneficiariosExistentes.FirstOrDefault(b => b.Id == benefTemp.Id);
+                    if (benef != null)
+                    {
+                        benef.Nombre = benefTemp.Nombre?.Trim();
+                        benef.Parentesco = benefTemp.Parentesco?.Trim();
+                        benef.Porcentaje = benefTemp.Porcentaje;
+                        benef.Direccion = benefTemp.Direccion?.Trim();
+                        benef.Orden = orden;
+                        benef.Status = true;
+                    }
+                }
+                else
+                {
+                    // Crear nuevo
+                    _context.Beneficiarios.Add(new Beneficiario
+                    {
+                        IdDocumento = idDocumento,
+                        TipoBeneficiario = tipoBeneficiario,
+                        Nombre = benefTemp.Nombre?.Trim(),
+                        Parentesco = benefTemp.Parentesco?.Trim(),
+                        Porcentaje = benefTemp.Porcentaje,
+                        Direccion = benefTemp.Direccion?.Trim(),
+                        Orden = orden,
+                        Status = true,
+                        FechaAlta = DateTime.Now
+                    });
+                }
+                orden++;
+            }
         }
     }
 
-    
+    // 🆕 Clase temporal para binding de beneficiarios
+    public class BeneficiarioTemp
+    {
+        public int Id { get; set; }
+        public string Nombre { get; set; }
+        public string Parentesco { get; set; }
+        public decimal? Porcentaje { get; set; }
+        public string Direccion { get; set; }
+    }
 }

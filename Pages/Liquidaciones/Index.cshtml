@@ -162,7 +162,22 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
-            <!-- ENCABEZADO CON INFORMACIÓN DE RENDIMIENTO -->
+
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+                    <i class="fas fa-check-circle me-2"></i> @TempData["Success"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i> @TempData["Error"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h1 class="mb-0">@ViewData["Title"]</h1>
                 @if (Model.MostrandoSoloEstaSemana)
@@ -175,7 +190,6 @@
                 }
             </div>
 
-            <!-- CARD DE FILTROS MEJORADO -->
             <div class="card filter-card mb-4">
                 <div class="card-body">
                     <div class="row">
@@ -188,7 +202,6 @@
                     </div>
 
                     <form method="get" class="row g-3">
-                        <!-- BÚSQUEDA POR TEXTO -->
                         <div class="col-lg-3">
                             <label class="form-label">
                                 <i class="fas fa-keyboard me-1"></i>Búsqueda General
@@ -200,7 +213,6 @@
                                    value="@Model.SearchString">
                         </div>
 
-                        <!-- FILTRO ESPECÍFICO PARA REMOLQUE -->
                         <div class="col-lg-2">
                             <label class="form-label">
                                 <i class="fas fa-trailer me-1"></i>Remolque
@@ -212,7 +224,6 @@
                                    value="@Model.Remolque">
                         </div>
 
-                        <!-- FECHA INICIO -->
                         <div class="col-lg-2">
                             <label class="form-label">
                                 <i class="fas fa-calendar-alt me-1"></i>Fecha Inicio
@@ -225,7 +236,6 @@
                                    max="@DateTime.Today.ToString("yyyy-MM-dd")" />
                         </div>
 
-                        <!-- FECHA FIN -->
                         <div class="col-lg-2">
                             <label class="form-label">
                                 <i class="fas fa-calendar-check me-1"></i>Fecha Fin
@@ -238,7 +248,6 @@
                                    max="@DateTime.Today.ToString("yyyy-MM-dd")" />
                         </div>
 
-                        <!-- BOTONES DE ACCIÓN -->
                         <div class="col-lg-3">
                             <label class="form-label">&nbsp;</label>
                             <div class="d-flex gap-2">
@@ -252,7 +261,6 @@
                         </div>
                     </form>
 
-                    <!-- RANGOS RÁPIDOS -->
                     <div class="row mt-3">
                         <div class="col-12">
                             <div class="d-flex flex-wrap gap-2">
@@ -260,7 +268,6 @@
                                     <i class="fas fa-bolt"></i> Rangos rápidos:
                                 </small>
 
-                                @* BOTONES CON FECHAS DINÁMICAS EN TIEMPO REAL *@
                                 @{
                                     var hoy = DateTime.Today;
                                     var ultimaSemana = hoy.AddDays(-7);
@@ -271,7 +278,6 @@
                                 <a href="?FechaInicio=@ultimaSemana.ToString("yyyy-MM-dd")&FechaFin=@hoy.ToString("yyyy-MM-dd")" class="btn btn-outline-light btn-sm">Última semana</a>
                                 <a href="?FechaInicio=@ultimoMes.ToString("yyyy-MM-dd")&FechaFin=@hoy.ToString("yyyy-MM-dd")" class="btn btn-outline-light btn-sm">Último mes</a>
 
-                                @* BOTÓN "TODOS LOS REGISTROS" - Solo visible para rol 5 (Administrativo) *@
                                 @{
                                     var rolActual = HttpContext.Session.GetInt32("idRol");
                                 }
@@ -295,18 +301,14 @@
                 </div>
             </div>
 
-            <!-- TABLA DE RESULTADOS -->
             @if (Model.Liquidaciones.Any())
             {
-                <!-- OPCIÓN 3: Formulario para selección masiva -->
-                <form method="post" asp-page-handler="GenerarPDFsMasivos" id="formSeleccionMasiva">
-
-                    <!-- TOOLBAR DE SELECCIÓN -->
-                    <div class="selection-toolbar" id="selectionToolbar">
+                <div class="selection-toolbar" id="selectionToolbar">
+                    <form method="post" asp-page-handler="GenerarPDFsMasivos" id="formSeleccionMasiva" class="m-0">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <i class="fas fa-check-circle me-2"></i>
-                                <span id="selectedCount">0</span> registros seleccionados
+                                <span id="selectedCount">0</span> registros seleccionados manualmente
                             </div>
                             <div>
                                 <button type="button" class="btn btn-outline-light btn-sm me-2" onclick="seleccionarTodos()">
@@ -320,149 +322,158 @@
                                 </button>
                             </div>
                         </div>
+                        <div id="hiddenInputsContainer"></div>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center flex-wrap">
+                        <h5 class="mb-0 py-1">
+                            <i class="fas fa-list"></i> Resultados de Liquidaciones
+                            <span class="badge bg-light text-dark ms-2">@Model.RegistrosMostrados</span>
+                        </h5>
+
+                        <form method="post" asp-page-handler="GenerarPDFsPorFiltro" class="m-0">
+                            <input type="hidden" name="searchStringFiltro" value="@Model.SearchString" />
+                            <input type="hidden" name="remolqueFiltro" value="@Model.Remolque" />
+                            <input type="hidden" name="fechaInicioFiltro" value="@Model.FechaInicio?.ToString("yyyy-MM-dd")" />
+                            <input type="hidden" name="fechaFinFiltro" value="@Model.FechaFin?.ToString("yyyy-MM-dd")" />
+                            <input type="hidden" name="todosLosRegistrosFiltro" value="@Model.TodosLosRegistros.ToString().ToLower()" />
+                            <input type="hidden" name="statusFiltro" value="@Model.StatusFiltro" />
+                            <input type="hidden" name="clienteFiltro" value="@Model.ClienteFiltro" />
+                            <input type="hidden" name="evidenciasFiltro" value="@Model.EvidenciasFiltro" />
+
+                            <button type="submit" class="btn btn-warning btn-sm fw-bold" onclick="return confirm('¿Deseas generar los PDFs de TODOS los @Model.RegistrosMostrados registros que coinciden con esta búsqueda? El proceso se ejecutará en segundo plano y te enviaremos un correo.');">
+                                <i class="fas fa-file-archive"></i> Descargar Todo el Filtro en ZIP
+                            </button>
+                        </form>
                     </div>
 
-                    <div class="card">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0">
-                                <i class="fas fa-list"></i> Resultados de Liquidaciones
-                                <span class="badge bg-light text-dark ms-2">@Model.RegistrosMostrados</span>
-                            </h5>
-                        </div>
-                        <div class="table-responsive">
-                            <table id="tablaLiquidaciones" class="table table-striped table-bordered table-hover mb-0">
-                                <thead class="thead-light">
+                    <div class="table-responsive">
+                        <table id="tablaLiquidaciones" class="table table-striped table-bordered table-hover mb-0">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th class="checkbox-column">
+                                        <input type="checkbox" id="selectAll" onchange="toggleTodos()">
+                                    </th>
+                                    <th><i class="fas fa-hashtag"></i> Folio</th>
+                                    <th><i class="fas fa-building"></i> Cliente</th>
+                                    <th><i class="fas fa-truck"></i> Tractor</th>
+                                    <th><i class="fas fa-trailer"></i> Remolque</th>
+                                    <th><i class="fas fa-calendar"></i> Fecha Salida</th>
+                                    <th><i class="fas fa-route"></i> Origen</th>
+                                    <th><i class="fas fa-map-marker-alt"></i> Destino</th>
+                                    <th><i class="fas fa-industry"></i> Planta</th>
+                                    <th><i class="fas fa-user"></i> Conductor</th>
+                                    <th><i class="fas fa-traffic-light"></i> Status</th>
+                                    <th><i class="fas fa-images"></i> Evidencias</th>
+                                    <th><i class="fas fa-cogs"></i> Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.Liquidaciones)
+                                {
                                     <tr>
-                                        <!-- NUEVA COLUMNA PARA CHECKBOXES -->
-                                        <th class="checkbox-column">
-                                            <input type="checkbox" id="selectAll" onchange="toggleTodos()">
-                                        </th>
-                                        <th><i class="fas fa-hashtag"></i> Folio</th>
-                                        <th><i class="fas fa-building"></i> Cliente</th>
-                                        <th><i class="fas fa-truck"></i> Tractor</th>
-                                        <th><i class="fas fa-trailer"></i> Remolque</th>
-                                        <th><i class="fas fa-calendar"></i> Fecha Salida</th>
-                                        <th><i class="fas fa-route"></i> Origen</th>
-                                        <th><i class="fas fa-map-marker-alt"></i> Destino</th>
-                                        <th><i class="fas fa-industry"></i> Planta</th>
-                                        <th><i class="fas fa-user"></i> Conductor</th>
-                                        <th><i class="fas fa-traffic-light"></i> Status</th>
-                                        <th><i class="fas fa-images"></i> Evidencias</th>
-                                        <th><i class="fas fa-cogs"></i> Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var item in Model.Liquidaciones)
-                                    {
-                                        <tr>
-                                            <!-- CHECKBOX PARA SELECCIÓN -->
-                                            <td class="checkbox-column">
-                                                <input type="checkbox" name="selectedIds" value="@item.PodId" class="liquidacion-checkbox" onchange="actualizarContadorSeleccionados()">
-                                            </td>
-                                            <td><strong>@Html.DisplayFor(modelItem => item.Folio)</strong></td>
-                                            <td>@Html.DisplayFor(modelItem => item.Cliente)</td>
-                                            <td>@Html.DisplayFor(modelItem => item.Tractor)</td>
-                                            <td>@Html.DisplayFor(modelItem => item.Remolque)</td>
-                                            <td>
-                                                @if (item.FechaSalida.HasValue)
+                                        <td class="checkbox-column">
+                                            <input type="checkbox" name="selectedIds" value="@item.PodId" class="liquidacion-checkbox" onchange="actualizarContadorSeleccionados()">
+                                        </td>
+                                        <td><strong>@Html.DisplayFor(modelItem => item.Folio)</strong></td>
+                                        <td>@Html.DisplayFor(modelItem => item.Cliente)</td>
+                                        <td>@Html.DisplayFor(modelItem => item.Tractor)</td>
+                                        <td>@Html.DisplayFor(modelItem => item.Remolque)</td>
+                                        <td>
+                                            @if (item.FechaSalida.HasValue)
+                                            {
+                                                <span>@item.FechaSalida.Value.ToString("dd/MM/yyyy")</span>
+                                                <br>
+                                                <small class="text-muted">@item.FechaSalida.Value.ToString("HH:mm")</small>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">No especificada</span>
+                                            }
+                                        </td>
+                                        <td>@Html.DisplayFor(modelItem => item.Origen)</td>
+                                        <td>@Html.DisplayFor(modelItem => item.Destino)</td>
+                                        <td>@Html.DisplayFor(modelItem => item.Plant)</td>
+                                        <td>@Html.DisplayFor(modelItem => item.DriverName)</td>
+                                        <td>
+                                            @{
+                                                string badgeClass = "badge-secondary-custom";
+                                                if (item.Status == "Entregado") { badgeClass = "badge-success-custom"; }
+                                                else if (item.Status == "En Tránsito") { badgeClass = "badge-warning-custom"; }
+                                            }
+                                            <span class="badge @badgeClass">
+                                                @Html.DisplayFor(modelItem => item.Status)
+                                            </span>
+                                            @if (item.PodRecordCaptureDate.HasValue)
+                                            {
+                                                <br>
+                                                <small class="text-muted">@item.PodRecordCaptureDate.Value.ToString("dd/MM HH:mm")</small>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (item.Evidencias.Any())
+                                            {
+                                                var totalEvidencias = item.Evidencias.Count;
+                                                var evidenciasConImagen = item.Evidencias.Count(e => e.HasImageData);
+
+                                                @if (totalEvidencias == 1 && item.Evidencias.First().EvidenciaId == -1 && item.Evidencias.First().FileName == "SHAREPOINT_PLACEHOLDER")
                                                 {
-                                                    <span>@item.FechaSalida.Value.ToString("dd/MM/yyyy")</span>
+                                                    <span class="badge bg-primary text-white">
+                                                        <i class="fab fa-microsoft"></i> Verificar en Detalles
+                                                    </span>
                                                     <br>
-                                                    <small class="text-muted">@item.FechaSalida.Value.ToString("HH:mm")</small>
+                                                    <small class="text-info">
+                                                        <i class="fas fa-cloud"></i> Posibles evidencias en SharePoint
+                                                    </small>
                                                 }
                                                 else
                                                 {
-                                                    <span class="text-muted">No especificada</span>
-                                                }
-                                            </td>
-                                            <td>@Html.DisplayFor(modelItem => item.Origen)</td>
-                                            <td>@Html.DisplayFor(modelItem => item.Destino)</td>
-                                            <td>@Html.DisplayFor(modelItem => item.Plant)</td>
-                                            <td>@Html.DisplayFor(modelItem => item.DriverName)</td>
-                                            <td>
-                                                @{
-                                                    string badgeClass = "badge-secondary-custom";
-                                                    if (item.Status == "Entregado") { badgeClass = "badge-success-custom"; }
-                                                    else if (item.Status == "En Tránsito") { badgeClass = "badge-warning-custom"; }
-                                                }
-                                                <span class="badge @badgeClass">
-                                                    @Html.DisplayFor(modelItem => item.Status)
-                                                </span>
-                                                @if (item.PodRecordCaptureDate.HasValue)
-                                                {
-                                                    <br>
-                                                    <small class="text-muted">@item.PodRecordCaptureDate.Value.ToString("dd/MM HH:mm")</small>
-                                                }
-                                            </td>
-                                            <td>
-                                                @if (item.Evidencias.Any())
-                                                {
-                                                    var totalEvidencias = item.Evidencias.Count;
-                                                    var evidenciasConImagen = item.Evidencias.Count(e => e.HasImageData);
-
-                                                    @* ✅ CASO ESPECIAL: Placeholder de SharePoint *@
-                                                    @if (totalEvidencias == 1 &&
-                                                                                            item.Evidencias.First().EvidenciaId == -1 &&
-                                                                                            item.Evidencias.First().FileName == "SHAREPOINT_PLACEHOLDER")
+                                                    <span class="badge bg-info text-dark">
+                                                        <i class="fas fa-file"></i> @totalEvidencias evidencias
+                                                    </span>
+                                                    @if (evidenciasConImagen > 0)
                                                     {
-                                                        <span class="badge bg-primary text-white">
-                                                            <i class="fab fa-microsoft"></i> Verificar en Detalles
-                                                        </span>
                                                         <br>
-                                                        <small class="text-info">
-                                                            <i class="fas fa-cloud"></i> Posibles evidencias en SharePoint
+                                                        <small class="text-success">
+                                                            <i class="fas fa-camera"></i> @evidenciasConImagen con imagen
                                                         </small>
                                                     }
-                                                    else
+                                                    @if (totalEvidencias > evidenciasConImagen)
                                                     {
-                                                        <span class="badge bg-info text-dark">
-                                                            <i class="fas fa-file"></i> @totalEvidencias evidencias
-                                                        </span>
-                                                        @if (evidenciasConImagen > 0)
-                                                        {
-                                                            <br>
-                                                            <small class="text-success">
-                                                                <i class="fas fa-camera"></i> @evidenciasConImagen con imagen
-                                                            </small>
-                                                        }
-                                                        @if (totalEvidencias > evidenciasConImagen)
-                                                        {
-                                                            <br>
-                                                            <small class="text-muted">
-                                                                <i class="fas fa-file-alt"></i> @(totalEvidencias - evidenciasConImagen) sin imagen
-                                                            </small>
-                                                        }
+                                                        <br>
+                                                        <small class="text-muted">
+                                                            <i class="fas fa-file-alt"></i> @(totalEvidencias - evidenciasConImagen) sin imagen
+                                                        </small>
                                                     }
                                                 }
-                                                else
-                                                {
-                                                    <span class="text-muted">
-                                                        <i class="fas fa-times-circle"></i> Sin evidencias
-                                                    </span>
-                                                }
-                                            </td>
-                                            <td>
-                                                <!-- OPCIÓN 1: Botón PDF individual en la tabla -->
-                                                <a asp-page="./GenerarPDF" asp-route-id="@item.PodId" class="btn btn-sm btn-outline-danger me-1" target="_blank" title="Generar PDF">
-                                                    <i class="fas fa-file-pdf"></i> PDF
-                                                </a>
-                                                <a asp-page="./Detalles" asp-route-id="@item.PodId" class="btn btn-sm btn-outline-primary" title="Ver Detalles">
-                                                    <i class="fas fa-eye"></i> Ver
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">
+                                                    <i class="fas fa-times-circle"></i> Sin evidencias
+                                                </span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <a asp-page="./GenerarPDF" asp-route-id="@item.PodId" class="btn btn-sm btn-outline-danger me-1" target="_blank" title="Generar PDF">
+                                                <i class="fas fa-file-pdf"></i> PDF
+                                            </a>
+                                            <a asp-page="./Detalles" asp-route-id="@item.PodId" class="btn btn-sm btn-outline-primary" title="Ver Detalles">
+                                                <i class="fas fa-eye"></i> Ver
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
                     </div>
-                </form>
+                </div>
 
-                <!-- INFORMACIÓN DE PAGINACIÓN -->
                 <div class="alert alert-info mt-3">
                     <i class="fas fa-info-circle"></i>
-                    <strong>Paginación activada:</strong> Los registros se muestran en páginas para mejor rendimiento.
-                    Use la búsqueda de la tabla para encontrar registros específicos.
+                    <strong>Paginación activada:</strong> Los registros se muestran en páginas para mejor rendimiento. Use la búsqueda de la tabla o el botón "Descargar Todo el Filtro" para evitar marcar página por página.
                 </div>
             }
             else
@@ -489,40 +500,25 @@
 </div>
 
 @section Scripts {
-    <!-- DataTables CSS y JS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
     <script>
         $(document).ready(function() {
-            // Configurar DataTable con paginación
+            // Configurar DataTable
             $('#tablaLiquidaciones').DataTable({
-                // CONFIGURACIÓN DE PAGINACIÓN
-                "pageLength": 25,           // 25 registros por página
-                "lengthMenu": [10, 25, 50, 100], // Opciones de registros por página
-                "pagingType": "full_numbers", // Botones completos de paginación
-
-                // CONFIGURACIÓN DE BÚSQUEDA
-                "searching": true,          // Habilitar búsqueda
-                "search": {
-                    "regex": false,         // Búsqueda simple, no regex
-                    "smart": true           // Búsqueda inteligente
-                },
-
-                // CONFIGURACIÓN DE ORDENAMIENTO
-                "ordering": true,           // Habilitar ordenamiento por columnas
-                "order": [[5, "desc"]],     // Ordenar por fecha salida (columna 5) descendente
-
-                // CONFIGURACIÓN DE INTERFAZ
-                "processing": false,        // No mostrar "Procesando..."
-                "responsive": true,         // Tabla responsive
-                "autoWidth": false,         // No ajuste automático de ancho
-
-                // CONFIGURACIÓN DE INFORMACIÓN
-                "info": true,              // Mostrar "Mostrando X de Y registros"
-
-                // CONFIGURACIÓN DE IDIOMA
+                "pageLength": 25,
+                "lengthMenu": [10, 25, 50, 100],
+                "pagingType": "full_numbers",
+                "searching": true,
+                "search": { "regex": false, "smart": true },
+                "ordering": true,
+                "order": [[5, "desc"]],
+                "processing": false,
+                "responsive": true,
+                "autoWidth": false,
+                "info": true,
                 "language": {
                     "decimal": "",
                     "emptyTable": "No hay datos disponibles en la tabla",
@@ -542,61 +538,46 @@
                         "previous": "Anterior"
                     }
                 },
-
-                // CONFIGURACIÓN DE COLUMNAS
                 "columnDefs": [
-                    {
-                        "targets": [0],        // Columna de checkbox
-                        "orderable": false,    // No se puede ordenar
-                        "searchable": false    // No se incluye en búsqueda
-                    },
-                    {
-                        "targets": [-1],       // Última columna (Acciones)
-                        "orderable": false,    // No se puede ordenar
-                        "searchable": false    // No se incluye en búsqueda
-                    }
+                    { "targets": [0], "orderable": false, "searchable": false },
+                    { "targets": [-1], "orderable": false, "searchable": false }
                 ],
-
-                // CALLBACK DESPUÉS DE DIBUJAR LA TABLA
                 "drawCallback": function(settings) {
-                    // Actualizar contador de seleccionados después de paginar
                     actualizarContadorSeleccionados();
                 }
             });
 
-            // Resto de JavaScript para checkboxes
+            // NUEVO: Delegación de eventos para que DataTables no bloquee los clics en otras páginas
+            $('#tablaLiquidaciones tbody').on('change', '.liquidacion-checkbox', function() {
+                window.actualizarContadorSeleccionados();
+            });
+
+            // Escuchar el clic de la casilla principal
+            $('#selectAll').on('change', function() {
+                window.toggleTodos();
+            });
+
+            // Funciones para checkboxes
             window.toggleTodos = function() {
                 const selectAll = document.getElementById('selectAll');
                 const checkboxes = document.querySelectorAll('.liquidacion-checkbox:visible');
-
-                checkboxes.forEach(checkbox => {
-                    checkbox.checked = selectAll.checked;
-                });
-
+                checkboxes.forEach(checkbox => { checkbox.checked = selectAll.checked; });
                 actualizarContadorSeleccionados();
             }
 
             window.seleccionarTodos = function() {
                 const checkboxes = document.querySelectorAll('.liquidacion-checkbox:visible');
                 const selectAll = document.getElementById('selectAll');
-
-                checkboxes.forEach(checkbox => {
-                    checkbox.checked = true;
-                });
+                checkboxes.forEach(checkbox => { checkbox.checked = true; });
                 selectAll.checked = true;
-
                 actualizarContadorSeleccionados();
             }
 
             window.deseleccionarTodos = function() {
                 const checkboxes = document.querySelectorAll('.liquidacion-checkbox');
                 const selectAll = document.getElementById('selectAll');
-
-                checkboxes.forEach(checkbox => {
-                    checkbox.checked = false;
-                });
+                checkboxes.forEach(checkbox => { checkbox.checked = false; });
                 selectAll.checked = false;
-
                 actualizarContadorSeleccionados();
             }
 
@@ -607,22 +588,16 @@
                 const counter = document.getElementById('selectedCount');
 
                 if (counter) counter.textContent = count;
-
                 if (toolbar) {
-                    if (count > 0) {
-                        toolbar.classList.add('show');
-                    } else {
-                        toolbar.classList.remove('show');
-                    }
+                    if (count > 0) toolbar.classList.add('show');
+                    else toolbar.classList.remove('show');
                 }
 
-                // Actualizar el estado del checkbox principal
                 const allVisibleCheckboxes = document.querySelectorAll('.liquidacion-checkbox:visible');
                 const selectAll = document.getElementById('selectAll');
 
                 if (selectAll && allVisibleCheckboxes.length > 0) {
                     const checkedVisible = Array.from(allVisibleCheckboxes).filter(cb => cb.checked).length;
-
                     if (checkedVisible === 0) {
                         selectAll.checked = false;
                         selectAll.indeterminate = false;
@@ -636,27 +611,36 @@
                 }
             }
 
-            // Validación antes de enviar el formulario
+            // Antes de enviar el formulario de casillas manuales
             $('#formSeleccionMasiva').on('submit', function(e) {
                 const checkboxes = document.querySelectorAll('.liquidacion-checkbox:checked');
-
                 if (checkboxes.length === 0) {
                     e.preventDefault();
                     alert('Debe seleccionar al menos un registro para generar PDFs.');
                     return false;
                 }
 
-                if (checkboxes.length > 50) {
-                    if (!confirm(`Ha seleccionado ${checkboxes.length} registros. Esto puede tardar varios minutos. ¿Desea continuar?`)) {
+                if (checkboxes.length > 10) {
+                    if (!confirm(`Ha seleccionado ${checkboxes.length} registros. El proceso se ejecutará en segundo plano y se le notificará por correo. ¿Desea continuar?`)) {
                         e.preventDefault();
                         return false;
                     }
                 }
 
+                // Clonar los checkboxes seleccionados al contenedor oculto
+                const container = document.getElementById('hiddenInputsContainer');
+                container.innerHTML = '';
+                checkboxes.forEach(cb => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'selectedIds';
+                    input.value = cb.value;
+                    container.appendChild(input);
+                });
+
                 return true;
             });
 
-            // Inicializar contador al cargar la página
             actualizarContadorSeleccionados();
         });
     </script>

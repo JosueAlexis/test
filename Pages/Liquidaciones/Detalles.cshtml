@@ -4,7 +4,6 @@
     ViewData["Title"] = "Detalles de Liquidación";
 }
 
-<!-- OPCIÓN 1: Escapar las reglas CSS problemáticas -->
 <style>
     .details-container {
         padding: 20px;
@@ -415,6 +414,7 @@
     .image-modal:hover .controls-help {
         opacity: 1;
     }
+
     .lazy-image:not([data-sharepoint-url]) {
         opacity: 1 !important;
     }
@@ -527,15 +527,12 @@
     }
 </style>
 
-<!-- ESTILOS RESPONSIVOS MOVIDOS AL FINAL DEL SCRIPT -->
-
 <div class="details-container">
     @Html.AntiForgeryToken()
     <div class="details-header">
         <h2>
             @ViewData["Title"]: Folio @Model.LiquidacionDetalle?.Folio
 
-            <!-- NUEVO: Indicador de origen de datos -->
             @if (Model.OrigenDatos == "Base de Datos")
             {
                 <span class="data-source-indicator source-database">
@@ -550,7 +547,6 @@
             }
         </h2>
 
-        <!-- DIAGNÓSTICO DE RENDIMIENTO (temporal) -->
         @if (!string.IsNullOrEmpty(Model.DiagnosticoTiempos))
         {
             <div class="alert performance-info mt-2 py-2">
@@ -564,7 +560,6 @@
         <div class="alert alert-danger error-message">
             @Model.ErrorMessage
 
-            <!-- NUEVO: Sugerencia para SharePoint -->
             @if (!Model.BusquedaEnSharePoint)
             {
                 <hr>
@@ -601,39 +596,44 @@
             <dd class="col-sm-9">@Html.DisplayFor(model => model.LiquidacionDetalle.CaptureDate)</dd>
         </dl>
 
-        <h4>
-            Evidencias Fotográficas
-            @if (Model.EvidenciasInfo?.Any() == true)
-            {
-                <small class="text-muted">(@Model.EvidenciasInfo.Count archivo(s))</small>
-                <small class="text-info ms-2"><i class="fas fa-info-circle"></i> Click en cualquier imagen para ampliar</small>
-            }
+        <h4 class="d-flex justify-content-between align-items-center">
+            <div>
+                Evidencias Fotográficas
+                @if (Model.EvidenciasInfo?.Any() == true)
+                {
+                    <small class="text-muted">(@Model.EvidenciasInfo.Count archivo(s))</small>
+                    <small class="text-info ms-2" style="font-size: 0.8rem;"><i class="fas fa-info-circle"></i> Click en cualquier imagen para ampliar</small>
+                }
 
-            <!-- NUEVO: Mostrar origen de las evidencias -->
-            @if (Model.OrigenDatos.Contains("SharePoint"))
-            {
-                @if (Model.OrigenDatos == "BD + SharePoint")
+                @if (Model.OrigenDatos.Contains("SharePoint"))
                 {
-                    <small class="ms-2">
-                        <span class="data-source-indicator source-database">
-                            <i class="fas fa-database me-1"></i>BD
-                        </span>
-                        <span class="data-source-indicator source-sharepoint">
-                            <i class="fab fa-microsoft me-1"></i>Evidencias SP
-                        </span>
-                    </small>
+                    @if (Model.OrigenDatos == "BD + SharePoint")
+                    {
+                        <small class="ms-2">
+                            <span class="data-source-indicator source-database">
+                                <i class="fas fa-database me-1"></i>BD
+                            </span>
+                            <span class="data-source-indicator source-sharepoint">
+                                <i class="fab fa-microsoft me-1"></i>Evidencias SP
+                            </span>
+                        </small>
+                    }
+                    else if (Model.OrigenDatos == "SharePoint")
+                    {
+                        <small class="ms-2">
+                            <span class="data-source-indicator source-sharepoint">
+                                <i class="fab fa-microsoft me-1"></i>Todo desde SharePoint
+                            </span>
+                        </small>
+                    }
                 }
-                else if (Model.OrigenDatos == "SharePoint")
-                {
-                    <small class="ms-2">
-                        <span class="data-source-indicator source-sharepoint">
-                            <i class="fab fa-microsoft me-1"></i>Todo desde SharePoint
-                        </span>
-                    </small>
-                }
-            }
+            </div>
+
+            <button class="btn btn-sm btn-success" onclick="abrirModalSubirEvidencia()">
+                <i class="fas fa-cloud-upload-alt"></i> Agregar Evidencia SP
+            </button>
         </h4>
-       <hr />
+        <hr />
 
         @if (Model.EvidenciasInfo?.Any() == true)
         {
@@ -643,7 +643,6 @@
                     <div class="image-container @(evidencia.IsFromSharePoint ? "sharepoint-image" : "")"
                          data-evidencia-id="@evidencia.EvidenciaID"
                          data-is-sharepoint="@evidencia.IsFromSharePoint.ToString().ToLower()">
-                        <!-- NUEVO: Overlay para botones -->
                         <div class="image-overlay">
                             <button class="btn btn-light btn-sm overlay-btn" onclick="ampliarImagen(this)" title="Ver imagen completa">
                                 <i class="fas fa-search-plus"></i> Ampliar
@@ -654,7 +653,6 @@
                                 <i class="fas fa-exchange-alt"></i> Sustituir
                             </button>
                         </div>
-                        <!-- Overlay para imágenes de SharePoint -->
                         @if (evidencia.IsFromSharePoint)
                         {
                             <div class="sharepoint-overlay">
@@ -775,7 +773,6 @@
             </a>
         }
 
-        <!-- NUEVO: Botón para ver en SharePoint -->
         @if (Model.OrigenDatos == "SharePoint" && Model.EvidenciasInfo?.Any(e => !string.IsNullOrEmpty(e.SharePointUrl)) == true)
         {
             <a href="@Model.EvidenciasInfo.FirstOrDefault(e => !string.IsNullOrEmpty(e.SharePointUrl))?.SharePointUrl" target="_blank" class="btn btn-primary ms-2">
@@ -785,10 +782,7 @@
     </div>
 </div>
 
-<!-- El resto del modal y scripts se mantienen exactamente igual -->
-<!-- MODAL DE ZOOM COMPLETO CON ROTACIÓN -->
 <div id="imageModal" class="image-modal">
-    <!-- Controles superiores -->
     <div class="modal-controls">
         <button class="modal-control-btn" onclick="previousImage()" title="Imagen anterior (← o flecha izquierda)" id="prevBtn">
             <i class="fas fa-chevron-left"></i>
@@ -804,7 +798,6 @@
         </button>
     </div>
 
-    <!-- Ayuda de controles actualizada -->
     <div class="controls-help">
         <div><strong>Controles:</strong></div>
         <div>🖱️ Rueda: Zoom</div>
@@ -815,25 +808,21 @@
         <div>⌨️ 0 : Auto-centrar</div>
     </div>
 
-    <!-- Indicador de zoom -->
     <div class="zoom-indicator" id="zoomIndicator">
         Zoom: 100%
     </div>
 
-    <!-- Contenedor principal -->
     <div class="modal-content-zoom">
         <div class="zoom-container" id="zoomContainer">
             <img id="modalImage" class="modal-image-zoom" src="" alt="">
         </div>
     </div>
 
-    <!-- Información de la imagen -->
     <div class="image-info" id="imageInfo">
         <div><strong id="imageName">Evidencia fotográfica</strong></div>
         <div><small id="imageDetails">Información de la imagen</small></div>
     </div>
 
-    <!-- Controles de zoom -->
     <div class="zoom-controls">
         <button class="zoom-btn" onclick="zoomOut()" title="Zoom Out (-)">
             <i class="fas fa-search-minus"></i>
@@ -846,7 +835,6 @@
         </button>
     </div>
 
-    <!-- CONTROLES DE ROTACIÓN (NUEVO) -->
     <div class="rotation-controls">
         <button class="rotation-btn" onclick="rotateLeft()" title="Rotar izquierda (L)">
             <i class="fas fa-undo"></i>
@@ -859,15 +847,12 @@
         </button>
     </div>
 
-    <!-- Navegación por galería -->
     <div class="image-gallery-nav" id="galleryNav">
-        <!-- Se llenarán dinámicamente -->
     </div>
 </div>
-<!-- MODAL DE SUSTITUCIÓN -->
+
 <div id="modalSustitucion" class="modal-sustitucion">
     <div class="modal-content-sustitucion">
-        <!-- HEADER -->
         <div class="modal-header-sustitucion">
             <h5><i class="fas fa-exchange-alt me-2"></i>Sustituir Imagen/PDF</h5>
             <button type="button" class="btn-close-sustitucion" onclick="cerrarModalSustitucion()">
@@ -875,9 +860,7 @@
             </button>
         </div>
 
-        <!-- BODY -->
         <div class="modal-body-sustitucion">
-            <!-- INFO ACTUAL -->
             <div class="info-actual">
                 <h6><i class="fas fa-info-circle me-2"></i>Archivo Actual</h6>
                 <div class="row align-items-center">
@@ -892,7 +875,6 @@
                 </div>
             </div>
 
-            <!-- SUBIDA -->
             <div id="uploadArea" class="upload-area" onclick="document.getElementById('archivoInput').click()">
                 <i class="fas fa-cloud-upload-alt" style="font-size: 3rem; color: #007bff; margin-bottom: 15px;"></i>
                 <h5>Seleccionar nueva imagen</h5>
@@ -903,569 +885,701 @@
             <input type="file" id="archivoInput" class="file-input-hidden" accept=".jpg,.jpeg,.png">
         </div>
 
-        <!-- FOOTER -->
         <div style="padding: 20px 30px; border-top: 1px solid #eee; display: flex; justify-content: space-between;">
             <button type="button" onclick="cerrarModalSustitucion()" class="btn btn-secondary">
                 Cancelar
             </button>
-            <button type="button" id="btnSustituir" onclick="alert('Próximamente: handler del servidor')" disabled class="btn btn-success">
+            <button type="button" id="btnSustituir" onclick="sustituirArchivo()" disabled class="btn btn-success">
                 <i class="fas fa-exchange-alt me-1"></i> Sustituir Archivo
             </button>
         </div>
     </div>
 </div>
 
+<div id="modalSubirEvidencia" class="modal-sustitucion">
+    <div class="modal-content-sustitucion">
+        <div class="modal-header-sustitucion" style="background: linear-gradient(135deg, #28a745, #20c997);">
+            <h5><i class="fas fa-cloud-upload-alt me-2"></i>Subir Evidencia Adicional</h5>
+            <button type="button" class="btn-close-sustitucion" onclick="cerrarModalSubirEvidencia()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body-sustitucion">
+            <div class="alert alert-info py-2" style="font-size: 0.9rem;">
+                <i class="fab fa-microsoft me-2"></i> Este archivo se guardará directamente en <strong>SharePoint</strong>.
+            </div>
+            <div id="uploadAreaNuevo" class="upload-area" onclick="document.getElementById('archivoInputNuevo').click()">
+                <i class="fas fa-file-upload" style="font-size: 3rem; color: #28a745; margin-bottom: 15px;"></i>
+                <h5>Seleccionar archivo</h5>
+                <p class="mb-0">📄 JPG, PNG, PDF</p>
+                <p class="mb-0"><small class="text-muted">Máximo 20 MB</small></p>
+            </div>
+            <input type="file" id="archivoInputNuevo" class="file-input-hidden" accept=".jpg,.jpeg,.png,.pdf">
+        </div>
+        <div style="padding: 15px 30px; border-top: 1px solid #eee; display: flex; justify-content: space-between;">
+            <button type="button" onclick="cerrarModalSubirEvidencia()" class="btn btn-secondary">Cancelar</button>
+            <button type="button" id="btnSubirAdicional" onclick="subirArchivoAdicional()" disabled class="btn btn-success">
+                <i class="fas fa-upload me-1"></i> Subir Archivo
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // CSS dinámico con escape correcto para Razor
-    const style = document.createElement('style');
-    style.textContent = `
-        @@keyframes spin {
-            0% { transform: translate(-50%, -50%) rotate(0deg); }
-            100% { transform: translate(-50%, -50%) rotate(360deg); }
-        }
-        @@media (max-width: 768px) {
-            .modal-controls { top: 10px; right: 10px; gap: 5px; }
-            .modal-control-btn { width: 40px; height: 40px; font-size: 14px; }
-            .rotation-controls { bottom: 60px; right: 10px; }
-        }
-        .rotation-controls {
-            position: absolute; bottom: 80px; right: 20px; display: flex;
-            flex-direction: column; gap: 5px; background: rgba(0, 0, 0, 0.8);
-            padding: 8px; border-radius: 20px; backdrop-filter: blur(10px);
-        }
-        .rotation-btn {
-            background: rgba(255, 255, 255, 0.2); border: none; color: white;
-            padding: 8px; border-radius: 50%; cursor: pointer; transition: all 0.3s ease;
-            font-size: 14px; width: 35px; height: 35px; display: flex;
-            align-items: center; justify-content: center;
-        }
-        .rotation-btn:hover { background: rgba(255, 255, 255, 0.3); transform: scale(1.1); }
-        .modal-image-zoom {
-            max-width: 100%; max-height: 100%; object-fit: contain;
-            transition: transform 0.3s ease; user-select: none;
-            -webkit-user-drag: none; transform-origin: center center;
-        }
-    `;
-    document.head.appendChild(style);
-
-    // Variables globales
-    let currentZoom = 1;
-    let currentImageIndex = 0;
-    let currentRotation = 0;
-    let images = [];
-    let isDragging = false;
-    let startX, startY, translateX = 0, translateY = 0;
-
-    // Función de inicialización de galería
-    function initializeImageGallery() {
-        images = Array.from(document.querySelectorAll('.lazy-image')).filter(img => {
-            const isBDLoaded = !img.hasAttribute('data-sharepoint-url') && img.src && img.src !== '' && img.src !== window.location.href;
-            const isSharePoint = img.hasAttribute('data-sharepoint-url');
-            return isBDLoaded || isSharePoint;
-        });
-
-        console.log('Galería inicializada con ' + images.length + ' imágenes:', {
-            total: images.length,
-            sharepoint: images.filter(img => img.hasAttribute('data-sharepoint-url')).length,
-            database: images.filter(img => !img.hasAttribute('data-sharepoint-url')).length
-        });
-
-        createGalleryNavigation();
-    }
-
-    // Crear navegación
-    function createGalleryNavigation() {
-        const galleryNav = document.getElementById('galleryNav');
-        if (!galleryNav) return;
-        galleryNav.innerHTML = '';
-        images.forEach((img, index) => {
-            const thumb = document.createElement('img');
-            thumb.src = img.src;
-            thumb.className = 'gallery-thumb';
-            thumb.onclick = () => goToImage(index);
-            thumb.title = img.alt || 'Evidencia ' + (index + 1);
-            galleryNav.appendChild(thumb);
-        });
-    }
-
-    // Auto-centrar imagen
-    function autoFitImage() {
-        const modalImg = document.getElementById('modalImage');
-        const container = document.getElementById('zoomContainer');
-        if (!modalImg || !container) return;
-        currentZoom = 1;
-        translateX = 0;
-        translateY = 0;
-        if (modalImg.complete) {
-            calculateOptimalZoom();
-        } else {
-            modalImg.onload = () => calculateOptimalZoom();
-        }
-    }
-
-    // Calcular zoom óptimo
-    function calculateOptimalZoom() {
-        const modalImg = document.getElementById('modalImage');
-        const container = document.getElementById('zoomContainer');
-        if (!modalImg || !container) return;
-        const containerRect = container.getBoundingClientRect();
-        let effectiveWidth = modalImg.naturalWidth;
-        let effectiveHeight = modalImg.naturalHeight;
-        if (currentRotation === 90 || currentRotation === 270) {
-            effectiveWidth = modalImg.naturalHeight;
-            effectiveHeight = modalImg.naturalWidth;
-        }
-        const scaleX = (containerRect.width * 0.85) / effectiveWidth;
-        const scaleY = (containerRect.height * 0.85) / effectiveHeight;
-        currentZoom = Math.min(scaleX, scaleY, 1);
-        translateX = 0;
-        translateY = 0;
-        applyZoom();
-    }
-
-    // Funciones globales de zoom
-    window.zoomIn = () => { currentZoom = Math.min(currentZoom * 1.5, 5); applyZoom(); };
-    window.zoomOut = () => { currentZoom = Math.max(currentZoom / 1.5, 0.2); applyZoom(); };
-    window.resetZoom = () => autoFitImage();
-
-    // Aplicar zoom
-    function applyZoom() {
-        const modalImg = document.getElementById('modalImage');
-        if (modalImg) {
-            modalImg.style.transform = 'translate(' + translateX + 'px, ' + translateY + 'px) scale(' + currentZoom + ') rotate(' + currentRotation + 'deg)';
-            const indicator = document.getElementById('zoomIndicator');
-            if (indicator) {
-                indicator.textContent = 'Zoom: ' + Math.round(currentZoom * 100) + '% | Rotación: ' + currentRotation + '°';
+    document.addEventListener('DOMContentLoaded', function() {
+        // CSS dinámico con escape correcto para Razor
+        const style = document.createElement('style');
+        style.textContent = `
+            @@keyframes spin {
+                0% { transform: translate(-50%, -50%) rotate(0deg); }
+                100% { transform: translate(-50%, -50%) rotate(360deg); }
             }
-        }
-    }
-
-    // Funciones de rotación
-    window.rotateLeft = () => { currentRotation = (currentRotation - 90 + 360) % 360; autoFitImage(); };
-    window.rotateRight = () => { currentRotation = (currentRotation + 90) % 360; autoFitImage(); };
-    window.resetRotation = () => { currentRotation = 0; autoFitImage(); };
-
-    // Navegación
-    window.previousImage = () => { 
-        if (images.length === 0) return; 
-        currentImageIndex = (currentImageIndex - 1 + images.length) % images.length; 
-        goToImage(currentImageIndex); 
-    };
-    window.nextImage = () => { 
-        if (images.length === 0) return; 
-        currentImageIndex = (currentImageIndex + 1) % images.length; 
-        goToImage(currentImageIndex); 
-    };
-
-    function goToImage(index) {
-        currentImageIndex = index;
-        const modalImg = document.getElementById('modalImage');
-        if (modalImg && images[index]) {
-            modalImg.src = images[index].src;
-            modalImg.alt = images[index].alt;
-            currentRotation = 0;
-            updateImageInfo(images[index]);
-            updateGalleryNavigation();
-            updateNavigationButtons();
-            autoFitImage();
-        }
-    }
-
-    // Actualizar información
-    function updateImageInfo(imgElement) {
-        const nameEl = document.getElementById('imageName');
-        const detailsEl = document.getElementById('imageDetails');
-        if (nameEl) {
-            nameEl.textContent = imgElement.getAttribute('data-filename') || imgElement.alt || 'Evidencia fotográfica';
-        }
-        if (detailsEl) {
-            let details = 'Imagen ' + (currentImageIndex + 1) + ' de ' + images.length;
-            const captureDate = imgElement.getAttribute('data-capture-date');
-            if (captureDate) details += ' • Capturada: ' + captureDate;
-            const isSharePoint = imgElement.getAttribute('data-sharepoint-url');
-            details += isSharePoint ? ' • SharePoint' : ' • Base de Datos';
-            detailsEl.textContent = details;
-        }
-    }
-
-    // Actualizar navegación de galería
-    function updateGalleryNavigation() {
-        document.querySelectorAll('.gallery-thumb').forEach((thumb, index) => {
-            thumb.classList.toggle('active', index === currentImageIndex);
-        });
-        const activeThumb = document.querySelector('.gallery-thumb.active');
-        if (activeThumb) {
-            activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        }
-    }
-
-    // Actualizar botones
-    function updateNavigationButtons() {
-        const prevBtn = document.getElementById('prevBtn');
-        const nextBtn = document.getElementById('nextBtn');
-        if (prevBtn) prevBtn.disabled = images.length <= 1;
-        if (nextBtn) nextBtn.disabled = images.length <= 1;
-    }
-
-    // Funciones globales del modal
-    window.downloadImage = function() {
-        const modalImg = document.getElementById('modalImage');
-        if (modalImg && modalImg.src) {
-            const link = document.createElement('a');
-            link.href = modalImg.src;
-            const filename = modalImg.getAttribute('data-filename') || modalImg.alt || 'evidencia';
-            link.download = filename;
-            link.click();
-        }
-    };
-
-    window.closeModal = function() {
-        const modal = document.getElementById('imageModal');
-        if (modal) {
-            modal.classList.remove('show');
-            setTimeout(() => {
-                modal.style.display = 'none';
-                document.body.style.overflow = 'auto';
-                currentRotation = 0;
-                currentZoom = 1;
-                translateX = 0;
-                translateY = 0;
-            }, 300);
-        }
-    };
-
-    // Eventos de arrastre
-    const zoomContainer = document.getElementById('zoomContainer');
-    if (zoomContainer) {
-        zoomContainer.addEventListener('mousedown', (e) => {
-            if (currentZoom > 0.5) {
-                isDragging = true;
-                startX = e.clientX - translateX;
-                startY = e.clientY - translateY;
-                e.preventDefault();
+            @@media (max-width: 768px) {
+                .modal-controls { top: 10px; right: 10px; gap: 5px; }
+                .modal-control-btn { width: 40px; height: 40px; font-size: 14px; }
+                .rotation-controls { bottom: 60px; right: 10px; }
             }
-        });
-        document.addEventListener('mousemove', (e) => {
-            if (isDragging) {
-                translateX = e.clientX - startX;
-                translateY = e.clientY - startY;
-                applyZoom();
+            .rotation-controls {
+                position: absolute; bottom: 80px; right: 20px; display: flex;
+                flex-direction: column; gap: 5px; background: rgba(0, 0, 0, 0.8);
+                padding: 8px; border-radius: 20px; backdrop-filter: blur(10px);
             }
-        });
-        document.addEventListener('mouseup', () => { isDragging = false; });
-        zoomContainer.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            if (e.deltaY < 0) zoomIn(); else zoomOut();
-        });
-    }
+            .rotation-btn {
+                background: rgba(255, 255, 255, 0.2); border: none; color: white;
+                padding: 8px; border-radius: 50%; cursor: pointer; transition: all 0.3s ease;
+                font-size: 14px; width: 35px; height: 35px; display: flex;
+                align-items: center; justify-content: center;
+            }
+            .rotation-btn:hover { background: rgba(255, 255, 255, 0.3); transform: scale(1.1); }
+            .modal-image-zoom {
+                max-width: 100%; max-height: 100%; object-fit: contain;
+                transition: transform 0.3s ease; user-select: none;
+                -webkit-user-drag: none; transform-origin: center center;
+            }
+        `;
+        document.head.appendChild(style);
 
-    // Eventos de teclado
-    document.addEventListener('keydown', (e) => {
-        const modal = document.getElementById('imageModal');
-        if (modal && modal.classList.contains('show')) {
-            switch(e.key) {
-                case 'Escape': closeModal(); break;
-                case 'ArrowLeft': previousImage(); break;
-                case 'ArrowRight': nextImage(); break;
-                case '+': case '=': e.preventDefault(); zoomIn(); break;
-                case '-': e.preventDefault(); zoomOut(); break;
-                case '0': e.preventDefault(); resetZoom(); break;
-                case 'r': case 'R': e.preventDefault(); rotateRight(); break;
-                case 'l': case 'L': e.preventDefault(); rotateLeft(); break;
-            }
+        // Variables globales
+        let currentZoom = 1;
+        let currentImageIndex = 0;
+        let currentRotation = 0;
+        let images = [];
+        let isDragging = false;
+        let startX, startY, translateX = 0, translateY = 0;
+
+        // Función de inicialización de galería
+        function initializeImageGallery() {
+            images = Array.from(document.querySelectorAll('.lazy-image')).filter(img => {
+                const isBDLoaded = !img.hasAttribute('data-sharepoint-url') && img.src && img.src !== '' && img.src !== window.location.href;
+                const isSharePoint = img.hasAttribute('data-sharepoint-url');
+                return isBDLoaded || isSharePoint;
+            });
+            console.log('Galería inicializada con ' + images.length + ' imágenes:', {
+                total: images.length,
+                sharepoint: images.filter(img => img.hasAttribute('data-sharepoint-url')).length,
+                database: images.filter(img => !img.hasAttribute('data-sharepoint-url')).length
+            });
+            createGalleryNavigation();
         }
-    });
 
-    // Cerrar modal al hacer clic fuera
-    const modal = document.getElementById('imageModal');
-    if (modal) {
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) closeModal();
-        });
-    }
+        // Crear navegación
+        function createGalleryNavigation() {
+            const galleryNav = document.getElementById('galleryNav');
+            if (!galleryNav) return;
+            galleryNav.innerHTML = '';
+            images.forEach((img, index) => {
+                const thumb = document.createElement('img');
+                thumb.src = img.src;
+                thumb.className = 'gallery-thumb';
+                thumb.onclick = () => goToImage(index);
+                thumb.title = img.alt || 'Evidencia ' + (index + 1);
+                galleryNav.appendChild(thumb);
+            });
+        }
 
-    // EVENT LISTENER DE CLICK PRINCIPAL
-    document.addEventListener('click', function(e) {
-    const isValidImage = e.target.classList.contains('lazy-image') &&
-        ((e.target.src && e.target.src !== '' && e.target.src !== window.location.href) || e.target.hasAttribute('data-sharepoint-url'));
-        
-        if (isValidImage) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            console.log('CLICK DETECTADO en:', e.target.getAttribute('data-filename'));
-            
-            initializeImageGallery();
-            
-            const clickedIndex = images.findIndex(img => img.src === e.target.src);
-            console.log('Índice encontrado:', clickedIndex);
-            
-            if (clickedIndex !== -1) {
-                currentImageIndex = clickedIndex;
-                
-                const modal = document.getElementById('imageModal');
-                const modalImg = document.getElementById('modalImage');
-                
-                if (modal && modalImg) {
-                    modalImg.src = e.target.src;
-                    modalImg.alt = e.target.alt;
-                    
-                    modalImg.setAttribute('data-filename', e.target.getAttribute('data-filename') || '');
-                    modalImg.setAttribute('data-capture-date', e.target.getAttribute('data-capture-date') || '');
-                    modalImg.setAttribute('data-sharepoint-url', e.target.getAttribute('data-sharepoint-url') || '');
-                    
-                    currentRotation = 0;
-                    
-                    updateImageInfo(e.target);
-                    updateGalleryNavigation();
-                    updateNavigationButtons();
-                    
-                    modal.style.display = 'flex';
-                    setTimeout(() => {
-                        modal.classList.add('show');
-                        setTimeout(() => autoFitImage(), 50);
-                    }, 10);
-                    
-                    document.body.style.overflow = 'hidden';
-                    console.log('MODAL ABIERTO para:', e.target.getAttribute('data-filename'));
-                }
+        // Auto-centrar imagen
+        function autoFitImage() {
+            const modalImg = document.getElementById('modalImage');
+            const container = document.getElementById('zoomContainer');
+            if (!modalImg || !container) return;
+            currentZoom = 1;
+            translateX = 0;
+            translateY = 0;
+            if (modalImg.complete) {
+                calculateOptimalZoom();
             } else {
-                console.error('ERROR: Imagen no encontrada en array');
+                modalImg.onload = () => calculateOptimalZoom();
             }
         }
-    });
 
-    // Intersection Observer para lazy loading
-    const imageObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                const lazyImage = entry.target.querySelector('.lazy-image');
-                if (lazyImage && !lazyImage.classList.contains('loaded') && !lazyImage.hasAttribute('data-sharepoint-url')) {
-                    lazyImage.onload = () => {
-                        lazyImage.classList.add('loaded');
-                        setTimeout(initializeImageGallery, 100);
-                    };
-                    if (lazyImage.dataset.src) {
-                        lazyImage.src = lazyImage.dataset.src;
-                    }
-                    imageObserver.unobserve(entry.target);
+        // Calcular zoom óptimo
+        function calculateOptimalZoom() {
+            const modalImg = document.getElementById('modalImage');
+            const container = document.getElementById('zoomContainer');
+            if (!modalImg || !container) return;
+            const containerRect = container.getBoundingClientRect();
+            let effectiveWidth = modalImg.naturalWidth;
+            let effectiveHeight = modalImg.naturalHeight;
+            if (currentRotation === 90 || currentRotation === 270) {
+                effectiveWidth = modalImg.naturalHeight;
+                effectiveHeight = modalImg.naturalWidth;
+            }
+            const scaleX = (containerRect.width * 0.85) / effectiveWidth;
+            const scaleY = (containerRect.height * 0.85) / effectiveHeight;
+            currentZoom = Math.min(scaleX, scaleY, 1);
+            translateX = 0;
+            translateY = 0;
+            applyZoom();
+        }
+
+        // Funciones globales de zoom
+        window.zoomIn = () => { currentZoom = Math.min(currentZoom * 1.5, 5); applyZoom(); };
+        window.zoomOut = () => { currentZoom = Math.max(currentZoom / 1.5, 0.2); applyZoom(); };
+        window.resetZoom = () => autoFitImage();
+
+        // Aplicar zoom
+        function applyZoom() {
+            const modalImg = document.getElementById('modalImage');
+            if (modalImg) {
+                modalImg.style.transform = 'translate(' + translateX + 'px, ' + translateY + 'px) scale(' + currentZoom + ') rotate(' + currentRotation + 'deg)';
+                const indicator = document.getElementById('zoomIndicator');
+                if (indicator) {
+                    indicator.textContent = 'Zoom: ' + Math.round(currentZoom * 100) + '% | Rotación: ' + currentRotation + '°';
                 }
             }
-        });
-    }, { rootMargin: '50px 0px', threshold: 0.1 });
-
-    document.querySelectorAll('.image-container').forEach(container => {
-        imageObserver.observe(container);
-    });
-
-    // Inicialización final con debug completo
-    setTimeout(() => {
-        console.log('=== INICIALIZANDO SISTEMA ===');
-        
-        initializeImageGallery();
-        
-        const totalImages = document.querySelectorAll('.lazy-image').length;
-        const sharePointImages = document.querySelectorAll('.lazy-image[data-sharepoint-url]').length;
-        const loadedImages = document.querySelectorAll('.lazy-image.loaded').length;
-        
-        console.log('Estado del sistema:', {
-            total: totalImages,
-            sharepoint: sharePointImages,
-            loaded: loadedImages,
-            clickeables: images.length
-        });
-        
-        // Debug visual y click test para SharePoint
-        document.querySelectorAll('.lazy-image[data-sharepoint-url]').forEach((img, index) => {
-            img.style.border = '3px solid red';
-            img.style.cursor = 'pointer';
-            img.style.opacity = '1';
-            console.log('Imagen SharePoint', (index + 1) + ':', img.getAttribute('data-filename'));
-            
-            // Test de click directo
-            img.addEventListener('click', function() {
-                console.log('CLICK DIRECTO FUNCIONANDO en:', this.getAttribute('data-filename'));
-            }, true);
-        });
-        
-        console.log('=== SISTEMA LISTO ===');
-        
-    }, 1000);
-
-    console.log('Página cargada - Sistema de imágenes iniciado');
-});
-    // Función temporal para ampliar imagen
-    function ampliarImagen(boton) {
-        const container = boton.closest('.image-container');
-        const imagen = container.querySelector('.lazy-image');
-        if (imagen) {
-            imagen.click(); // Usar el sistema existente de zoom
         }
-    }
 
-    // ========================================================================
-    // SISTEMA DE SUSTITUCIÓN DE IMÁGENES
-    // ========================================================================
+        // Funciones de rotación
+        window.rotateLeft = () => { currentRotation = (currentRotation - 90 + 360) % 360; autoFitImage(); };
+        window.rotateRight = () => { currentRotation = (currentRotation + 90) % 360; autoFitImage(); };
+        window.resetRotation = () => { currentRotation = 0; autoFitImage(); };
 
-    let datosActuales = {};
-    let archivoSeleccionado = null;
-
-        function abrirModalSustitucion(evidenciaId, nombreArchivo, esSharePoint, carpetaSharePoint, podId) 
-        {
-        console.log('Abriendo modal:', {evidenciaId, nombreArchivo, esSharePoint, carpetaSharePoint, podId});
-
-        datosActuales = {
-            evidenciaId: evidenciaId,
-            nombreArchivo: nombreArchivo,
-            esSharePoint: esSharePoint,
-            carpetaSharePoint: carpetaSharePoint || '',
-            podId: podId || 0
+        // Navegación
+        window.previousImage = () => {
+            if (images.length === 0) return;
+            currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
+            goToImage(currentImageIndex);
+        };
+        window.nextImage = () => {
+            if (images.length === 0) return;
+            currentImageIndex = (currentImageIndex + 1) % images.length;
+            goToImage(currentImageIndex);
         };
 
-        document.getElementById('nombreActual').textContent = nombreArchivo;
-        document.getElementById('origenActual').textContent = esSharePoint ? 'SharePoint' : 'Base de Datos';
-
-        const imgPreview = document.getElementById('imagenActualPreview');
-        if (esSharePoint && carpetaSharePoint) {
-            const encodedCarpeta = encodeURIComponent(carpetaSharePoint);
-            const encodedFileName = encodeURIComponent(nombreArchivo);
-            imgPreview.src = `?handler=SharePointImage&carpeta=${encodedCarpeta}&fileName=${encodedFileName}`;
-        } else if (evidenciaId > 0) {
-            imgPreview.src = `?handler=Image&evidenciaId=${evidenciaId}`;
+        function goToImage(index) {
+            currentImageIndex = index;
+            const modalImg = document.getElementById('modalImage');
+            if (modalImg && images[index]) {
+                modalImg.src = images[index].src;
+                modalImg.alt = images[index].alt;
+                currentRotation = 0;
+                updateImageInfo(images[index]);
+                updateGalleryNavigation();
+                updateNavigationButtons();
+                autoFitImage();
+            }
         }
 
-        document.getElementById('archivoInput').value = '';
-        document.getElementById('btnSustituir').disabled = true;
-        archivoSeleccionado = null;
-
-        document.getElementById('uploadArea').innerHTML = `
-            <i class="fas fa-cloud-upload-alt" style="font-size: 3rem; color: #007bff; margin-bottom: 15px;"></i>
-            <h5>Seleccionar nuevo archivo</h5>
-            <p class="mb-0">JPG, PNG, GIF, PDF - Máximo 10 MB</p>
-        `;
-
-        document.getElementById('modalSustitucion').style.display = 'block';
-    }
-    function cerrarModalSustitucion() {
-        document.getElementById('modalSustitucion').style.display = 'none';
-        document.getElementById('btnSustituir').disabled = true;
-        archivoSeleccionado = null;
-    }
-
-    document.getElementById('archivoInput').addEventListener('change', function(e) {
-        if (e.target.files.length > 0) {
-            archivoSeleccionado = e.target.files[0];
-
-            // ✅ VALIDAR TAMAÑO
-            if (archivoSeleccionado.size > 10 * 1024 * 1024) {
-                alert('❌ El archivo no debe superar 10 MB');
-                e.target.value = '';
-                archivoSeleccionado = null;
-                return;
+        // Actualizar información
+        function updateImageInfo(imgElement) {
+            const nameEl = document.getElementById('imageName');
+            const detailsEl = document.getElementById('imageDetails');
+            if (nameEl) {
+                nameEl.textContent = imgElement.getAttribute('data-filename') || imgElement.alt || 'Evidencia fotográfica';
             }
-
-            // ✅ VALIDAR TIPO DE ARCHIVO - SOLO IMÁGENES
-            const extensionesPermitidas = ['jpg', 'jpeg', 'png', 'gif', 'bmp'];
-            const extension = archivoSeleccionado.name.split('.').pop().toLowerCase();
-
-            if (!extensionesPermitidas.includes(extension)) {
-                alert('❌ Solo se permiten imágenes.\n\nFormatos permitidos: JPG, PNG, GIF, BMP\n\n⚠️ No se permiten archivos PDF');
-                e.target.value = '';
-                archivoSeleccionado = null;
-                return;
+            if (detailsEl) {
+                let details = 'Imagen ' + (currentImageIndex + 1) + ' de ' + images.length;
+                const captureDate = imgElement.getAttribute('data-capture-date');
+                if (captureDate) details += ' • Capturada: ' + captureDate;
+                const isSharePoint = imgElement.getAttribute('data-sharepoint-url');
+                details += isSharePoint ? ' • SharePoint' : ' • Base de Datos';
+                detailsEl.textContent = details;
             }
-
-            document.getElementById('btnSustituir').disabled = false;
-
-            document.getElementById('uploadArea').innerHTML = `
-                <i class="fas fa-check-circle" style="font-size: 3rem; color: #28a745; margin-bottom: 15px;"></i>
-                <h5>${archivoSeleccionado.name}</h5>
-                <p class="mb-0">${(archivoSeleccionado.size / 1024).toFixed(2)} KB</p>
-            `;
-
-            console.log('Archivo seleccionado:', archivoSeleccionado.name);
         }
+
+        // Actualizar navegación de galería
+        function updateGalleryNavigation() {
+            document.querySelectorAll('.gallery-thumb').forEach((thumb, index) => {
+                thumb.classList.toggle('active', index === currentImageIndex);
+            });
+            const activeThumb = document.querySelector('.gallery-thumb.active');
+            if (activeThumb) {
+                activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+        }
+
+        // Actualizar botones
+        function updateNavigationButtons() {
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            if (prevBtn) prevBtn.disabled = images.length <= 1;
+            if (nextBtn) nextBtn.disabled = images.length <= 1;
+        }
+
+        // Funciones globales del modal
+        window.downloadImage = function() {
+            const modalImg = document.getElementById('modalImage');
+            if (modalImg && modalImg.src) {
+                const link = document.createElement('a');
+                link.href = modalImg.src;
+                const filename = modalImg.getAttribute('data-filename') || modalImg.alt || 'evidencia';
+                link.download = filename;
+                link.click();
+            }
+        };
+
+        window.closeModal = function() {
+            const modal = document.getElementById('imageModal');
+            if (modal) {
+                modal.classList.remove('show');
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                    currentRotation = 0;
+                    currentZoom = 1;
+                    translateX = 0;
+                    translateY = 0;
+                }, 300);
+            }
+        };
+
+        // Eventos de arrastre
+        const zoomContainer = document.getElementById('zoomContainer');
+        if (zoomContainer) {
+            zoomContainer.addEventListener('mousedown', (e) => {
+                if (currentZoom > 0.5) {
+                    isDragging = true;
+                    startX = e.clientX - translateX;
+                    startY = e.clientY - translateY;
+                    e.preventDefault();
+                }
+            });
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    translateX = e.clientX - startX;
+                    translateY = e.clientY - startY;
+                    applyZoom();
+                }
+            });
+            document.addEventListener('mouseup', () => { isDragging = false; });
+            zoomContainer.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                if (e.deltaY < 0) zoomIn(); else zoomOut();
+            });
+        }
+
+        // Eventos de teclado
+        document.addEventListener('keydown', (e) => {
+            const modal = document.getElementById('imageModal');
+            if (modal && modal.classList.contains('show')) {
+                switch(e.key) {
+                    case 'Escape': closeModal(); break;
+                    case 'ArrowLeft': previousImage(); break;
+                    case 'ArrowRight': nextImage(); break;
+                    case '+': case '=': e.preventDefault(); zoomIn(); break;
+                    case '-': e.preventDefault(); zoomOut(); break;
+                    case '0': e.preventDefault(); resetZoom(); break;
+                    case 'r': case 'R': e.preventDefault(); rotateRight(); break;
+                    case 'l': case 'L': e.preventDefault(); rotateLeft(); break;
+                }
+            }
+        });
+
+        // Cerrar modal al hacer clic fuera
+        const modal = document.getElementById('imageModal');
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+        }
+
+        // EVENT LISTENER DE CLICK PRINCIPAL
+        document.addEventListener('click', function(e) {
+        const isValidImage = e.target.classList.contains('lazy-image') &&
+            ((e.target.src && e.target.src !== '' && e.target.src !== window.location.href) || e.target.hasAttribute('data-sharepoint-url'));
+
+            if (isValidImage) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                console.log('CLICK DETECTADO en:', e.target.getAttribute('data-filename'));
+
+                initializeImageGallery();
+
+                const clickedIndex = images.findIndex(img => img.src === e.target.src);
+                console.log('Índice encontrado:', clickedIndex);
+
+                if (clickedIndex !== -1) {
+                    currentImageIndex = clickedIndex;
+
+                    const modal = document.getElementById('imageModal');
+                    const modalImg = document.getElementById('modalImage');
+
+                    if (modal && modalImg) {
+                        modalImg.src = e.target.src;
+                        modalImg.alt = e.target.alt;
+
+                        modalImg.setAttribute('data-filename', e.target.getAttribute('data-filename') || '');
+                        modalImg.setAttribute('data-capture-date', e.target.getAttribute('data-capture-date') || '');
+                        modalImg.setAttribute('data-sharepoint-url', e.target.getAttribute('data-sharepoint-url') || '');
+
+                        currentRotation = 0;
+
+                        updateImageInfo(e.target);
+                        updateGalleryNavigation();
+                        updateNavigationButtons();
+
+                        modal.style.display = 'flex';
+                        setTimeout(() => {
+                            modal.classList.add('show');
+                            setTimeout(() => autoFitImage(), 50);
+                        }, 10);
+                        document.body.style.overflow = 'hidden';
+                        console.log('MODAL ABIERTO para:', e.target.getAttribute('data-filename'));
+                    }
+                } else {
+                    console.error('ERROR: Imagen no encontrada en array');
+                }
+            }
+        });
+
+        // Intersection Observer para lazy loading
+        const imageObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const lazyImage = entry.target.querySelector('.lazy-image');
+                    if (lazyImage && !lazyImage.classList.contains('loaded') && !lazyImage.hasAttribute('data-sharepoint-url')) {
+
+                        lazyImage.onload = () => {
+                            lazyImage.classList.add('loaded');
+                            setTimeout(initializeImageGallery, 100);
+                        };
+                        if (lazyImage.dataset.src) {
+                            lazyImage.src = lazyImage.dataset.src;
+                        }
+                        imageObserver.unobserve(entry.target);
+                    }
+                }
+            });
+        }, { rootMargin: '50px 0px', threshold: 0.1 });
+
+        document.querySelectorAll('.image-container').forEach(container => {
+            imageObserver.observe(container);
+        });
+
+        // Inicialización final con debug completo
+        setTimeout(() => {
+            console.log('=== INICIALIZANDO SISTEMA ===');
+
+            initializeImageGallery();
+
+            const totalImages = document.querySelectorAll('.lazy-image').length;
+            const sharePointImages = document.querySelectorAll('.lazy-image[data-sharepoint-url]').length;
+            const loadedImages = document.querySelectorAll('.lazy-image.loaded').length;
+
+            console.log('Estado del sistema:', {
+                total: totalImages,
+                sharepoint: sharePointImages,
+                loaded: loadedImages,
+                clickeables: images.length
+            });
+
+            // Debug visual y click test para SharePoint
+            document.querySelectorAll('.lazy-image[data-sharepoint-url]').forEach((img, index) => {
+                img.style.border = '3px solid red';
+                img.style.cursor = 'pointer';
+                img.style.opacity = '1';
+                console.log('Imagen SharePoint', (index + 1) + ':', img.getAttribute('data-filename'));
+                // Test de click directo
+                img.addEventListener('click', function() {
+                    console.log('CLICK DIRECTO FUNCIONANDO en:', this.getAttribute('data-filename'));
+                }, true);
+            });
+
+            console.log('=== SISTEMA LISTO ===');
+
+        }, 1000);
+
+        console.log('Página cargada - Sistema de imágenes iniciado');
     });
+
+        // Función temporal para ampliar imagen
+        function ampliarImagen(boton) {
+            const container = boton.closest('.image-container');
+            const imagen = container.querySelector('.lazy-image');
+            if (imagen) {
+                imagen.click();
+                // Usar el sistema existente de zoom
+            }
+        }
+
+        // ========================================================================
+        // SISTEMA DE SUSTITUCIÓN DE IMÁGENES
+        // ========================================================================
+
+        let datosActuales = {};
+        let archivoSeleccionado = null;
+
+        function abrirModalSustitucion(evidenciaId, nombreArchivo, esSharePoint, carpetaSharePoint, podId)
+        {
+            console.log('Abriendo modal:', {evidenciaId, nombreArchivo, esSharePoint, carpetaSharePoint, podId});
+            datosActuales = {
+                evidenciaId: evidenciaId,
+                nombreArchivo: nombreArchivo,
+                esSharePoint: esSharePoint,
+                carpetaSharePoint: carpetaSharePoint || '',
+                podId: podId || 0
+            };
+
+            document.getElementById('nombreActual').textContent = nombreArchivo;
+            document.getElementById('origenActual').textContent = esSharePoint ? 'SharePoint' : 'Base de Datos';
+
+            const imgPreview = document.getElementById('imagenActualPreview');
+            if (esSharePoint && carpetaSharePoint) {
+                const encodedCarpeta = encodeURIComponent(carpetaSharePoint);
+                const encodedFileName = encodeURIComponent(nombreArchivo);
+                imgPreview.src = `?handler=SharePointImage&carpeta=${encodedCarpeta}&fileName=${encodedFileName}`;
+            } else if (evidenciaId > 0) {
+                imgPreview.src = `?handler=Image&evidenciaId=${evidenciaId}`;
+            }
+
+            document.getElementById('archivoInput').value = '';
+            document.getElementById('btnSustituir').disabled = true;
+            archivoSeleccionado = null;
+            document.getElementById('uploadArea').innerHTML = `
+                <i class="fas fa-cloud-upload-alt" style="font-size: 3rem; color: #007bff; margin-bottom: 15px;"></i>
+                <h5>Seleccionar nuevo archivo</h5>
+                <p class="mb-0">JPG, PNG, GIF, PDF - Máximo 10 MB</p>
+            `;
+            document.getElementById('modalSustitucion').style.display = 'block';
+        }
+
+        function cerrarModalSustitucion() {
+            document.getElementById('modalSustitucion').style.display = 'none';
+            document.getElementById('btnSustituir').disabled = true;
+            archivoSeleccionado = null;
+        }
+
+        document.getElementById('archivoInput').addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                archivoSeleccionado = e.target.files[0];
+
+                // ✅ VALIDAR TAMAÑO
+                if (archivoSeleccionado.size > 10 * 1024 * 1024) {
+                    alert('❌ El archivo no debe superar 10 MB');
+                    e.target.value = '';
+                    archivoSeleccionado = null;
+                    return;
+                }
+
+                // ✅ VALIDAR TIPO DE ARCHIVO - SOLO IMÁGENES
+                const extensionesPermitidas = ['jpg', 'jpeg', 'png', 'gif', 'bmp'];
+                const extension = archivoSeleccionado.name.split('.').pop().toLowerCase();
+
+                if (!extensionesPermitidas.includes(extension)) {
+                    alert('❌ Solo se permiten imágenes.\n\nFormatos permitidos: JPG, PNG, GIF, BMP\n\n⚠️ No se permiten archivos PDF');
+                    e.target.value = '';
+                    archivoSeleccionado = null;
+                    return;
+                }
+
+                document.getElementById('btnSustituir').disabled = false;
+                document.getElementById('uploadArea').innerHTML = `
+                    <i class="fas fa-check-circle" style="font-size: 3rem; color: #28a745; margin-bottom: 15px;"></i>
+                    <h5>${archivoSeleccionado.name}</h5>
+                    <p class="mb-0">${(archivoSeleccionado.size / 1024).toFixed(2)} KB</p>
+                `;
+                console.log('Archivo seleccionado:', archivoSeleccionado.name);
+            }
+        });
+
         async function sustituirArchivo() {
-        if (!archivoSeleccionado) {
-            alert('❌ Debe seleccionar un archivo primero');
-            return;
-        }
-
-        if (!confirm(`¿Está seguro de sustituir "${datosActuales.nombreArchivo}"?\n\nEsta acción no se puede deshacer.`)) {
-            return;
-        }
-
-        const btnSustituir = document.getElementById('btnSustituir');
-        btnSustituir.disabled = true;
-        btnSustituir.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Sustituyendo...';
-
-        try {
-            const formData = new FormData();
-            formData.append('evidenciaId', datosActuales.evidenciaId);
-            formData.append('archivoNuevo', archivoSeleccionado);
-            formData.append('esSharePoint', datosActuales.esSharePoint);
-
-            // ⬇️ NUEVOS PARÁMETROS PARA SHAREPOINT
-            if (datosActuales.carpetaSharePoint) {
-                formData.append('carpetaSharePoint', datosActuales.carpetaSharePoint);
-            }
-            if (datosActuales.nombreArchivo) {
-                formData.append('nombreArchivoActual', datosActuales.nombreArchivo);
-            }
-            if (datosActuales.podId) {
-                formData.append('podIdFk', datosActuales.podId);
-            }
-
-            const tokenElem = document.querySelector('input[name="__RequestVerificationToken"]');
-            if (!tokenElem) {
-                alert('No se encontró el token antiforgery. Por favor, recarga la página.');
-                btnSustituir.disabled = false;
-                btnSustituir.innerHTML = '<i class="fas fa-exchange-alt me-1"></i> Sustituir Archivo';
+            if (!archivoSeleccionado) {
+                alert('❌ Debe seleccionar un archivo primero');
                 return;
             }
 
-            console.log('Enviando petición con datos:', {
-                evidenciaId: datosActuales.evidenciaId,
-                carpetaSharePoint: datosActuales.carpetaSharePoint,
-                podId: datosActuales.podId
-            });
+            if (!confirm(`¿Está seguro de sustituir "${datosActuales.nombreArchivo}"?\n\nEsta acción no se puede deshacer.`)) {
+                return;
+            }
 
-            const response = await fetch('?handler=SustituirImagen', {
-                method: 'POST',
-                headers: {
-                    'RequestVerificationToken': tokenElem.value
-                },
-                body: formData
-            });
+            const btnSustituir = document.getElementById('btnSustituir');
+            btnSustituir.disabled = true;
+            btnSustituir.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Sustituyendo...';
 
-            console.log('Respuesta recibida:', response.status);
+            try {
+                const formData = new FormData();
+                formData.append('evidenciaId', datosActuales.evidenciaId);
+                formData.append('archivoNuevo', archivoSeleccionado);
+                formData.append('esSharePoint', datosActuales.esSharePoint);
 
-            const result = await response.json();
+                // ⬇️ NUEVOS PARÁMETROS PARA SHAREPOINT
+                if (datosActuales.carpetaSharePoint) {
+                    formData.append('carpetaSharePoint', datosActuales.carpetaSharePoint);
+                }
+                if (datosActuales.nombreArchivo) {
+                    formData.append('nombreArchivoActual', datosActuales.nombreArchivo);
+                }
+                if (datosActuales.podId) {
+                    formData.append('podIdFk', datosActuales.podId);
+                }
 
-            if (result.success) {
-                alert(`✅ ${result.resultado.mensaje}\n\nBD: ${result.resultado.actualizadaEnBD ? 'Sí' : 'No'}\nSharePoint: ${result.resultado.actualizadaEnSharePoint ? 'Sí' : 'No'}`);
-                cerrarModalSustitucion();
-                location.reload();
-            } else {
-                alert(`❌ Error: ${result.error}`);
+                const tokenElem = document.querySelector('input[name="__RequestVerificationToken"]');
+                if (!tokenElem) {
+                    alert('No se encontró el token antiforgery. Por favor, recarga la página.');
+                    btnSustituir.disabled = false;
+                    btnSustituir.innerHTML = '<i class="fas fa-exchange-alt me-1"></i> Sustituir Archivo';
+                    return;
+                }
+
+                console.log('Enviando petición con datos:', {
+                    evidenciaId: datosActuales.evidenciaId,
+                    carpetaSharePoint: datosActuales.carpetaSharePoint,
+                    podId: datosActuales.podId
+                });
+
+                const response = await fetch('?handler=SustituirImagen', {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': tokenElem.value
+                    },
+                    body: formData
+                });
+
+                console.log('Respuesta recibida:', response.status);
+
+                const result = await response.json();
+                if (result.success) {
+                    alert(`✅ ${result.resultado.mensaje}\n\nBD: ${result.resultado.actualizadaEnBD ? 'Sí' : 'No'}\nSharePoint: ${result.resultado.actualizadaEnSharePoint ? 'Sí' : 'No'}`);
+                    cerrarModalSustitucion();
+                    location.reload();
+                } else {
+                    alert(`❌ Error: ${result.error}`);
+                    btnSustituir.disabled = false;
+                    btnSustituir.innerHTML = '<i class="fas fa-exchange-alt me-1"></i> Sustituir Archivo';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert(`❌ Error de conexión: ${error.message}`);
                 btnSustituir.disabled = false;
                 btnSustituir.innerHTML = '<i class="fas fa-exchange-alt me-1"></i> Sustituir Archivo';
             }
-        } catch (error) {
-            console.error('Error:', error);
-            alert(`❌ Error de conexión: ${error.message}`);
-            btnSustituir.disabled = false;
-            btnSustituir.innerHTML = '<i class="fas fa-exchange-alt me-1"></i> Sustituir Archivo';
         }
-    }
 
-    document.getElementById('btnSustituir').onclick = sustituirArchivo;
+        document.getElementById('btnSustituir').onclick = sustituirArchivo;
 
-    document.getElementById('modalSustitucion').onclick = function(event) {
-        if (event.target === this) {
-            cerrarModalSustitucion();
+        document.getElementById('modalSustitucion').onclick = function(event) {
+            if (event.target === this) {
+                cerrarModalSustitucion();
+            }
+        };
+
+        // ========================================================================
+        // SISTEMA DE SUBIDA DE EVIDENCIA ADICIONAL A SHAREPOINT
+        // ========================================================================
+
+        let archivoNuevoSeleccionado = null;
+
+        function abrirModalSubirEvidencia() {
+            document.getElementById('archivoInputNuevo').value = '';
+            document.getElementById('btnSubirAdicional').disabled = true;
+            archivoNuevoSeleccionado = null;
+
+            document.getElementById('uploadAreaNuevo').innerHTML = `
+                <i class="fas fa-file-upload" style="font-size: 3rem; color: #28a745; margin-bottom: 15px;"></i>
+                <h5>Seleccionar archivo</h5>
+                <p class="mb-0">📄 JPG, PNG, PDF - Máximo 20 MB</p>
+            `;
+            document.getElementById('modalSubirEvidencia').style.display = 'block';
         }
-    };
+
+        function cerrarModalSubirEvidencia() {
+            document.getElementById('modalSubirEvidencia').style.display = 'none';
+            archivoNuevoSeleccionado = null;
+        }
+
+        document.getElementById('archivoInputNuevo').addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                archivoNuevoSeleccionado = e.target.files[0];
+
+                if (archivoNuevoSeleccionado.size > 20 * 1024 * 1024) {
+                    alert('❌ El archivo no debe superar 20 MB');
+                    e.target.value = '';
+                    archivoNuevoSeleccionado = null;
+                    return;
+                }
+
+                const extensionesPermitidas = ['jpg', 'jpeg', 'png', 'pdf'];
+                const extension = archivoNuevoSeleccionado.name.split('.').pop().toLowerCase();
+
+                if (!extensionesPermitidas.includes(extension)) {
+                    alert('❌ Solo se permiten imágenes (JPG, PNG) y archivos PDF.');
+                    e.target.value = '';
+                    archivoNuevoSeleccionado = null;
+                    return;
+                }
+
+                document.getElementById('btnSubirAdicional').disabled = false;
+                let iconClass = extension === 'pdf' ? 'fa-file-pdf text-danger' : 'fa-file-image text-success';
+
+                document.getElementById('uploadAreaNuevo').innerHTML = `
+                    <i class="fas ${iconClass}" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                    <h5>${archivoNuevoSeleccionado.name}</h5>
+                    <p class="mb-0">${(archivoNuevoSeleccionado.size / 1024 / 1024).toFixed(2)} MB</p>
+                `;
+            }
+        });
+
+        async function subirArchivoAdicional() {
+            if (!archivoNuevoSeleccionado) return;
+
+            const btnSubir = document.getElementById('btnSubirAdicional');
+            btnSubir.disabled = true;
+            btnSubir.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Subiendo...';
+
+            try {
+                const podId = '@(Model.LiquidacionDetalle?.POD_ID ?? 0)';
+                const fechaSalida = '@(Model.LiquidacionDetalle?.FechaSalida?.ToString("yyyy-MM-dd") ?? "")';
+                const carpetaSharePoint = '@(Model.EvidenciasInfo?.FirstOrDefault(e => !string.IsNullOrEmpty(e.CarpetaSharePoint))?.CarpetaSharePoint ?? "")';
+
+                const formData = new FormData();
+                formData.append('podId', podId);
+                formData.append('fechaSalida', fechaSalida);
+                formData.append('carpetaSharePoint', carpetaSharePoint);
+                formData.append('archivoAdicional', archivoNuevoSeleccionado);
+
+                const tokenElem = document.querySelector('input[name="__RequestVerificationToken"]');
+                if (!tokenElem) {
+                    alert('Error de seguridad. Recarga la página e intenta de nuevo.');
+                    return;
+                }
+
+                const response = await fetch('?handler=SubirEvidenciaAdicional', {
+                    method: 'POST',
+                    headers: { 'RequestVerificationToken': tokenElem.value },
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ ${result.mensaje}`);
+                    location.reload();
+                } else {
+                    alert(`❌ Error: ${result.error}`);
+                    btnSubir.disabled = false;
+                    btnSubir.innerHTML = '<i class="fas fa-upload me-1"></i> Subir Archivo';
+                }
+            } catch (error) {
+                alert(`❌ Error de conexión: ${error.message}`);
+                btnSubir.disabled = false;
+                btnSubir.innerHTML = '<i class="fas fa-upload me-1"></i> Subir Archivo';
+            }
+        }
+
+        // Cerrar modal de subida al hacer clic fuera
+        document.getElementById('modalSubirEvidencia').addEventListener('click', function(event) {
+            if (event.target === this) cerrarModalSubirEvidencia();
+        });
+
 </script>

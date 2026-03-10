@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization; // <-- Agregado
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProyectoRH2025.Data;
 using ProyectoRH2025.MODELS;
@@ -11,6 +12,7 @@ namespace ProyectoRH2025.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    // NOTA: No ponemos AllowAnonymous aquí arriba para que el resto del controlador siga protegido
     public class CarteleraController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -30,6 +32,7 @@ namespace ProyectoRH2025.Controllers
         /// <summary>
         /// Obtiene todos los items activos de la cartelera
         /// </summary>
+        [AllowAnonymous] // <-- PERMISO PARA LA TV
         [HttpGet("GetActive")]
         public async Task<IActionResult> GetActive()
         {
@@ -59,11 +62,6 @@ namespace ProyectoRH2025.Controllers
 
                 _logger.LogInformation($"✅ API: Retornando {items.Count} items activos");
 
-                foreach (var item in items)
-                {
-                    _logger.LogInformation($"   - ID: {item.id}, Archivo: {item.fileName}, Tipo: {item.contentType}");
-                }
-
                 return Ok(items);
             }
             catch (Exception ex)
@@ -79,6 +77,7 @@ namespace ProyectoRH2025.Controllers
         [HttpGet("GetItem/{id}")]
         public async Task<IActionResult> GetItem(int id)
         {
+            // ESTE SE QUEDA SIN ALLOW ANONYMOUS (Solo el Admin puede consultar esto)
             try
             {
                 _logger.LogInformation($"📺 API: Obteniendo item {id}...");
@@ -110,7 +109,6 @@ namespace ProyectoRH2025.Controllers
                     return NotFound(new { error = "Item no encontrado" });
                 }
 
-                _logger.LogInformation($"✅ API: Item {id} encontrado");
                 return Ok(item);
             }
             catch (Exception ex)
@@ -126,6 +124,7 @@ namespace ProyectoRH2025.Controllers
         [HttpGet("GetStats")]
         public async Task<IActionResult> GetStats()
         {
+            // ESTE SE QUEDA SIN ALLOW ANONYMOUS
             try
             {
                 _logger.LogInformation("📊 API: Obteniendo estadísticas...");
@@ -144,8 +143,6 @@ namespace ProyectoRH2025.Controllers
                     totalSizeMB = Math.Round(totalSize / 1024.0 / 1024.0, 2)
                 };
 
-                _logger.LogInformation($"✅ API: Estadísticas - Total: {totalItems}, Activos: {activeItems}");
-
                 return Ok(stats);
             }
             catch (Exception ex)
@@ -158,42 +155,30 @@ namespace ProyectoRH2025.Controllers
         /// <summary>
         /// Endpoint proxy para servir imágenes desde SharePoint sin autenticación
         /// </summary>
+        [AllowAnonymous] // <-- PERMISO PARA LA TV
         [HttpGet("GetImage/{id}")]
         public async Task<IActionResult> GetImage(int id)
         {
             try
             {
-                _logger.LogInformation($"🖼️ API: Obteniendo imagen para item {id}...");
-
                 var item = await _context.CarteleraItems.FindAsync(id);
                 if (item == null)
                 {
-                    _logger.LogWarning($"⚠️ API: Item {id} no encontrado");
                     return NotFound();
                 }
 
-                _logger.LogInformation($"📥 API: Descargando desde SharePoint: {item.FileName}");
-
-                // Obtener la URL de descarga directa desde SharePoint
                 var downloadUrl = await _sharePointService.GetCarteleraFileDownloadUrlAsync(item.FileName, false);
 
                 if (string.IsNullOrEmpty(downloadUrl))
                 {
-                    _logger.LogError($"❌ API: No se pudo obtener URL de descarga para {item.FileName}");
                     return NotFound();
                 }
 
-                _logger.LogInformation($"🔗 API: URL de descarga obtenida");
-
-                // Descargar el archivo desde SharePoint
                 using var httpClient = new HttpClient();
                 httpClient.Timeout = TimeSpan.FromSeconds(30);
                 var bytes = await httpClient.GetByteArrayAsync(downloadUrl);
 
-                _logger.LogInformation($"✅ API: Imagen descargada ({bytes.Length / 1024} KB)");
-
-                // Retornar la imagen con el tipo MIME correcto
-                return File(bytes, item.MimeType ?? "image/jpeg");
+                return File(bytes, item.MimeType ?? "application/octet-stream", enableRangeProcessing: true);
             }
             catch (Exception ex)
             {

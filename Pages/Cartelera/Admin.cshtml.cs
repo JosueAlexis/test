@@ -29,33 +29,25 @@ namespace ProyectoRH2025.Pages.Cartelera
             _logger = logger;
         }
 
-        // Propiedades para la vista
         public List<CarteleraItem> Items { get; set; } = new List<CarteleraItem>();
         public int TotalItems { get; set; }
         public int ActiveItems { get; set; }
         public int DefaultDuration { get; set; } = 10;
         public string TransitionType { get; set; } = "fade";
+        public string TickerText { get; set; } = "🟢 Bienvenidos a ProyectoRH2025 | ⚠️ Registra tu asistencia";
 
         public async Task OnGetAsync()
         {
             try
             {
-                _logger.LogInformation("🔍 Cargando datos de Cartelera Digital...");
-
-                // Cargar items de la base de datos
                 Items = await _context.CarteleraItems
                     .OrderBy(i => i.DisplayOrder)
                     .ThenByDescending(i => i.UploadDate)
                     .ToListAsync();
 
-                _logger.LogInformation($"✅ Se cargaron {Items.Count} items de la base de datos");
-
                 TotalItems = Items.Count;
                 ActiveItems = Items.Count(i => i.IsActive);
 
-                _logger.LogInformation($"📊 Total: {TotalItems}, Activos: {ActiveItems}");
-
-                // Cargar configuración
                 var durationConfig = await _context.CarteleraConfigs
                     .FirstOrDefaultAsync(c => c.ConfigKey == "DefaultDuration");
 
@@ -71,6 +63,14 @@ namespace ProyectoRH2025.Pages.Cartelera
                 if (transitionConfig != null)
                 {
                     TransitionType = transitionConfig.ConfigValue;
+                }
+
+                var tickerConfig = await _context.CarteleraConfigs
+                    .FirstOrDefaultAsync(c => c.ConfigKey == "TickerText");
+
+                if (tickerConfig != null)
+                {
+                    TickerText = tickerConfig.ConfigValue;
                 }
             }
             catch (Exception ex)
@@ -94,14 +94,13 @@ namespace ProyectoRH2025.Pages.Cartelera
                     return RedirectToPage();
                 }
 
-                // Validar tamaño (50 MB máximo)
-                if (file.Length > 50 * 1024 * 1024)
+                // Cambia esto:
+                if (file.Length > 100 * 1024 * 1024) // <--- Cambiado de 50 a 100
                 {
-                    TempData["Error"] = "El archivo excede el tamaño máximo de 50 MB";
+                    TempData["Error"] = "El archivo excede el tamaño máximo de 100 MB"; // <--- Mensaje actualizado
                     return RedirectToPage();
                 }
 
-                // Validar tipo de archivo
                 var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
                 var contentType = DetermineContentType(extension);
 
@@ -111,11 +110,9 @@ namespace ProyectoRH2025.Pages.Cartelera
                     return RedirectToPage();
                 }
 
-                // Generar nombre único para evitar conflictos
                 var uniqueFileName = $"{Guid.NewGuid()}_{file.FileName}";
-
-                // Subir a SharePoint
                 string sharePointUrl;
+
                 using (var stream = file.OpenReadStream())
                 {
                     sharePointUrl = await _sharePointService.UploadCarteleraFileAsync(
@@ -131,10 +128,8 @@ namespace ProyectoRH2025.Pages.Cartelera
                     return RedirectToPage();
                 }
 
-                // Obtener el último DisplayOrder
                 var maxOrder = await _context.CarteleraItems.MaxAsync(i => (int?)i.DisplayOrder) ?? 0;
 
-                // Crear registro en base de datos
                 var item = new CarteleraItem
                 {
                     FileName = uniqueFileName,
@@ -155,9 +150,7 @@ namespace ProyectoRH2025.Pages.Cartelera
                 _context.CarteleraItems.Add(item);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Archivo subido exitosamente: {FileName}", uniqueFileName);
                 TempData["Success"] = $"Archivo '{file.FileName}' subido exitosamente";
-
                 return RedirectToPage();
             }
             catch (Exception ex)
@@ -168,52 +161,74 @@ namespace ProyectoRH2025.Pages.Cartelera
             }
         }
 
-        public async Task<IActionResult> OnPostUpdateConfigAsync(
-            int defaultDuration,
-            string transitionType)
+        // --- NUEVO MÉTODO PARA GUARDAR CÁMARAS Y ENLACES WEB ---
+        public async Task<IActionResult> OnPostAddLinkAsync(
+            string url,
+            string description,
+            int duration,
+            string category)
         {
             try
             {
-                // Actualizar DefaultDuration
-                var durationConfig = await _context.CarteleraConfigs
-                    .FirstOrDefaultAsync(c => c.ConfigKey == "DefaultDuration");
-
-                if (durationConfig != null)
+                if (string.IsNullOrEmpty(url))
                 {
-                    durationConfig.ConfigValue = defaultDuration.ToString();
-                    durationConfig.LastUpdated = DateTime.Now;
-                }
-                else
-                {
-                    _context.CarteleraConfigs.Add(new CarteleraConfig
-                    {
-                        ConfigKey = "DefaultDuration",
-                        ConfigValue = defaultDuration.ToString(),
-                        LastUpdated = DateTime.Now
-                    });
+                    TempData["Error"] = "La URL no puede estar vacía";
+                    return RedirectToPage();
                 }
 
-                // Actualizar TransitionType
-                var transitionConfig = await _context.CarteleraConfigs
-                    .FirstOrDefaultAsync(c => c.ConfigKey == "TransitionType");
+                var maxOrder = await _context.CarteleraItems.MaxAsync(i => (int?)i.DisplayOrder) ?? 0;
 
-                if (transitionConfig != null)
+                var item = new CarteleraItem
                 {
-                    transitionConfig.ConfigValue = transitionType;
-                    transitionConfig.LastUpdated = DateTime.Now;
-                }
-                else
-                {
-                    _context.CarteleraConfigs.Add(new CarteleraConfig
-                    {
-                        ConfigKey = "TransitionType",
-                        ConfigValue = transitionType,
-                        LastUpdated = DateTime.Now
-                    });
-                }
+                    FileName = "Cámara / Enlace Web",
+                    ContentType = "iframe",
+                    SharePointPath = "Web Link",
+                    SharePointUrl = url, // Guardamos la URL directamente aquí
+                    IsActive = true,
+                    DisplayOrder = maxOrder + 1,
+                    DurationSeconds = duration > 0 ? duration : DefaultDuration,
+                    UploadDate = DateTime.Now,
+                    UploaderUserId = User?.Identity?.Name ?? "Sistema",
+                    Description = description,
+                    FileSize = 0,
+                    Category = category,
+                    MimeType = "text/html"
+                };
 
+                _context.CarteleraItems.Add(item);
                 await _context.SaveChangesAsync();
 
+                TempData["Success"] = "Enlace agregado exitosamente";
+                return RedirectToPage();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error agregando enlace");
+                TempData["Error"] = "Error al agregar enlace: " + ex.Message;
+                return RedirectToPage();
+            }
+        }
+
+        public async Task<IActionResult> OnPostUpdateConfigAsync(
+            int defaultDuration,
+            string transitionType,
+            string tickerText)
+        {
+            try
+            {
+                var durationConfig = await _context.CarteleraConfigs.FirstOrDefaultAsync(c => c.ConfigKey == "DefaultDuration");
+                if (durationConfig != null) { durationConfig.ConfigValue = defaultDuration.ToString(); durationConfig.LastUpdated = DateTime.Now; }
+                else { _context.CarteleraConfigs.Add(new CarteleraConfig { ConfigKey = "DefaultDuration", ConfigValue = defaultDuration.ToString(), LastUpdated = DateTime.Now }); }
+
+                var transitionConfig = await _context.CarteleraConfigs.FirstOrDefaultAsync(c => c.ConfigKey == "TransitionType");
+                if (transitionConfig != null) { transitionConfig.ConfigValue = transitionType; transitionConfig.LastUpdated = DateTime.Now; }
+                else { _context.CarteleraConfigs.Add(new CarteleraConfig { ConfigKey = "TransitionType", ConfigValue = transitionType, LastUpdated = DateTime.Now }); }
+
+                var tickerConfig = await _context.CarteleraConfigs.FirstOrDefaultAsync(c => c.ConfigKey == "TickerText");
+                if (tickerConfig != null) { tickerConfig.ConfigValue = tickerText ?? ""; tickerConfig.LastUpdated = DateTime.Now; }
+                else { _context.CarteleraConfigs.Add(new CarteleraConfig { ConfigKey = "TickerText", ConfigValue = tickerText ?? "", LastUpdated = DateTime.Now }); }
+
+                await _context.SaveChangesAsync();
                 TempData["Success"] = "Configuración actualizada exitosamente";
                 return RedirectToPage();
             }
@@ -230,16 +245,10 @@ namespace ProyectoRH2025.Pages.Cartelera
             try
             {
                 var item = await _context.CarteleraItems.FindAsync(id);
-                if (item == null)
-                {
-                    return NotFound();
-                }
+                if (item == null) return NotFound();
 
                 item.IsActive = !item.IsActive;
                 await _context.SaveChangesAsync();
-
-                _logger.LogInformation("Item {Id} cambiado a {State}", id, item.IsActive ? "Activo" : "Inactivo");
-
                 return new JsonResult(new { success = true, isActive = item.IsActive });
             }
             catch (Exception ex)
@@ -250,13 +259,8 @@ namespace ProyectoRH2025.Pages.Cartelera
         }
 
         public async Task<IActionResult> OnPostUpdateItemAsync(
-            int id,
-            string description,
-            int duration,
-            int displayOrder,
-            string category,
-            DateTime? startDate,
-            DateTime? endDate)
+            int id, string description, int duration, int displayOrder,
+            string category, DateTime? startDate, DateTime? endDate)
         {
             try
             {
@@ -275,10 +279,7 @@ namespace ProyectoRH2025.Pages.Cartelera
                 item.EndDate = endDate;
 
                 await _context.SaveChangesAsync();
-
-                _logger.LogInformation("Item {Id} actualizado", id);
                 TempData["Success"] = "Item actualizado exitosamente";
-
                 return RedirectToPage();
             }
             catch (Exception ex)
@@ -294,25 +295,20 @@ namespace ProyectoRH2025.Pages.Cartelera
             try
             {
                 var item = await _context.CarteleraItems.FindAsync(id);
-                if (item == null)
+                if (item == null) return new JsonResult(new { success = false, error = "Item no encontrado" });
+
+                // No intentar borrar de SharePoint si es un simple enlace web
+                if (item.ContentType != "iframe")
                 {
-                    return new JsonResult(new { success = false, error = "Item no encontrado" });
+                    var deleted = await _sharePointService.DeleteCarteleraFileAsync(item.FileName, false);
+                    if (!deleted)
+                    {
+                        _logger.LogWarning("No se pudo eliminar archivo de SharePoint: {FileName}", item.FileName);
+                    }
                 }
 
-                // Eliminar de SharePoint
-                var deleted = await _sharePointService.DeleteCarteleraFileAsync(item.FileName, false);
-
-                if (!deleted)
-                {
-                    _logger.LogWarning("No se pudo eliminar archivo de SharePoint: {FileName}", item.FileName);
-                }
-
-                // Eliminar de base de datos
                 _context.CarteleraItems.Remove(item);
                 await _context.SaveChangesAsync();
-
-                _logger.LogInformation("Item {Id} eliminado", id);
-
                 return new JsonResult(new { success = true });
             }
             catch (Exception ex)

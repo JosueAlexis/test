@@ -6,6 +6,7 @@ using ProyectoRH2025.MODELS;
 using Microsoft.AspNetCore.Http;
 using System.Data;
 using System.Diagnostics;
+using Hangfire;
 
 namespace ProyectoRH2025.Pages.Liquidaciones
 {
@@ -25,18 +26,19 @@ namespace ProyectoRH2025.Pages.Liquidaciones
         [BindProperty(SupportsGet = true)]
         public string? SearchString { get; set; }
 
-        // NUEVO: Filtro específico para Remolque
         [BindProperty(SupportsGet = true)]
         public string? Remolque { get; set; }
 
         [BindProperty(SupportsGet = true)]
-        public bool TodosLosRegistros { get; set; } = false;  // NUEVO para indicar "todos los registros"
+        public bool TodosLosRegistros { get; set; } = false;
 
         [BindProperty(SupportsGet = true)]
         public DateTime? FechaInicio { get; set; }
 
         [BindProperty(SupportsGet = true)]
         public DateTime? FechaFin { get; set; }
+
+        [BindProperty(SupportsGet = true)]
         public byte? StatusFiltro { get; set; }
 
         [BindProperty(SupportsGet = true)]
@@ -51,14 +53,9 @@ namespace ProyectoRH2025.Pages.Liquidaciones
         public int RegistrosMostrados { get; set; }
         public bool MostrandoSoloEstaSemana { get; set; }
 
-        // Opciones para los dropdowns
         public List<ClienteOpcion> ClientesDisponibles { get; set; } = new List<ClienteOpcion>();
-
-        // Para mostrar filtros activos
         public string StatusFiltroTexto { get; set; } = "";
         public string EvidenciasFiltroTexto { get; set; } = "";
-
-        // DIAGNÓSTICO
         public string DiagnosticoTiempos { get; set; } = "";
 
         public async Task<IActionResult> OnGetAsync()
@@ -83,46 +80,36 @@ namespace ProyectoRH2025.Pages.Liquidaciones
             {
                 var connectionString = _configuration.GetConnectionString("DefaultConnection");
 
-                // CARGAR OPCIONES DE FILTROS
                 var sw0 = Stopwatch.StartNew();
                 await CargarOpcionesFiltrosAsync(connectionString);
                 sw0.Stop();
                 diagnostico.Add($"Opciones filtros: {sw0.ElapsedMilliseconds}ms");
 
-                // STORED PROCEDURE 1: Estadísticas rápidas
                 var sw1 = Stopwatch.StartNew();
                 await GetEstadisticasRapidoAsync(connectionString);
                 sw1.Stop();
                 diagnostico.Add($"Estadísticas: {sw1.ElapsedMilliseconds}ms");
 
-                // IMPORTANTE: NO sobrescribir fechas si vienen de la URL
-                // Solo establecer fechas por defecto si NO se especificaron Y NO es "Todos los registros"
                 if (!FechaInicio.HasValue && !FechaFin.HasValue && !TodosLosRegistros)
                 {
-                    // SOLO en este caso aplicar fechas por defecto
                     FechaInicio = DateTime.Today;
                     FechaFin = DateTime.Today;
                     MostrandoSoloEstaSemana = false;
                 }
 
-                // DEBUGGING: Agregar información de las fechas que se están usando
                 diagnostico.Add($"Fechas usadas: {FechaInicio?.ToString("yyyy-MM-dd")} a {FechaFin?.ToString("yyyy-MM-dd")}");
 
-                // Si viene TodosLosRegistros, no aplicar fechas por defecto
                 if (TodosLosRegistros)
                 {
                     diagnostico.Add("Modo: Todos los registros");
                 }
 
-                // STORED PROCEDURE 2: Liquidaciones con filtros
                 var sw2 = Stopwatch.StartNew();
                 await GetLiquidacionesConFiltrosAsync(connectionString);
                 sw2.Stop();
                 diagnostico.Add($"Liquidaciones: {sw2.ElapsedMilliseconds}ms");
 
                 RegistrosMostrados = Liquidaciones.Count;
-
-                // Preparar textos para mostrar filtros activos
                 PrepararFiltrosActivos();
 
                 stopwatchTotal.Stop();
@@ -186,7 +173,6 @@ namespace ProyectoRH2025.Pages.Liquidaciones
             }
             else
             {
-                // Si no hay datos, usar valores por defecto dinámicos
                 TotalRegistros = 0;
                 FechaMinimaDisponible = DateTime.Today.AddDays(-30);
                 FechaMaximaDisponible = DateTime.Today;
@@ -195,61 +181,48 @@ namespace ProyectoRH2025.Pages.Liquidaciones
 
         private async Task GetLiquidacionesConFiltrosAsync(string connectionString)
         {
-            // Obtener el rol para validaciones
             var rolId = HttpContext.Session.GetInt32("idRol");
 
             using var connection = new SqlConnection(connectionString);
             using var command = new SqlCommand("SP_GetLiquidacionesConFiltros", connection)
             {
                 CommandType = CommandType.StoredProcedure,
-                CommandTimeout = 30  // Aumentado para consultas grandes
+                CommandTimeout = 60
             };
 
-            // NUEVA LÓGICA: Límites más generosos para todos los roles
-            int maxRecords = 50000; // Por defecto, límite muy alto
+            int maxRecords = 50000;
 
-            // Solo aplicar límites restrictivos si NO hay filtros de fecha específicos
             if (!FechaInicio.HasValue && !FechaFin.HasValue && !TodosLosRegistros)
             {
-                // Sin filtros de fecha = consulta por defecto = límite moderado
                 maxRecords = 1000;
             }
             else if (TodosLosRegistros)
             {
-                // "Todos los registros" - verificar permisos
                 if (rolId != 5)
                 {
                     TempData["Error"] = "No tiene permisos para ver todos los registros.";
                     return;
                 }
-                maxRecords = 100000; // Límite muy alto para "todos"
+                maxRecords = 100000;
             }
             else
             {
-                // Si hay filtros de fecha específicos, permitir muchos registros
-                // para que vean TODOS los del período solicitado
                 if (FechaInicio.HasValue && FechaFin.HasValue)
                 {
                     var diasDiferencia = (FechaFin.Value - FechaInicio.Value).Days;
 
-                    if (diasDiferencia <= 1)      // 1 día = TODOS los registros del día
-                        maxRecords = 10000;       // Muy alto para cubrir cualquier día
-                    else if (diasDiferencia <= 7) // 1 semana = TODOS los de la semana  
-                        maxRecords = 25000;       // Muy alto para cubrir cualquier semana
-                    else if (diasDiferencia <= 31) // 1 mes = TODOS los del mes
-                        maxRecords = 50000;       // Muy alto para cubrir cualquier mes
-                    else                          // Más de 1 mes
-                        maxRecords = 75000;       // Para rangos muy amplios
+                    if (diasDiferencia <= 1) maxRecords = 10000;
+                    else if (diasDiferencia <= 7) maxRecords = 25000;
+                    else if (diasDiferencia <= 31) maxRecords = 50000;
+                    else maxRecords = 75000;
                 }
             }
 
-            // Parámetros básicos
             command.Parameters.Add(new SqlParameter("@SearchString", SqlDbType.NVarChar, 255)
             {
                 Value = string.IsNullOrEmpty(SearchString) ? DBNull.Value : SearchString
             });
 
-            // NUEVO: Parámetro específico para Remolque
             command.Parameters.Add(new SqlParameter("@RemolqueFiltro", SqlDbType.NVarChar, 255)
             {
                 Value = string.IsNullOrEmpty(Remolque) ? DBNull.Value : Remolque
@@ -265,10 +238,8 @@ namespace ProyectoRH2025.Pages.Liquidaciones
             });
             command.Parameters.Add(new SqlParameter("@MaxRecords", SqlDbType.Int) { Value = maxRecords });
 
-            // NUEVO: Parámetro para todos los registros
             command.Parameters.Add(new SqlParameter("@TodosLosRegistros", SqlDbType.Bit) { Value = TodosLosRegistros });
 
-            // PARÁMETROS DE FILTROS (ajustados a tu SP actual)
             command.Parameters.Add(new SqlParameter("@StatusFiltro", SqlDbType.TinyInt)
             {
                 Value = StatusFiltro.HasValue ? StatusFiltro.Value : DBNull.Value
@@ -279,15 +250,15 @@ namespace ProyectoRH2025.Pages.Liquidaciones
             });
             command.Parameters.Add(new SqlParameter("@ConductorFiltro", SqlDbType.NVarChar, 255)
             {
-                Value = DBNull.Value  // No usado en la vista actual
+                Value = DBNull.Value
             });
             command.Parameters.Add(new SqlParameter("@OrigenFiltro", SqlDbType.NVarChar, 255)
             {
-                Value = DBNull.Value  // No usado en la vista actual
+                Value = DBNull.Value
             });
             command.Parameters.Add(new SqlParameter("@DestinoFiltro", SqlDbType.NVarChar, 255)
             {
-                Value = DBNull.Value  // No usado en la vista actual
+                Value = DBNull.Value
             });
             command.Parameters.Add(new SqlParameter("@EvidenciasFiltro", SqlDbType.NVarChar, 20)
             {
@@ -318,33 +289,27 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                     PodRecordImageUrl = reader.IsDBNull("ImageUrl") ? null : reader.GetString("ImageUrl"),
                     Evidencias = new List<EvidenciaViewModel>()
                 };
-                // Agregar evidencias simplificadas (solo conteos)
+
                 var totalEvidencias = reader.GetInt32("TotalEvidencias");
                 var evidenciasConImagen = reader.GetInt32("EvidenciasConImagen");
 
-                // ✅ NUEVA LÓGICA: Si NO hay evidencias en BD, crear placeholder
                 if (totalEvidencias == 0)
                 {
-                    // Crear evidencia placeholder para SharePoint
                     liquidacion.Evidencias.Add(new EvidenciaViewModel
                     {
-                        EvidenciaId = -1,  // ID especial
+                        EvidenciaId = -1,
                         FileName = "SHAREPOINT_PLACEHOLDER",
                         HasImageData = true
-                        // ❌ ELIMINAR: CaptureDate = liquidacion.FechaSalida
                     });
                 }
                 else
                 {
-                    // Crear evidencias normales de BD
                     for (int i = 0; i < totalEvidencias && i < 5; i++)
                     {
                         liquidacion.Evidencias.Add(new EvidenciaViewModel
                         {
                             EvidenciaId = 0,
-                            FileName = i < evidenciasConImagen
-                                ? $"Evidencia BD {i + 1}"
-                                : $"Evidencia SP {i + 1}",
+                            FileName = i < evidenciasConImagen ? $"Evidencia BD {i + 1}" : $"Evidencia SP {i + 1}",
                             HasImageData = true
                         });
                     }
@@ -356,6 +321,11 @@ namespace ProyectoRH2025.Pages.Liquidaciones
             Liquidaciones = liquidaciones;
         }
 
+        // ====================================================================
+        // MÉTODOS DE GENERACIÓN DE PDF
+        // ====================================================================
+
+        // 1. Método para las CASILLAS MANUALES
         public async Task<IActionResult> OnPostGenerarPDFsMasivosAsync(int[] selectedIds)
         {
             if (selectedIds == null || selectedIds.Length == 0)
@@ -364,10 +334,115 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                 return RedirectToPage();
             }
 
-            // Redirigir a la página de GenerarPDF con los IDs seleccionados
+            if (selectedIds.Length > 10)
+            {
+                // ---- OBTENER CORREO DINÁMICO DESDE tblUsuarios ----
+                var idUsuario = HttpContext.Session.GetInt32("idUsuario");
+                if (idUsuario == null || idUsuario == 0) return RedirectToPage("/Login");
+
+                string emailUsuario = "";
+
+                var usuarioDb = await _context.TblUsuarios.FindAsync(idUsuario);
+
+                if (usuarioDb != null && !string.IsNullOrEmpty(usuarioDb.CorreoElectronico))
+                {
+                    emailUsuario = usuarioDb.CorreoElectronico;
+                }
+
+                if (string.IsNullOrEmpty(emailUsuario))
+                {
+                    TempData["Error"] = "Tu cuenta de usuario no tiene un Correo Electrónico registrado en el sistema para recibir el archivo PDF.";
+                    return RedirectToPage();
+                }
+                // ---------------------------------------------------
+
+                string scheme = Request.Scheme;
+                string host = Request.Host.Value;
+
+                // AHORA LLAMA AL NUEVO MÉTODO DE PDF MASIVO
+                BackgroundJob.Enqueue<ProyectoRH2025.BackgroundJobs.IReporteMasivoJob>(job =>
+                    job.GenerarPdfMasivoAsync(selectedIds, emailUsuario, scheme, host));
+
+                TempData["Success"] = $"Se ha iniciado la consolidación de {selectedIds.Length} registros en un solo PDF. El proceso está en segundo plano. Recibirás un correo en {emailUsuario} cuando el documento esté listo.";
+                return RedirectToPage("./Index");
+            }
+
             var idsString = string.Join(",", selectedIds);
             return RedirectToPage("./GenerarPDF", new { ids = idsString });
         }
+
+        // 2. MÉTODO CORREGIDO: Llama al mismo Stored Procedure de la tabla
+        public async Task<IActionResult> OnPostGenerarPDFsPorFiltroAsync(
+            string? searchStringFiltro,
+            string? remolqueFiltro,
+            DateTime? fechaInicioFiltro,
+            DateTime? fechaFinFiltro,
+            bool todosLosRegistrosFiltro,
+            byte? statusFiltro,
+            string? clienteFiltro,
+            string? evidenciasFiltro)
+        {
+            try
+            {
+                SearchString = searchStringFiltro;
+                Remolque = remolqueFiltro;
+                FechaInicio = fechaInicioFiltro;
+                FechaFin = fechaFinFiltro;
+                TodosLosRegistros = todosLosRegistrosFiltro;
+                StatusFiltro = statusFiltro;
+                ClienteFiltro = clienteFiltro;
+                EvidenciasFiltro = evidenciasFiltro;
+
+                var connectionString = _configuration.GetConnectionString("DefaultConnection");
+                await GetLiquidacionesConFiltrosAsync(connectionString);
+
+                var selectedIds = Liquidaciones.Select(l => l.PodId).ToArray();
+
+                if (selectedIds.Length == 0)
+                {
+                    TempData["Error"] = "No se encontraron registros con esos filtros para generar el PDF.";
+                    return RedirectToPage();
+                }
+
+                // ---- OBTENER CORREO DINÁMICO DESDE tblUsuarios ----
+                var idUsuario = HttpContext.Session.GetInt32("idUsuario");
+                if (idUsuario == null || idUsuario == 0) return RedirectToPage("/Login");
+
+                string emailUsuario = "";
+
+                var usuarioDb = await _context.TblUsuarios.FindAsync(idUsuario);
+
+                if (usuarioDb != null && !string.IsNullOrEmpty(usuarioDb.CorreoElectronico))
+                {
+                    emailUsuario = usuarioDb.CorreoElectronico;
+                }
+
+                if (string.IsNullOrEmpty(emailUsuario))
+                {
+                    TempData["Error"] = "Tu cuenta de usuario no tiene un Correo Electrónico registrado en el sistema para recibir el archivo PDF.";
+                    return RedirectToPage();
+                }
+                // ---------------------------------------------------
+
+                string scheme = Request.Scheme;
+                string host = Request.Host.Value;
+
+                // AHORA LLAMA AL NUEVO MÉTODO DE PDF MASIVO
+                BackgroundJob.Enqueue<ProyectoRH2025.BackgroundJobs.IReporteMasivoJob>(job =>
+                    job.GenerarPdfMasivoAsync(selectedIds, emailUsuario, scheme, host));
+
+                TempData["Success"] = $"¡Excelente! Se inició la generación de un documento PDF consolidado con {selectedIds.Length} registros. Recibirás un correo en {emailUsuario} cuando el reporte esté listo.";
+
+                return RedirectToPage("./Index");
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"Ocurrió un error al preparar la descarga: {ex.Message}";
+                return RedirectToPage("./Index");
+            }
+        }
+
+        // ====================================================================
 
         private void PrepararFiltrosActivos()
         {
@@ -407,7 +482,6 @@ namespace ProyectoRH2025.Pages.Liquidaciones
         }
     }
 
-    // DTO para opciones de filtros
     public class ClienteOpcion
     {
         public string Nombre { get; set; } = "";

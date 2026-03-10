@@ -79,7 +79,7 @@ namespace ProyectoRH2025.Pages.IT
             ForzarCambioPassword = Usuario.DefaultPassw == 1;
             await CargarRoles();
             await CargarModulosYPermisos();
-            await CargarCuentas(); // ✅ Cargar cuentas disponibles
+            await CargarCuentas();
 
             return Page();
         }
@@ -190,7 +190,6 @@ namespace ProyectoRH2025.Pages.IT
 
                 MensajeExito = "Usuario actualizado exitosamente (Permisos y Cuentas guardados).";
 
-                // Limpiar campos de contraseña
                 NuevaPassword = string.Empty;
                 ConfirmarPassword = string.Empty;
 
@@ -215,42 +214,24 @@ namespace ProyectoRH2025.Pages.IT
 
         private async Task CargarModulosYPermisos()
         {
-            // ✅ Lista de módulos principales del menú (AGREGADO "Unidades")
-            var modulosOrdenados = new[] {
-        "Inicio",
-        "RH",
-        "Operadores",
-        "Unidades", 
-        "Sellos",
-        "Liquidaciones",
-        "IT",
-        "Emergencia",
-        "Cuenta"
-    };
-
-            // Obtener todos los módulos en el orden especificado
+            // ✅ CARGA DINÁMICA: Traemos TODOS los módulos de la BD ordenados alfabéticamente
             var modulos = await _context.TblModulo
-                .Where(m => modulosOrdenados.Contains(m.ModuloNombre))
+                .OrderBy(m => m.ModuloNombre)
                 .ToListAsync();
 
-            // Ordenar según la lista predefinida
-            modulos = modulos
-                .OrderBy(m => Array.IndexOf(modulosOrdenados, m.ModuloNombre))
-                .ToList();
-
-            // Obtener todas las opciones
+            // Traemos TODAS las opciones
             var opciones = await _context.TblOpcion
                 .OrderBy(o => o.ModID)
                 .ThenBy(o => o.OpcNombre)
                 .ToListAsync();
 
-            // Obtener permisos actuales del ROL del usuario
+            // Obtenemos los permisos que el ROL ya tiene asignados
             var permisosActuales = await _context.TblPermiso
                 .Where(p => p.idRolUsua == Usuario.idRol && p.Permiso == true)
                 .Select(p => p.idOpcion)
                 .ToListAsync();
 
-            // Construir la estructura de módulos con sus opciones
+            // Construimos las tarjetas visuales (solo de módulos que tengan al menos 1 opción)
             ModulosConOpciones = modulos.Select(m => new ModuloConOpciones
             {
                 IdModulo = m.idModulo,
@@ -265,33 +246,27 @@ namespace ProyectoRH2025.Pages.IT
                     }).ToList()
             }).Where(m => m.Opciones.Any()).ToList();
 
-            // Inicializar PermisosSeleccionados con los permisos actuales
             PermisosSeleccionados = permisosActuales;
         }
 
         private async Task GuardarPermisos()
         {
-            // Usar el servicio centralizado
             await _permisosService.AsignarPermisosAsync(Usuario.idRol, PermisosSeleccionados ?? new List<int>());
         }
 
-        // ✅ NUEVO: Cargar cuentas disponibles y asignadas
         private async Task CargarCuentas()
         {
-            // Obtener todas las cuentas activas
             var todasCuentas = await _context.TblCuentas
                 .Where(c => c.EsActiva)
                 .OrderBy(c => c.OrdenVisualizacion)
                 .ThenBy(c => c.NombreCuenta)
                 .ToListAsync();
 
-            // Obtener cuentas asignadas actualmente al usuario
             var cuentasAsignadas = await _context.TblUsuariosCuentas
                 .Where(uc => uc.IdUsuario == Usuario.idUsuario && uc.EsActivo)
                 .Select(uc => uc.IdCuenta)
                 .ToListAsync();
 
-            // Construir lista de cuentas disponibles con su estado
             CuentasDisponibles = todasCuentas.Select(c => new CuentaDisponible
             {
                 IdCuenta = c.Id,
@@ -301,16 +276,13 @@ namespace ProyectoRH2025.Pages.IT
                 EstaAsignada = cuentasAsignadas.Contains(c.Id)
             }).ToList();
 
-            // Inicializar CuentasSeleccionadas
             CuentasSeleccionadas = cuentasAsignadas;
         }
 
-        // ✅ NUEVO: Guardar cuentas asignadas
         private async Task GuardarCuentas()
         {
             var idUsuarioActual = HttpContext.Session.GetInt32("idUsuario") ?? 0;
 
-            // Obtener asignaciones actuales
             var asignacionesActuales = await _context.TblUsuariosCuentas
                 .Where(uc => uc.IdUsuario == Usuario.idUsuario)
                 .ToListAsync();
@@ -322,22 +294,16 @@ namespace ProyectoRH2025.Pages.IT
 
             var cuentasNuevas = CuentasSeleccionadas ?? new List<int>();
 
-            // Cuentas a agregar (están en nuevas pero no en actuales)
             var cuentasAgregar = cuentasNuevas.Except(cuentasActuales).ToList();
-
-            // Cuentas a remover (están en actuales pero no en nuevas)
             var cuentasRemover = cuentasActuales.Except(cuentasNuevas).ToList();
 
-            // Agregar nuevas asignaciones
             foreach (var idCuenta in cuentasAgregar)
             {
-                // Verificar si existe una asignación previa inactiva
                 var asignacionPrevia = asignacionesActuales
                     .FirstOrDefault(a => a.IdCuenta == idCuenta && !a.EsActivo);
 
                 if (asignacionPrevia != null)
                 {
-                    // Reactivar asignación existente
                     asignacionPrevia.EsActivo = true;
                     asignacionPrevia.FechaAsignacion = DateTime.Now;
                     asignacionPrevia.AsignadoPor = idUsuarioActual;
@@ -346,7 +312,6 @@ namespace ProyectoRH2025.Pages.IT
                 }
                 else
                 {
-                    // Crear nueva asignación
                     await _context.TblUsuariosCuentas.AddAsync(new TblUsuariosCuentas
                     {
                         IdUsuario = Usuario.idUsuario,
@@ -358,7 +323,6 @@ namespace ProyectoRH2025.Pages.IT
                 }
             }
 
-            // Desactivar asignaciones removidas
             foreach (var idCuenta in cuentasRemover)
             {
                 var asignacion = asignacionesActuales
@@ -397,10 +361,6 @@ namespace ProyectoRH2025.Pages.IT
         }
     }
 
-    // ========================================
-    // CLASES AUXILIARES
-    // ========================================
-
     public class ModuloConOpciones
     {
         public int IdModulo { get; set; }
@@ -415,7 +375,6 @@ namespace ProyectoRH2025.Pages.IT
         public bool TienePermiso { get; set; }
     }
 
-    // ✅ NUEVA CLASE PARA CUENTAS
     public class CuentaDisponible
     {
         public int IdCuenta { get; set; }

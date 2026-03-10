@@ -80,19 +80,6 @@ namespace ProyectoRH2025.Models
         [DataType(DataType.Date)]
         public DateTime? FechaPolizaVida { get; set; }
 
-        [Display(Name = "Nombre del Beneficiario")]
-        public string NombreBeneficiarioVida { get; set; }
-
-        [Display(Name = "Parentesco")]
-        public string ParentescoVida { get; set; }
-
-        [Display(Name = "Porcentaje (%)")]
-        [Range(0, 100, ErrorMessage = "El porcentaje debe estar entre 0 y 100")]
-        public decimal? PorcentajeVida { get; set; }
-
-        [Display(Name = "Dirección del Beneficiario")]
-        public string DireccionBeneficiarioVida { get; set; }
-
         // ════════════════════════════════════════════════════════════════
         // BANORTE
         // ════════════════════════════════════════════════════════════════
@@ -108,19 +95,7 @@ namespace ProyectoRH2025.Models
         [StringLength(16, MinimumLength = 16, ErrorMessage = "El número de tarjeta debe tener 16 dígitos")]
         public string NumTarjetaBanorte { get; set; }
 
-        [Display(Name = "Nombre del Beneficiario")]
-        public string NombreBeneficiarioBanorte { get; set; }
-
-        [Display(Name = "Parentesco")]
-        public string ParentescoBanorte { get; set; }
-
-        [Display(Name = "Porcentaje (%)")]
-        [Range(0, 100, ErrorMessage = "El porcentaje debe estar entre 0 y 100")]
-        public decimal? PorcentajeBanorte { get; set; }
-
-        [Display(Name = "Dirección del Beneficiario")]
-        public string DireccionBeneficiarioBanorte { get; set; }
-
+  
         // ════════════════════════════════════════════════════════════════
         // ✅ CAMPOS AKNA
         // Solo visibles cuando: codClientes=2 AND TipEmpleado=1 AND Puesto=2

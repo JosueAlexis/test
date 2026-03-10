@@ -75,6 +75,9 @@ namespace ProyectoRH2025.Pages.Operadores
         {
             if (id != Empleado.Id) return NotFound();
 
+            // IMPORTANTE: Cargar puestos ANTES de cualquier validación
+            CargarPuestos();
+
             // Recargar empleado original para actualizar
             var empleadoDb = await _context.Empleados
                 .FirstOrDefaultAsync(e => e.Id == id);
@@ -90,6 +93,14 @@ namespace ProyectoRH2025.Pages.Operadores
                 string.IsNullOrWhiteSpace(Empleado.NumSSocial))
             {
                 Mensaje = "❌ Completa los campos obligatorios (nombre, apellidos, email, RFC, CURP, NSS).";
+                await CargarDatosAuxiliares();
+                return Page();
+            }
+
+            // Validar que se haya ingresado la fecha de ingreso
+            if (!Empleado.Fingreso.HasValue)
+            {
+                Mensaje = "❌ La fecha de ingreso es obligatoria.";
                 await CargarDatosAuxiliares();
                 return Page();
             }
@@ -121,20 +132,48 @@ namespace ProyectoRH2025.Pages.Operadores
             empleadoDb.Fnacimiento = Empleado.Fnacimiento;
             empleadoDb.TelEmergencia = Empleado.TelEmergencia?.Trim();
             empleadoDb.CodClientes = Empleado.CodClientes;
+            empleadoDb.Fingreso = Empleado.Fingreso; // <--- SE GUARDA LA FECHA DE INGRESO
 
             // Actualizar puesto
             if (!string.IsNullOrWhiteSpace(PuestoNombre))
             {
+                // DEBUG: Agregar logging detallado
+                Console.WriteLine($"[DEBUG] PuestoNombre recibido: '{PuestoNombre}'");
+                Console.WriteLine($"[DEBUG] PuestoNombre Length: {PuestoNombre.Length}");
+                Console.WriteLine($"[DEBUG] Bytes: {string.Join(",", System.Text.Encoding.UTF8.GetBytes(PuestoNombre))}");
+                Console.WriteLine($"[DEBUG] Total puestos en lista: {Puestos.Count}");
+
+                foreach (var p in Puestos)
+                {
+                    Console.WriteLine($"[DEBUG] BD Puesto: '{p.Puesto}' (Length: {p.Puesto?.Length ?? 0})");
+                }
+
+                // Normalizar espacios múltiples a un solo espacio
+                var puestoNormalizado = System.Text.RegularExpressions.Regex.Replace(
+                    PuestoNombre.Trim(), @"\s+", " ");
+
+                Console.WriteLine($"[DEBUG] PuestoNormalizado: '{puestoNormalizado}'");
+
                 var puestoSel = Puestos.FirstOrDefault(p =>
-                    p.Puesto?.Trim().Equals(PuestoNombre.Trim(), StringComparison.OrdinalIgnoreCase) == true);
+                {
+                    if (string.IsNullOrWhiteSpace(p.Puesto)) return false;
+                    var puestoDbNormalizado = System.Text.RegularExpressions.Regex.Replace(
+                        p.Puesto.Trim(), @"\s+", " ");
+
+                    Console.WriteLine($"[DEBUG] Comparando '{puestoDbNormalizado}' == '{puestoNormalizado}': {puestoDbNormalizado.Equals(puestoNormalizado, StringComparison.OrdinalIgnoreCase)}");
+
+                    return puestoDbNormalizado.Equals(puestoNormalizado, StringComparison.OrdinalIgnoreCase);
+                });
 
                 if (puestoSel != null)
                 {
+                    Console.WriteLine($"[DEBUG] ✓ Puesto encontrado: ID={puestoSel.id}");
                     empleadoDb.Puesto = puestoSel.id;
                     empleadoDb.TipEmpleado = puestoSel.idtipempleado;
                 }
                 else
                 {
+                    Console.WriteLine($"[DEBUG] ✗ NO se encontró el puesto");
                     Mensaje = $"❌ El puesto '{PuestoNombre}' no existe en el catálogo.";
                     await CargarDatosAuxiliares();
                     return Page();

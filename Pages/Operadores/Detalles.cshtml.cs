@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using ProyectoRH2025.Data;
 using ProyectoRH2025.Models;
@@ -309,6 +310,64 @@ namespace ProyectoRH2025.Pages.Operadores
             }
 
             return Page();
+        }
+
+        // ==========================================
+        // HANDLER: DAR DE BAJA DESDE DETALLES
+        // ==========================================
+        public async Task<IActionResult> OnPostDarDeBajaAsync(int id, DateTime? fechaBaja)
+        {
+            try
+            {
+                var empleado = await _context.Empleados.FindAsync(id);
+                if (empleado == null) return NotFound();
+
+                // Verificar sellos activos
+                bool tieneSellos = await _context.TblAsigSellos
+                    .AnyAsync(a => a.idOperador == id && (a.Status == 3 || a.Status == 4));
+
+                if (tieneSellos)
+                {
+                    TempData["Error"] = "No se puede dar de baja: el empleado tiene sellos activos asignados.";
+                    return RedirectToPage(new { id });
+                }
+
+                empleado.Status = 2;
+                empleado.Fegreso = fechaBaja ?? DateTime.Today;
+                await _context.SaveChangesAsync();
+
+                TempData["Success"] = $"✅ {empleado.Names} {empleado.Apellido} dado de baja el {empleado.Fegreso:dd/MM/yyyy}.";
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"Error al dar de baja: {ex.Message}";
+            }
+
+            return RedirectToPage(new { id });
+        }
+
+        // ==========================================
+        // HANDLER: REACTIVAR DESDE DETALLES
+        // ==========================================
+        public async Task<IActionResult> OnPostReactivarAsync(int id)
+        {
+            try
+            {
+                var empleado = await _context.Empleados.FindAsync(id);
+                if (empleado == null) return NotFound();
+
+                empleado.Status = 1;
+                empleado.Fegreso = null;
+                await _context.SaveChangesAsync();
+
+                TempData["Success"] = $"✅ {empleado.Names} {empleado.Apellido} reactivado correctamente.";
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"Error al reactivar: {ex.Message}";
+            }
+
+            return RedirectToPage(new { id });
         }
     }
 }

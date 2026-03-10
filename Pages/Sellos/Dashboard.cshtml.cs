@@ -156,7 +156,7 @@ namespace ProyectoRH2025.Pages.Sellos
                 .Take(20)
                 .ToListAsync();
 
-            // Asignaciones del sello
+            // Asignaciones del sello (con usuarios devolución y evidencia)
             var asignaciones = await _context.TblAsigSellos
                 .Include(a => a.Operador)
                 .Include(a => a.Operador2)
@@ -175,14 +175,56 @@ namespace ProyectoRH2025.Pages.Sellos
                     a.FechaEntrega,
                     a.FechaDevolucion,
                     a.QR_Code,
-                    a.StatusEvidencia
+                    a.StatusEvidencia,
+                    a.UsuarioDevolucionId,
+                    a.FechaDevolucionRegistro,
+                    a.UsuarioEvidenciaId,
+                    a.FechaEvidenciaRegistro
                 })
                 .Take(10)
                 .ToListAsync();
 
+            // Obtener nombres de usuarios devolución/evidencia
+            var usuarioIds = asignaciones
+                .SelectMany(a => new[] { a.UsuarioDevolucionId, a.UsuarioEvidenciaId })
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .Distinct()
+                .ToList();
+
+            var usuarios = usuarioIds.Count > 0
+                ? await _context.TblUsuarios
+                    .Where(u => usuarioIds.Contains(u.idUsuario))
+                    .Select(u => new { u.idUsuario, u.NombreCompleto })
+                    .ToDictionaryAsync(u => u.idUsuario, u => u.NombreCompleto)
+                : new Dictionary<int, string>();
+
+            var asignacionesConUsuarios = asignaciones.Select(a => new
+            {
+                a.id,
+                a.Status,
+                a.Operador,
+                a.Operador2,
+                a.Unidad,
+                a.Ruta,
+                a.Fentrega,
+                a.FechaEntrega,
+                a.FechaDevolucion,
+                a.QR_Code,
+                a.StatusEvidencia,
+                a.UsuarioDevolucionId,
+                UsuarioDevolucionNombre = a.UsuarioDevolucionId.HasValue && usuarios.ContainsKey(a.UsuarioDevolucionId.Value)
+                    ? usuarios[a.UsuarioDevolucionId.Value] : null,
+                a.FechaDevolucionRegistro,
+                a.UsuarioEvidenciaId,
+                UsuarioEvidenciaNombre = a.UsuarioEvidenciaId.HasValue && usuarios.ContainsKey(a.UsuarioEvidenciaId.Value)
+                    ? usuarios[a.UsuarioEvidenciaId.Value] : null,
+                a.FechaEvidenciaRegistro
+            }).ToList();
+
             // Evidencias del sello
             var evidencias = await _context.TblImagenAsigSellos
-                .Where(e => asignaciones.Select(a => a.id).Contains(e.idTabla))
+                .Where(e => asignacionesConUsuarios.Select(a => a.id).Contains(e.idTabla))
                 .OrderByDescending(e => e.FSubidaEvidencia)
                 .Select(e => new
                 {
@@ -211,7 +253,7 @@ namespace ProyectoRH2025.Pages.Sellos
                     sello.Alta
                 },
                 historial,
-                asignaciones,
+                asignaciones = asignacionesConUsuarios,
                 evidencias
             });
         }
@@ -235,6 +277,9 @@ namespace ProyectoRH2025.Pages.Sellos
             public string? Operador2Nombre { get; set; }
             public int? NumUnidad { get; set; }
             public string? Ruta { get; set; }
+
+            // QR de la asignación activa (solo para sellos En Uso - Status 3)
+            public string? QRCode { get; set; }
         }
     }
 }

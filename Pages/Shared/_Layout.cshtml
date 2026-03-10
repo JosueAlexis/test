@@ -37,7 +37,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Test2 Admin</title>
+    <title>@ViewData["Title"] - ProyectoRH2025</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -257,48 +257,57 @@
         }
 
         @@keyframes fadeIn {
-            to {
-                opacity: 1;
-            }
+            to
+
+        {
+            opacity: 1;
+        }
+
         }
 
         /* Responsive Design */
         @@media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-            }
+            .sidebar
 
-                .sidebar.mobile-open {
-                    transform: translateX(0);
-                }
+        {
+            transform: translateX(-100%);
+        }
 
-            .content {
-                margin-left: 0;
-            }
+        .sidebar.mobile-open {
+            transform: translateX(0);
+        }
 
-            .mobile-toggle {
-                position: fixed;
-                top: 1rem;
-                left: 1rem;
-                z-index: 1001;
-                background: var(--primary-gradient);
-                color: white;
-                border: none;
-                width: 50px;
-                height: 50px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                box-shadow: var(--card-shadow);
-                cursor: pointer;
-            }
+        .content {
+            margin-left: 0;
+        }
+
+        .mobile-toggle {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1001;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--card-shadow);
+            cursor: pointer;
+        }
+
         }
 
         @@media (min-width: 769px) {
-            .mobile-toggle {
-                display: none;
-            }
+            .mobile-toggle
+
+        {
+            display: none;
+        }
+
         }
 
         /* Card Styles */
@@ -363,7 +372,6 @@
                 <h3>ITMS</h3>
             </div>
 
-            <!-- ✅ INICIO -->
             @if (TienePermiso("Inicio"))
             {
                 <div class="module">
@@ -374,7 +382,6 @@
                 </div>
             }
 
-            <!-- ✅ RH -->
             @if (TienePermisoEnModulo("RH"))
             {
                 <div class="module">
@@ -401,7 +408,6 @@
                 </div>
             }
 
-            <!-- ✅ OPERADORES -->
             @if (TienePermisoEnModulo("Operadores"))
             {
                 <div class="module">
@@ -435,7 +441,6 @@
                 </div>
             }
 
-            <!-- ✅ UNIDADES -->
             @if (TienePermisoEnModulo("Unidades"))
             {
                 <div class="module">
@@ -461,7 +466,7 @@
                     </div>
                 </div>
             }
-            <!-- ✅ SELLOS -->
+
             @if (TienePermisoEnModulo("Sellos"))
             {
                 <div class="module">
@@ -508,7 +513,7 @@
                     </div>
                 </div>
             }
-            <!-- ✅ LIQUIDACIONES -->
+
             @if (TienePermiso("Liquidaciones"))
             {
                 <div class="module">
@@ -519,7 +524,6 @@
                 </div>
             }
 
-            <!-- ✅ ADMINISTRACIÓN (IT) -->
             @if (TienePermisoEnModulo("IT"))
             {
                 <div class="module">
@@ -553,7 +557,25 @@
                 </div>
             }
 
-            <!-- ✅ PASE DE LISTA -->
+            @if (TienePermisoEnModulo("Cartelera"))
+            {
+                <div class="module">
+                    <div class="sidebar-link" onclick="toggleSubmodules('cartelera')">
+                        <i class="fas fa-tv"></i>
+                        <span>Cartelera Digital</span>
+                    </div>
+                    <div class="submodule" data-parent="cartelera">
+                        @if (TienePermiso("Administrar Cartelera"))
+                        {
+                            <a class="sidebar-link" asp-page="/Cartelera/Admin">
+                                <i class="fas fa-desktop"></i>
+                                <span>Administrar Contenido</span>
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
+
             @if (TienePermiso("Pase de Lista"))
             {
                 <div class="module">
@@ -564,7 +586,6 @@
                 </div>
             }
 
-            <!-- ✅ CAMBIAR CONTRASEÑA Y CERRAR SESIÓN (SIEMPRE VISIBLE) -->
             <div class="module" style="margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
                 <a class="sidebar-link" asp-page="/CambioPassword">
                     <i class="fas fa-key"></i>

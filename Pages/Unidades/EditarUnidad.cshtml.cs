@@ -122,6 +122,45 @@ namespace ProyectoRH2025.Pages.Catalogos
             }
         }
 
+        // ==========================================
+        // HANDLER: RENOVAR COMODÍN
+        // ==========================================
+        public async Task<IActionResult> OnPostRenovarComodinAsync(int id, int dias = 5)
+        {
+            try
+            {
+                var unidad = await _context.TblUnidades.FindAsync(id);
+
+                if (unidad == null || !unidad.EsComodin)
+                {
+                    TempData["Error"] = "Unidad no encontrada o no es comodín";
+                    return RedirectToPage(new { id });
+                }
+
+                // Si aún está vigente, sumar desde la fecha de expiración actual
+                // Si ya expiró, renovar desde hoy para darle exactamente los días solicitados
+                var baseDate = (unidad.FechaExpiracionComodin.HasValue && unidad.FechaExpiracionComodin > DateTime.Now)
+                    ? unidad.FechaExpiracionComodin.Value
+                    : DateTime.Now;
+
+                unidad.FechaExpiracionComodin = baseDate.AddDays(dias);
+
+                // Si estaba inactiva por expiración, reactivarla automáticamente
+                if (unidad.IdStatus == 2)
+                    unidad.IdStatus = 1;
+
+                await _context.SaveChangesAsync();
+
+                TempData["Success"] = $"✅ Comodín renovado hasta {unidad.FechaExpiracionComodin:dd/MM/yyyy HH:mm}";
+                return RedirectToPage(new { id });
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"Error al renovar comodín: {ex.Message}";
+                return RedirectToPage(new { id });
+            }
+        }
+
         private async Task CargarCatalogos()
         {
             // FILTRAR CUENTAS: Excluir "TODAS LAS CUENTAS" y solo traer activas

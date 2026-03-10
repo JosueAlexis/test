@@ -655,12 +655,12 @@ namespace ProyectoRH2025.Pages.Liquidaciones
         [RequestSizeLimit(10485760)]
         [RequestFormLimits(MultipartBodyLengthLimit = 10485760)]
         public async Task<IActionResult> OnPostSustituirImagenAsync(
-    int evidenciaId,
-    IFormFile archivoNuevo,
-    bool esSharePoint,
-    string? carpetaSharePoint = null,
-    string? nombreArchivoActual = null,
-    int? podIdFk = null)
+            int evidenciaId,
+            IFormFile archivoNuevo,
+            bool esSharePoint,
+            string? carpetaSharePoint = null,
+            string? nombreArchivoActual = null,
+            int? podIdFk = null)
         {
             try
             {
@@ -799,6 +799,7 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                 return new JsonResult(new { success = false, error = $"Error interno: {ex.Message}" });
             }
         }
+
         private async Task RegistrarAuditoriaSharePointDirecto(
             int podId,
             string carpetaSharePoint,
@@ -845,6 +846,7 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                 _logger.LogError(ex, "Error registrando auditoría SharePoint (no crítico)");
             }
         }
+
         private async Task<InformacionEvidenciaSustitucion?> ObtenerInformacionEvidenciaSustitucion(int evidenciaId)
         {
             try
@@ -869,14 +871,12 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                 using var command = new SqlCommand(query, connection);
                 command.Parameters.AddWithValue("@EvidenciaID", evidenciaId);
 
-                // ⬇️ AGREGA ESTE LOG TEMPORAL ⬇️
                 _logger.LogInformation("🔍 Buscando EvidenciaID: {Id} en BD", evidenciaId);
 
                 using var reader = await command.ExecuteReaderAsync();
 
                 if (await reader.ReadAsync())
                 {
-                    // ⬇️ AGREGA ESTE LOG TEMPORAL ⬇️
                     _logger.LogInformation("✅ Registro encontrado en BD");
 
                     var captureDate = reader["CaptureDate"] as DateTime?;
@@ -899,11 +899,10 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                         MigradaSharePoint = reader["MigradaSharePoint"] as bool? ?? false,
                         Folio = reader["Folio"]?.ToString(),
                         CarpetaSharePoint = carpetaSharePoint,
-                        TamanoActual = reader.IsDBNull(6) ? 0 : Convert.ToInt64(reader[6])  // ✅ CORREGIDO
+                        TamanoActual = reader.IsDBNull(6) ? 0 : Convert.ToInt64(reader[6])
                     };
                 }
 
-                // ⬇️ AGREGA ESTE LOG TEMPORAL ⬇️
                 _logger.LogWarning("❌ No se encontró registro en BD para EvidenciaID: {Id}", evidenciaId);
 
                 return null;
@@ -914,6 +913,7 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                 return null;
             }
         }
+
         private EstrategiaSustitucionTipo DeterminarEstrategiaSustitucionInteligente(InformacionEvidenciaSustitucion evidencia)
         {
             var fechaLimite = DateTime.Today.AddDays(-30);
@@ -1000,6 +1000,7 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                 return false;
             }
         }
+
         private string ObtenerMimeType(string fileName)
         {
             var extension = Path.GetExtension(fileName).ToLowerInvariant();
@@ -1013,6 +1014,7 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                 _ => "application/octet-stream"
             };
         }
+
         private async Task RegistrarAuditoriaImagenSustituida(
             int evidenciaId,
             InformacionEvidenciaSustitucion evidencia,
@@ -1059,6 +1061,125 @@ namespace ProyectoRH2025.Pages.Liquidaciones
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error registrando auditoría (no crítico)");
+            }
+        }
+
+        // ========================================================================
+        // HANDLER DE SUBIDA DE EVIDENCIA ADICIONAL A SHAREPOINT
+        // ========================================================================
+
+        [RequestSizeLimit(20971520)] // Límite de 20 MB
+        [RequestFormLimits(MultipartBodyLengthLimit = 20971520)]
+        public async Task<IActionResult> OnPostSubirEvidenciaAdicionalAsync(
+            int podId,
+            string? fechaSalida,
+            string? carpetaSharePoint,
+            IFormFile archivoAdicional)
+        {
+            try
+            {
+                // 1. OBTENER DATOS DE USUARIO
+                var usuarioActual = HttpContext.Session.GetString("UsuarioNombre") ?? "Sistema";
+                var ipUsuario = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+
+                _logger.LogInformation("=== INICIO SUBIDA EVIDENCIA ADICIONAL ===");
+                _logger.LogInformation("Usuario: {Usuario}, IP: {IP}, POD: {PodId}", usuarioActual, ipUsuario, podId);
+
+                // 2. VALIDACIONES DEL ARCHIVO
+                if (archivoAdicional == null || archivoAdicional.Length == 0)
+                    return new JsonResult(new { success = false, error = "No se ha seleccionado ningún archivo." });
+
+                if (archivoAdicional.Length > 20 * 1024 * 1024)
+                    return new JsonResult(new { success = false, error = "El archivo supera el límite de 20 MB." });
+
+                var extensionesPermitidas = new[] { ".jpg", ".jpeg", ".png", ".pdf" };
+                var extension = Path.GetExtension(archivoAdicional.FileName).ToLowerInvariant();
+
+                if (!extensionesPermitidas.Contains(extension))
+                    return new JsonResult(new { success = false, error = "⚠️ Solo se permiten archivos PDF o imágenes (JPG, PNG)." });
+
+                // 3. DETERMINAR RUTA EN SHAREPOINT
+                string folderPath = carpetaSharePoint ?? "";
+                if (string.IsNullOrEmpty(folderPath))
+                {
+                    DateTime fSalida = DateTime.TryParse(fechaSalida, out var parsedDate) ? parsedDate : DateTime.Today;
+                    var fechaProcesamiento = fSalida.AddDays(1);
+                    folderPath = $"{fechaProcesamiento:yyyy-MM-dd}/POD_{podId}";
+                }
+
+                // 4. LEER CONTENIDO
+                byte[] fileBytes;
+                using (var ms = new MemoryStream())
+                {
+                    await archivoAdicional.CopyToAsync(ms);
+                    fileBytes = ms.ToArray();
+                }
+
+                // 5. SUBIR A SHAREPOINT
+                var success = await _sharePointService.UploadFileAsync(folderPath, archivoAdicional.FileName, fileBytes);
+
+                if (success)
+                {
+                    // 6. REGISTRAR AUDITORÍA
+                    await RegistrarAuditoriaSubidaNueva(podId, folderPath, archivoAdicional.FileName, fileBytes.Length, usuarioActual, ipUsuario);
+
+                    _logger.LogInformation("✅ Subida exitosa a SharePoint registrada para el usuario {Usuario}", usuarioActual);
+                    return new JsonResult(new { success = true, mensaje = "Archivo subido exitosamente a SharePoint." });
+                }
+                else
+                {
+                    _logger.LogWarning("❌ Falló la subida a SharePoint.");
+                    return new JsonResult(new { success = false, error = "Error al intentar subir el archivo a SharePoint." });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error en OnPostSubirEvidenciaAdicionalAsync");
+                return new JsonResult(new { success = false, error = $"Error interno: {ex.Message}" });
+            }
+        }
+
+        private async Task RegistrarAuditoriaSubidaNueva(
+            int podId,
+            string carpetaSharePoint,
+            string nombreArchivo,
+            long tamanoArchivo,
+            string usuario,
+            string ip)
+        {
+            try
+            {
+                _logger.LogInformation("Registrando auditoría de nueva subida...");
+
+                using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+                await connection.OpenAsync();
+
+                var query = @"
+                    EXEC sp_RegistrarNuevaEvidenciaSharePoint 
+                        @CarpetaSharePoint = @CarpetaSharePoint,
+                        @POD_ID_FK = @POD_ID_FK,
+                        @NombreArchivoNuevo = @NombreNuevo,
+                        @TamanoNuevo = @TamanoNuevo,
+                        @Usuario = @Usuario,
+                        @IP = @IP,
+                        @Observaciones = @Observaciones";
+
+                using var command = new SqlCommand(query, connection);
+                command.Parameters.AddWithValue("@CarpetaSharePoint", carpetaSharePoint);
+                command.Parameters.AddWithValue("@POD_ID_FK", podId);
+                command.Parameters.AddWithValue("@NombreNuevo", nombreArchivo);
+                command.Parameters.AddWithValue("@TamanoNuevo", tamanoArchivo);
+                command.Parameters.AddWithValue("@Usuario", usuario);
+                command.Parameters.AddWithValue("@IP", ip);
+                command.Parameters.AddWithValue("@Observaciones", $"Subida directa en SharePoint | Carpeta: {carpetaSharePoint}");
+
+                await command.ExecuteNonQueryAsync();
+
+                _logger.LogInformation("✅ Auditoría de subida nueva registrada");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error registrando auditoría de nueva subida (no crítico)");
             }
         }
 

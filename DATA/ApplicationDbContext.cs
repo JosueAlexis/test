@@ -41,6 +41,7 @@ namespace ProyectoRH2025.Data
         public DbSet<TblSucursal> TblSucursal { get; set; }
         public DbSet<ReferenciaPersEmpleado> ReferenciasPersonalesEmpleados { get; set; }
         public DbSet<tblDocumentosEmpleado> tblDocumentosEmpleado { get; set; }
+        public DbSet<Beneficiario> Beneficiarios { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

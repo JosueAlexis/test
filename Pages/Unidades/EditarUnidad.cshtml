@@ -30,9 +30,9 @@
             @if (Model.EsUnidadComodin)
             {
                 <div class="alert alert-warning shadow-sm mb-4">
-                    <div class="d-flex align-items-center">
-                        <i class="fas fa-exclamation-triangle fa-3x me-3"></i>
-                        <div>
+                    <div class="d-flex align-items-start">
+                        <i class="fas fa-exclamation-triangle fa-3x me-3 mt-1"></i>
+                        <div class="flex-grow-1">
                             <h5 class="alert-heading mb-1">
                                 <strong>⏰ Unidad Comodín (Temporal)</strong>
                             </h5>
@@ -44,19 +44,41 @@
                             {
                                 if (Model.DiasRestantes.Value > 0)
                                 {
-                                    <p class="mb-0">
+                                    <p class="mb-2">
                                         <i class="fas fa-calendar-check"></i>
                                         Días restantes: <strong class="text-danger">@Model.DiasRestantes días</strong>
                                     </p>
                                 }
                                 else
                                 {
-                                    <p class="mb-0 text-danger">
+                                    <p class="mb-2 text-danger">
                                         <i class="fas fa-ban"></i>
-                                        <strong>Esta unidad ya expiró y será desactivada en el próximo proceso automático</strong>
+                                        <strong>Esta unidad ya expiró — renuévela para seguir usándola</strong>
                                     </p>
                                 }
                             }
+
+                            <!-- Renovar comodín -->
+                            <form method="post" asp-page-handler="RenovarComodin" class="d-flex align-items-center gap-2 mt-1">
+                                <input type="hidden" name="id" value="@Model.Unidad.Id" />
+                                <label class="form-label mb-0 me-1 fw-semibold">Renovar por:</label>
+                                <select name="dias" class="form-select form-select-sm" style="width: auto;">
+                                    <option value="3">3 días</option>
+                                    <option value="5" selected>5 días</option>
+                                    <option value="7">7 días</option>
+                                    <option value="10">10 días</option>
+                                    <option value="15">15 días</option>
+                                    <option value="30">30 días</option>
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-warning">
+                                    <i class="fas fa-redo"></i> Renovar
+                                </button>
+                            </form>
+                            <small class="text-muted mt-1 d-block">
+                                <i class="fas fa-info-circle"></i>
+                                Si la unidad ya expiró, los días se cuentan desde hoy.
+                                Si aún está vigente, se suman a la fecha actual de expiración.
+                            </small>
                         </div>
                     </div>
                 </div>
