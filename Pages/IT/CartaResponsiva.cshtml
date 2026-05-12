@@ -1,0 +1,215 @@
+﻿@page
+@model ProyectoRH2025.Pages.IT.CartaResponsivaModel
+@{
+    ViewData["Title"] = "Generar Carta Responsiva";
+}
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="fas fa-mobile-alt me-2"></i> Asignación de Equipo Celular</h4>
+        </div>
+        <div class="card-body">
+            <form method="post" id="formAsignacion">
+                @Html.AntiForgeryToken()
+
+                <h5 class="text-primary border-bottom pb-2">Datos del Empleado</h5>
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Número de Reloj</label>
+                        <div class="input-group">
+                            <input type="number" id="txtReloj" class="form-control" placeholder="Ej: 4678" />
+                            <button type="button" class="btn btn-outline-secondary" id="btnBuscarReloj" title="Buscar Empleado">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label">Nombre del Empleado</label>
+                        <input type="text" id="txtNombreEmpleado" class="form-control bg-light" readonly placeholder="Se autocompleta" />
+                        <input type="hidden" asp-for="NuevoEquipo.idempleado" id="hiddenIdEmpleado" required />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Puesto</label>
+                        <input type="text" id="txtNombrePuesto" class="form-control bg-light" readonly placeholder="Se autocompleta" />
+                        <input type="hidden" asp-for="NuevoEquipo.idPuesto" id="hiddenIdPuesto" required />
+                    </div>
+                </div>
+
+                <h5 class="text-primary border-bottom pb-2 mt-4">Datos del Equipo</h5>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Marca</label>
+                        <select asp-for="NuevoEquipo.idMarca" asp-items="Model.ListaMarcas" class="form-select" id="selectMarca" required>
+                            <option value="">-- Selecciona una Marca --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Modelo</label>
+                        <select asp-for="NuevoEquipo.idModelo" class="form-select" id="selectModelo" required disabled>
+                            <option value="">-- Primero selecciona una marca --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Número de Teléfono</label>
+                        <input asp-for="NuevoEquipo.NoTelefono" class="form-control" type="text" placeholder="Ej: 6562699374" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">IMEI</label>
+                        <input asp-for="NuevoEquipo.IMEI" class="form-control" type="text" required />
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label">Valor del Equipo (Penalización)</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="text" class="form-control bg-light" id="txtPrecio" readonly placeholder="Se calcula automático" />
+                        </div>
+                        <input type="hidden" asp-for="NuevoEquipo.idPrecio" id="hiddenIdPrecio" required />
+                    </div>
+                </div>
+                <h5 class="text-primary border-bottom pb-2 mt-4">Accesorios (Añadimientos) y Comentarios</h5>
+                <div class="row mb-3">
+                    <div class="col-md-2"><div class="form-check"><input class="form-check-input" type="checkbox" asp-for="Accesorios.FundaUsoRudo"><label class="form-check-label">Funda uso rudo</label></div></div>
+                    <div class="col-md-2"><div class="form-check"><input class="form-check-input" type="checkbox" asp-for="Accesorios.CargadorPared"><label class="form-check-label">Cargador pared</label></div></div>
+                    <div class="col-md-3"><div class="form-check"><input class="form-check-input" type="checkbox" asp-for="Accesorios.CargadorCenicero"><label class="form-check-label">Cargador cenicero</label></div></div>
+                    <div class="col-md-2"><div class="form-check"><input class="form-check-input" type="checkbox" asp-for="Accesorios.VidrioTemplado"><label class="form-check-label">Vidrio templado</label></div></div>
+                    <div class="col-md-3"><div class="form-check"><input class="form-check-input" type="checkbox" asp-for="Accesorios.SoporteCamion"><label class="form-check-label">Soporte camión</label></div></div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <label class="form-label">Comentarios / Observaciones</label>
+                        <textarea asp-for="NuevoEquipo.Comentarios" class="form-control" rows="2" placeholder="Opcional..."></textarea>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <a asp-page="/IT/Inventario" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-file-signature"></i> Guardar y Generar Carta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Elementos DOM
+            const selectMarca = document.getElementById("selectMarca");
+            const selectModelo = document.getElementById("selectModelo");
+            const txtPrecio = document.getElementById("txtPrecio");
+            const hiddenIdPrecio = document.getElementById("hiddenIdPrecio");
+
+            const txtReloj = document.getElementById("txtReloj");
+            const btnBuscarReloj = document.getElementById("btnBuscarReloj");
+            const txtNombreEmpleado = document.getElementById("txtNombreEmpleado");
+            const hiddenIdEmpleado = document.getElementById("hiddenIdEmpleado");
+            const txtNombrePuesto = document.getElementById("txtNombrePuesto");
+            const hiddenIdPuesto = document.getElementById("hiddenIdPuesto");
+
+            // 1. BUSCAR EMPLEADO
+            async function buscarEmpleado() {
+                const reloj = txtReloj.value;
+                if (!reloj) return;
+
+                txtNombreEmpleado.value = "Buscando...";
+                txtNombrePuesto.value = "Buscando...";
+
+                try {
+                    const response = await fetch(`/IT/CartaResponsiva?handler=EmpleadoPorReloj&reloj=${reloj}`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        txtNombreEmpleado.value = data.nombreCompleto;
+                        hiddenIdEmpleado.value = data.idEmpleado;
+                        txtNombrePuesto.value = data.nombrePuesto;
+                        hiddenIdPuesto.value = data.idPuesto;
+
+                        const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
+                        Toast.fire({ icon: 'success', title: 'Empleado encontrado' });
+                    } else {
+                        txtNombreEmpleado.value = "";
+                        hiddenIdEmpleado.value = "";
+                        txtNombrePuesto.value = "";
+                        hiddenIdPuesto.value = "";
+                        Swal.fire('Atención', 'No se encontró ningún empleado con ese número de reloj.', 'warning');
+                    }
+                } catch (error) {
+                    Swal.fire('Error', 'Hubo un problema al buscar el empleado.', 'error');
+                }
+            }
+
+            btnBuscarReloj.addEventListener("click", buscarEmpleado);
+            txtReloj.addEventListener("keypress", function (e) {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    buscarEmpleado();
+                }
+            });
+
+            // 2. CARGAR MODELOS
+            selectMarca.addEventListener("change", async function () {
+                const idMarca = this.value;
+                selectModelo.innerHTML = '<option value="">Cargando modelos...</option>';
+                selectModelo.disabled = true;
+                txtPrecio.value = '';
+                hiddenIdPrecio.value = '';
+
+                if (idMarca) {
+                    try {
+                        const response = await fetch(`/IT/CartaResponsiva?handler=ModelosPorMarca&idMarca=${idMarca}`);
+                        const modelos = await response.json();
+
+                        selectModelo.innerHTML = '<option value="">-- Selecciona un Modelo --</option>';
+                        modelos.forEach(m => {
+                            selectModelo.innerHTML += `<option value="${m.id}">${m.modelo}</option>`; // m.modelo en minúscula
+                        });
+                        selectModelo.disabled = false;
+                    } catch (error) {
+                        Swal.fire('Error', 'No se pudieron cargar los modelos', 'error');
+                    }
+                }
+            });
+
+            // 3. CARGAR PRECIO
+            selectModelo.addEventListener("change", async function () {
+                const idModelo = this.value;
+                txtPrecio.value = 'Calculando...';
+
+                if (idModelo) {
+                    try {
+                        const response = await fetch(`/IT/CartaResponsiva?handler=PrecioPorModelo&idModelo=${idModelo}`);
+                        const data = await response.json();
+
+                        if (data.success) {
+                            txtPrecio.value = data.precio.toFixed(2);
+                            hiddenIdPrecio.value = data.idPrecio;
+                        } else {
+                            txtPrecio.value = 'Sin precio registrado';
+                            hiddenIdPrecio.value = '';
+                        }
+                    } catch (error) {
+                        Swal.fire('Error', 'No se pudo cargar el precio', 'error');
+                    }
+                }
+            });
+
+            // Alertas
+            @if (TempData["MensajeError"] != null)
+            {
+                    <text>Swal.fire('Error', '@TempData["MensajeError"]', 'error');</text>
+            }
+        });
+    </script>
+}

@@ -1,0 +1,126 @@
+﻿@page
+@model ProyectoRH2025.Pages.IT.ImportarAKNAModel
+@{
+    ViewData["Title"] = "Importar Archivo AKNA";
+}
+
+<div class="container-fluid mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-dark text-white">
+            <h4 class="mb-0"><i class="fas fa-file-excel me-2"></i> Importación Masiva (Formato AKNA)</h4>
+        </div>
+        <div class="card-body">
+
+            @if (!Model.Filas.Any())
+            {
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> Por favor, sube el archivo <strong>Lineas AKNA.csv</strong>. Asegúrate de que las columnas tengan el orden: <em>Unidad, Operador, Reloj, IMEI, Modelo, Teléfono, Accesorios</em>.
+                </div>
+
+                <form method="post" enctype="multipart/form-data" asp-page-handler="Analizar" class="p-4 border rounded bg-light">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Seleccionar archivo CSV:</label>
+                        <input type="file" name="archivoCsv" class="form-control" accept=".csv" required />
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Cargar y Analizar Archivo
+                    </button>
+                    <a asp-page="/IT/InventarioCelulares" class="btn btn-secondary ms-2">Cancelar</a>
+                </form>
+
+                @if (!string.IsNullOrEmpty(Model.MensajeError))
+                {
+                    <div class="alert alert-danger mt-3">@Model.MensajeError</div>
+                }
+            }
+
+            @if (Model.Filas.Any())
+            {
+                <div class="alert @(Model.Filas.Any(f => !f.EsValida) ? "alert-danger" : "alert-success")">
+                    @if (Model.Filas.Any(f => !f.EsValida))
+                    {
+                        <text>
+                            <strong><i class="fas fa-exclamation-triangle me-2"></i> Hay errores.</strong> Corrige los campos en rojo directamente en la tabla o elimina (🗑️) las filas que no quieras importar.
+                        </text>
+                    }
+                    else
+                    {
+                        <text>
+                            <strong><i class="fas fa-check-circle me-2"></i> ¡Todo listo!</strong> Los datos son correctos. Revisa y confirma la importación.
+                        </text>
+                    }
+                </div>
+
+                <form method="post" asp-page-handler="Confirmar">
+                    @Html.AntiForgeryToken()
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle table-sm">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Fila</th>
+                                    <th>Num. Reloj</th>
+                                    <th>Empleado (Auto)</th>
+                                    <th>Modelo</th>
+                                    <th>IMEI</th>
+                                    <th>Teléfono</th>
+                                    <th>Robot de Accesorios</th>
+                                    <th>Estado</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < Model.Filas.Count; i++)
+                                {
+                                    <tr id="row_@i" class="@(Model.Filas[i].EsValida ? "" : "table-danger")">
+                                        <input type="hidden" name="Filas.Index" value="@i" />
+                                        <input type="hidden" name="Filas[@i].FilaOrigen" value="@Model.Filas[i].FilaOrigen" />
+                                        <input type="hidden" name="Filas[@i].AccesoriosTexto" value="@Model.Filas[i].AccesoriosTexto" />
+                                        <input type="hidden" name="Filas[@i].Funda" value="@(Model.Filas[i].Funda ? "true" : "false")" />
+                                        <input type="hidden" name="Filas[@i].Vidrio" value="@(Model.Filas[i].Vidrio ? "true" : "false")" />
+                                        <input type="hidden" name="Filas[@i].Soporte" value="@(Model.Filas[i].Soporte ? "true" : "false")" />
+                                        <input type="hidden" name="Filas[@i].CargadorPared" value="@(Model.Filas[i].CargadorPared ? "true" : "false")" />
+                                        <input type="hidden" name="Filas[@i].CargadorCenicero" value="@(Model.Filas[i].CargadorCenicero ? "true" : "false")" />
+
+                                        <td>@Model.Filas[i].FilaOrigen</td>
+
+                                        <td><input type="text" name="Filas[@i].Reloj" value="@Model.Filas[i].Reloj" class="form-control form-control-sm" /></td>
+                                        <td><small class="text-muted">@(Model.Filas[i].NombreEmpleado ?? "Desconocido")</small></td>
+                                        <td><input type="text" name="Filas[@i].Modelo" value="@Model.Filas[i].Modelo" class="form-control form-control-sm" /></td>
+                                        <td><input type="text" name="Filas[@i].IMEI" value="@Model.Filas[i].IMEI" class="form-control form-control-sm" /></td>
+                                        <td><input type="text" name="Filas[@i].Telefono" value="@Model.Filas[i].Telefono" class="form-control form-control-sm" /></td>
+
+                                        <td>
+                                            <small style="font-size: 0.7rem;">
+                                                @(Model.Filas[i].Funda ? "📦Funda " : "")
+                                                @(Model.Filas[i].Vidrio ? "📱Mica " : "")
+                                                @(Model.Filas[i].Soporte ? "🚗Soporte " : "")
+                                                @(Model.Filas[i].CargadorPared ? "🔌Carg. " : "")
+                                                @(Model.Filas[i].CargadorCenicero ? "🚬Cen. " : "")
+                                            </small>
+                                        </td>
+                                        <td class="text-danger fw-bold fs-6">
+                                            @Model.Filas[i].MensajeError
+                                        </td>
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="document.getElementById('row_@i').remove()" title="No importar esta fila">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="/IT/ImportarAKNA" class="btn btn-secondary">Subir otro archivo</a>
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-save"></i> Re-validar y Confirmar Importación
+                        </button>
+                    </div>
+                </form>
+            }
+        </div>
+    </div>
+</div>

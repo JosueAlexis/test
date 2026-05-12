@@ -1,0 +1,155 @@
+﻿@page "{id:int}"
+@model ProyectoRH2025.Pages.IT.ImprimirCartaResponsivaModel
+@{
+    Layout = null; // Quitamos el diseño general para que parezca una hoja de papel
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Carta Responsiva - @Model.Carta.NombreEmpleado</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            padding: 40px;
+            background-color: #f0f0f0;
+        }
+
+        .hoja-papel {
+            background-color: white;
+            padding: 50px;
+            margin: 0 auto;
+            max-width: 800px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        .firma-linea {
+            border-top: 1px solid #000;
+            width: 250px;
+            margin-top: 60px;
+            padding-top: 5px;
+            text-align: center;
+        }
+
+        .tabla-equipo th {
+            background-color: #f8f9fa !important;
+            width: 35%;
+        }
+
+        @@media print {
+            body {
+                background-color: white;
+                padding: 0;
+            }
+
+            .hoja-papel {
+                box-shadow: none;
+                padding: 0;
+                max-width: 100%;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="text-center mb-4 no-print">
+        <button class="btn btn-primary me-2" onclick="window.print()">
+            🖨️ Imprimir Carta
+        </button>
+        <a href="/IT/InventarioCelulares" class="btn btn-secondary">
+            ⬅️ Volver al Inventario
+        </a>
+    </div>
+
+    <div class="hoja-papel">
+        <div class="text-end mb-4">
+            <strong>@Model.Carta.Sucursal, @Model.Carta.FechaEntrega.ToString("dd 'de' MMMM 'de' yyyy")</strong>
+        </div>
+
+        <p class="mb-4">Se hace entrega de equipo telefónico con las siguientes especificaciones:</p>
+
+        <table class="table table-bordered mb-4 tabla-equipo">
+            <tbody>
+                <tr><th>Marca</th><td>@Model.Carta.Marca</td></tr>
+                <tr><th>Modelo</th><td>@Model.Carta.Modelo</td></tr>
+                <tr><th>Número de teléfono</th><td>@Model.Carta.NumeroTelefono</td></tr>
+                <tr><th>IMEI</th><td>@Model.Carta.IMEI</td></tr>
+            </tbody>
+        </table>
+
+        @if (Model.Carta.Accesorios != null && (Model.Carta.Accesorios.FundaUsoRudo || Model.Carta.Accesorios.CargadorPared || Model.Carta.Accesorios.CargadorCenicero || Model.Carta.Accesorios.VidrioTemplado || Model.Carta.Accesorios.SoporteCamion))
+        {
+            <h6 class="fw-bold mt-4">Accesorios adicionales entregados:</h6>
+            <ul class="mb-4">
+                @if (Model.Carta.Accesorios.FundaUsoRudo)
+                {
+                    <li>Funda de uso rudo</li>
+                }
+                @if (Model.Carta.Accesorios.CargadorPared)
+                {
+                    <li>Cargador de pared</li>
+                }
+                @if (Model.Carta.Accesorios.CargadorCenicero)
+                {
+                    <li>Cargador tipo cenicero</li>
+                }
+                @if (Model.Carta.Accesorios.VidrioTemplado)
+                {
+                    <li>Vidrio templado</li>
+                }
+                @if (Model.Carta.Accesorios.SoporteCamion)
+                {
+                    <li>Soporte de camión</li>
+                }
+            </ul>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.Carta.Comentarios))
+        {
+            <h6 class="fw-bold mt-2">Comentarios / Observaciones:</h6>
+            <p class="mb-4 text-justify">@Model.Carta.Comentarios</p>
+        }
+        <h6 class="fw-bold mt-4">Cláusulas:</h6>
+        <ol class="mb-4 text-justify">
+            <li>Mantener en buenas condiciones el equipo asignado</li>
+            <li>No es permitido el uso de terceros al equipo asignado</li>
+            <li>No modificar la configuración del equipo a menos que tenga autorización</li>
+            <li>Utilizar el equipo solo para funciones laborales (queda prohibido el uso de información personal)</li>
+            <li>No instalar ningún tipo de aplicación sin autorización</li>
+            <li>Reportar cualquier daño/falla al departamento de compras</li>
+            <li>Entregar el equipo con todos sus accesorios en caso de terminar la relación laboral cualquiera que sea el motivo</li>
+            <li>Tener en consideración que se estarán realizando llamadas periódicas por parte del Dto de compras, para que atienda dichas llamadas y de la información requerida para el control de la línea.</li>
+        </ol>
+
+        <p class="mb-4" style="text-align: justify;">
+            Tomar en cuenta, que, en caso de detectarse, mala utilización del equipo y/o del plan que sean consecuencia de dolo o negligencia, se hará acreedor a las sanciones disciplinarias correspondientes.
+        </p>
+
+        <p class="fw-bold mb-5 mt-4">
+            Nota: En caso de pérdida o daño del equipo se le cobrara la cantidad de: $ @Model.Carta.Precio.ToString("N2") valor comercial, vía nómina
+        </p>
+
+        <p class="text-center fw-bold mb-4">He leído cada una de las cláusulas y las acepto</p>
+
+        <div class="row mt-5">
+            <div class="col-7">
+                <p class="mb-1"><strong>Nombre:</strong> @Model.Carta.NombreEmpleado</p>
+                <p class="mb-1"><strong>Número de reloj:</strong> @Model.Carta.NumeroReloj</p>
+                <p class="mb-1"><strong>Puesto:</strong> @Model.Carta.Puesto</p>
+
+                <div class="firma-linea">Firma</div>
+            </div>
+            <div class="col-5">
+                <p class="mb-1 text-end mt-5 pt-4"><strong>Entrego:</strong></p>
+                <p class="text-end text-uppercase">@Model.Carta.EntregadoPor</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

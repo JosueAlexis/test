@@ -1,0 +1,68 @@
+﻿@page
+@model ProyectoRH2025.Pages.IT.InventarioCelularesModel
+@{
+    ViewData["Title"] = "Inventario de Celulares";
+}
+
+<div class="container-fluid mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0"><i class="fas fa-mobile-alt me-2"></i> Equipos Telefónicos Asignados</h4>
+            <a asp-page="/IT/CartaResponsiva" class="btn btn-success btn-sm">
+                <i class="fas fa-plus"></i> Nueva Asignación
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered table-striped align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Reloj</th>
+                            <th>Empleado</th>
+                            <th>Teléfono</th>
+                            <th>Equipo</th>
+                            <th>IMEI</th>
+                            <th class="text-center">Estatus</th>
+                            <th>Sucursal</th>
+                            <th>Fecha Asignación</th>
+                            <th class="text-center">Carta</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var equipo in Model.Equipos)
+                        {
+                            <tr>
+                                <td><strong>@equipo.Reloj</strong></td>
+                                <td>@equipo.Empleado</td>
+                                <td>@equipo.Telefono</td>
+                                <td><span class="badge bg-info text-dark">@equipo.MarcaModelo</span></td>
+                                <td><small class="text-muted">@equipo.IMEI</small></td>
+                                <td>@equipo.Sucursal</td>
+                                <td>@equipo.FechaAsignacion.ToString("dd/MM/yyyy")</td>
+                                <td class="text-center">
+                                    <a asp-page="/IT/ImprimirCartaResponsiva" asp-route-id="@equipo.Id" target="_blank" class="btn btn-sm btn-outline-primary" title="Ver Carta Responsiva">
+                                        <i class="fas fa-print"></i>
+                                    </a>
+                                </td>
+                                <td class="text-center">
+                                    @if (equipo.Estatus == "Asignado")
+                                    {
+                                        <span class="badge bg-success">@equipo.Estatus</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@equipo.Estatus</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        @if (!Model.Equipos.Any())
+                        {
+                            <tr><td colspan="8" class="text-center text-muted py-4">No hay equipos asignados.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

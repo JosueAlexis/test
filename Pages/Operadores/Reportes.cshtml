@@ -1,0 +1,102 @@
+﻿@page
+@model ProyectoRH2025.Pages.Operadores.ReportesModel
+@{
+    ViewData["Title"] = "Generador de Reportes RH";
+}
+
+<div class="container py-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-success text-white">
+            <h4 class="mb-0">
+                <i class="fas fa-file-excel me-2"></i> Reporte General de Empleados
+            </h4>
+        </div>
+        <div class="card-body">
+            <p class="text-muted fs-5">
+                Selecciona los módulos de información que deseas descargar.
+                <br />
+                <i class="fas fa-lightbulb text-warning"></i> El archivo Excel descargará a los empleados y ya incluirá los filtros activos para que puedas <strong>ordenarlos por número de reloj, fecha de ingreso, edad, etc.</strong> directamente ahí.
+            </p>
+
+            <form method="post" asp-page-handler="ExportarExcel">
+
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold"><i class="fas fa-filter text-success"></i> Filtrar por Estatus</label>
+                        <select asp-for="Opciones.FiltroEstatus" class="form-select form-select-lg">
+                            <option value="activos">Solo Activos</option>
+                            <option value="inactivos">Solo Inactivos</option>
+                            <option value="todos">Todos (Histórico completo)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <h5 class="border-bottom pb-2 mt-4 text-success"><i class="fas fa-columns"></i> Módulos a Incluir</h5>
+
+                <div class="row g-4 mb-4 mt-2">
+                    <div class="col-md-3">
+                        <div class="card border-primary h-100 shadow-sm">
+                            <div class="card-body">
+                                <div class="form-check form-switch fs-5">
+                                    <input class="form-check-input" type="checkbox" asp-for="Opciones.IncluirBasicos" checked>
+                                    <label class="form-check-label fw-bold text-primary" asp-for="Opciones.IncluirBasicos">
+                                        Datos Básicos
+                                    </label>
+                                </div>
+                                <small class="d-block text-muted mt-2">Número de Reloj, Estatus, Nombre, Empresa, Fecha Ingreso, RFC, CURP, NSS.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="card border-info h-100 shadow-sm">
+                            <div class="card-body">
+                                <div class="form-check form-switch fs-5">
+                                    <input class="form-check-input" type="checkbox" asp-for="Opciones.IncluirGeneral" checked>
+                                    <label class="form-check-label fw-bold text-info" asp-for="Opciones.IncluirGeneral">
+                                        Info. General
+                                    </label>
+                                </div>
+                                <small class="d-block text-muted mt-2">Fecha Nacimiento, Estado Civil, Tipo Sangre, Salud, etc.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="card border-secondary h-100 shadow-sm">
+                            <div class="card-body">
+                                <div class="form-check form-switch fs-5">
+                                    <input class="form-check-input" type="checkbox" asp-for="Opciones.IncluirVivienda" checked>
+                                    <label class="form-check-label fw-bold text-secondary" asp-for="Opciones.IncluirVivienda">
+                                        Vivienda
+                                    </label>
+                                </div>
+                                <small class="d-block text-muted mt-2">Lugar de Nacimiento, Crédito Infonavit.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="card border-warning h-100 shadow-sm">
+                            <div class="card-body">
+                                <div class="form-check form-switch fs-5">
+                                    <input class="form-check-input" type="checkbox" asp-for="Opciones.IncluirDocumentos" checked>
+                                    <label class="form-check-label fw-bold text-warning" style="color: #d39e00 !important;" asp-for="Opciones.IncluirDocumentos">
+                                        Documentación
+                                    </label>
+                                </div>
+                                <small class="d-block text-muted mt-2">Licencia, Examen Médico, Gafete ANAM, etc.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-end mt-4 pt-4 border-top">
+                    <button type="submit" class="btn btn-success btn-lg px-5 shadow">
+                        <i class="fas fa-download me-2"></i> Descargar Base de Datos
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
