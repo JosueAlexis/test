@@ -525,7 +525,7 @@
 
                     <div class="mb-3">
                         <label class="form-label">Tipo de Evidencia</label>
-                        <select name="TipoEvidencia" class="form-select" required>
+                        <select name="TipoEvidencia" id="selectTipoEvidencia" class="form-select" required>
                             <option value="">-- Seleccionar --</option>
                             <option value="Utilizado">✅ Sello Utilizado</option>
                             <option value="Defectuoso">⚠️ Sello Defectuoso</option>
@@ -535,6 +535,37 @@
                         </select>
                     </div>
 
+                    <!-- ▼▼▼ CAMPOS DEL SELLO UTILIZADO ▼▼▼ -->
+                    <div id="camposSelloUtilizado" style="display: none;" class="p-3 bg-light border border-info rounded mb-3">
+                        <h6 class="text-primary"><i class="fas fa-info-circle me-1"></i>Información del Evento (Reporte)</h6>
+                        <div class="row">
+                            <!-- ✅ NUEVO DROPDOWN PARA LISTA DE DISTRIBUCIÓN -->
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label text-sm fw-bold">Lista de Distribución (Correo a enviar) <span class="text-danger">*</span></label>
+                                <select name="IdCuentaDestino" id="selectCuentaDestino" class="form-select form-select-sm">
+                                    <option value="">-- Seleccione a quién enviar el reporte --</option>
+                                    @foreach (var cuenta in Model.ListasDistribucion)
+                                    {
+                                        <option value="@cuenta.Value">@cuenta.Text</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="col-md-6 mb-2">
+                                <label class="form-label text-sm">No. Remolque</label>
+                                <input type="text" name="RemolqueEvento" class="form-control form-control-sm" placeholder="Ej: 758881" />
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <label class="form-label text-sm">Ruta</label>
+                                <input type="text" name="RutaEvento" class="form-control form-control-sm" placeholder="Ruta actual (Opcional)" />
+                            </div>
+                            <div class="col-md-12 mb-2">
+                                <label class="form-label text-sm">Ubicación del evento</label>
+                                <input type="text" name="UbicacionEvento" class="form-control form-control-sm" placeholder="Lugar, estado/municipio/ub. planta" />
+                            </div>
+                        </div>
+                    </div>
+                    <!-- ▲▲▲ FIN CAMPOS ▲▲▲ -->
                     <!-- ✅ MÚLTIPLES ARCHIVOS -->
                     <div class="mb-3">
                         <label class="form-label">Fotos de Evidencia (Mínimo 1, Máximo 3)</label>
@@ -555,10 +586,10 @@
                     <div class="mb-3">
                         <label class="form-label">Comentarios</label>
                         <textarea name="Comentarios" class="form-control" rows="3"
-                                  placeholder="Describe los detalles de la evidencia..."></textarea>
+                                  placeholder="Describe los detalles de la evidencia (Obligatorio para reportes de sellos utilizados)..."></textarea>
                     </div>
 
-                    <div class="alert alert-warning">
+                    <div class="alert alert-warning" id="notaEvidencia">
                         <i class="fas fa-exclamation-triangle me-2"></i>
                         <strong>Nota:</strong> El status del sello se actualizará automáticamente según el tipo de evidencia.
                     </div>
@@ -601,6 +632,30 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
+        // ▼▼▼ SCRIPT PARA MOSTRAR/OCULTAR CAMPOS DINÁMICOS ▼▼▼
+        document.getElementById('selectTipoEvidencia')?.addEventListener('change', function () {
+            const divCampos = document.getElementById('camposSelloUtilizado');
+            const txtComentarios = document.querySelector('textarea[name="Comentarios"]');
+            const selectCuenta = document.getElementById('selectCuentaDestino'); // ✅ Atrapamos el nuevo input
+            const notaAlerta = document.getElementById('notaEvidencia');
+
+            if (this.value === 'Utilizado') {
+                divCampos.style.display = 'block';
+                txtComentarios.required = true;
+                selectCuenta.required = true; // ✅ Lo hacemos obligatorio
+
+                notaAlerta.className = "alert alert-danger";
+                notaAlerta.innerHTML = '<i class="fas fa-envelope me-2"></i><strong>Atención:</strong> Se enviará un correo de alerta automático a la gerencia con la información y fotos capturadas.';
+            } else {
+                divCampos.style.display = 'none';
+                txtComentarios.required = false;
+                selectCuenta.required = false; // ✅ Quitamos la obligación si no es Sello Utilizado
+
+                notaAlerta.className = "alert alert-warning";
+                notaAlerta.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i><strong>Nota:</strong> El status del sello se actualizará automáticamente según el tipo de evidencia.';
+            }
+        });
+
         // ✅ VALIDAR CANTIDAD DE ARCHIVOS (1-3)
         function validarCantidadArchivos() {
             const input = document.getElementById('inputEvidencias');
@@ -623,7 +678,6 @@
                 return;
             }
 
-            // Validar tamaño de cada archivo
             let hayError = false;
             for (let i = 0; i < archivos.length; i++) {
                 if (archivos[i].size > 10 * 1024 * 1024) {
@@ -640,7 +694,7 @@
             }
         }
 
-        // ENTREGAR SELLO - Cargar confirmación
+        // ENTREGAR SELLO
         async function entregarSello(idAsignacion) {
             try {
                 const response = await fetch(`/Sellos/InventarioCoordinador?handler=ConfirmarEntrega&idAsignacion=${idAsignacion}`);

@@ -64,12 +64,28 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSVRcQWRtaW5pc3RyYXJDdWVudGFzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/jdelarosa/Desktop/Desarrollos Local/ProyectoRH2025/ProyectoRH2025/Pages/IT/CartaResponsiva.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSVRcQ2FydGFSZXNwb25zaXZhLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/jdelarosa/Desktop/Desarrollos Local/ProyectoRH2025/ProyectoRH2025/Pages/IT/CrearUsuario.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSVRcQ3JlYXJVc3VhcmlvLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/jdelarosa/Desktop/Desarrollos Local/ProyectoRH2025/ProyectoRH2025/Pages/IT/EditarUsuario.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSVRcRWRpdGFyVXN1YXJpby5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/jdelarosa/Desktop/Desarrollos Local/ProyectoRH2025/ProyectoRH2025/Pages/IT/ImportarAKNA.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSVRcSW1wb3J0YXJBS05BLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/jdelarosa/Desktop/Desarrollos Local/ProyectoRH2025/ProyectoRH2025/Pages/IT/ImprimirCartaResponsiva.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSVRcSW1wcmltaXJDYXJ0YVJlc3BvbnNpdmEuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/jdelarosa/Desktop/Desarrollos Local/ProyectoRH2025/ProyectoRH2025/Pages/IT/InventarioCelulares.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSVRcSW52ZW50YXJpb0NlbHVsYXJlcy5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/jdelarosa/Desktop/Desarrollos Local/ProyectoRH2025/ProyectoRH2025/Pages/IT/Usuarios.cshtml]
@@ -126,6 +142,10 @@ build_metadata.AdditionalFiles.CssScope =
 
 [C:/Users/jdelarosa/Desktop/Desarrollos Local/ProyectoRH2025/ProyectoRH2025/Pages/Operadores/EditarBasico.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcT3BlcmFkb3Jlc1xFZGl0YXJCYXNpY28uY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/jdelarosa/Desktop/Desarrollos Local/ProyectoRH2025/ProyectoRH2025/Pages/Operadores/Reportes.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcT3BlcmFkb3Jlc1xSZXBvcnRlcy5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/jdelarosa/Desktop/Desarrollos Local/ProyectoRH2025/ProyectoRH2025/Pages/Privacy.cshtml]

@@ -104,7 +104,6 @@
 </style>
 
 <div class="container-fluid mt-4">
-    <!-- HEADER -->
     <div class="row mb-4">
         <div class="col-12">
             <h2 class="mb-0">
@@ -114,9 +113,7 @@
         </div>
     </div>
 
-    <!-- CARDS DE ESTADÍSTICAS -->
     <div class="row g-3 mb-4">
-        <!-- Total de Sellos -->
         <div class="col-lg-3 col-md-6">
             <div class="stat-card" style="background: linear-gradient(135deg, #667eea, #764ba2);">
                 <div class="d-flex justify-content-between align-items-center">
@@ -129,7 +126,6 @@
             </div>
         </div>
 
-        <!-- Disponibles -->
         <div class="col-lg-3 col-md-6">
             <div class="stat-card bg-disponible">
                 <div class="d-flex justify-content-between align-items-center">
@@ -142,20 +138,18 @@
             </div>
         </div>
 
-        <!-- Asignados a Supervisor -->
         <div class="col-lg-3 col-md-6">
             <div class="stat-card bg-asignado-sup">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="stat-label">ASIGNADOS A SUP.</div>
-                        <div class="stat-value">@Model.SellosAsignadosSupervisor</div>
+                        <div class="stat-label">ASIGNADOS A CUENTA</div>
+                        <div class="stat-value">@Model.SellosAsignadosCuenta</div>
                     </div>
-                    <i class="fas fa-user-tie fa-3x opacity-50"></i>
+                    <i class="fas fa-building fa-3x opacity-50"></i>
                 </div>
             </div>
         </div>
 
-        <!-- En Trámite -->
         <div class="col-lg-3 col-md-6">
             <div class="stat-card bg-tramite">
                 <div class="d-flex justify-content-between align-items-center">
@@ -168,7 +162,6 @@
             </div>
         </div>
 
-        <!-- En Uso -->
         <div class="col-lg-3 col-md-6">
             <div class="stat-card bg-en-uso">
                 <div class="d-flex justify-content-between align-items-center">
@@ -181,7 +174,6 @@
             </div>
         </div>
 
-        <!-- Utilizados -->
         <div class="col-lg-3 col-md-6">
             <div class="stat-card bg-utilizado">
                 <div class="d-flex justify-content-between align-items-center">
@@ -194,7 +186,6 @@
             </div>
         </div>
 
-        <!-- Defectuosos -->
         <div class="col-lg-3 col-md-6">
             <div class="stat-card bg-defectuoso">
                 <div class="d-flex justify-content-between align-items-center">
@@ -207,7 +198,6 @@
             </div>
         </div>
 
-        <!-- En Planta -->
         <div class="col-lg-3 col-md-6">
             <div class="stat-card bg-planta">
                 <div class="d-flex justify-content-between align-items-center">
@@ -221,18 +211,15 @@
         </div>
     </div>
 
-    <!-- GRÁFICA Y FILTROS -->
     <div class="row mb-4">
-        <!-- Gráfica -->
-        <div class="col-lg-6 mb-3">
+        <div class="col-lg-5 mb-3">
             <div class="chart-container">
                 <h5 class="mb-3"><i class="fas fa-chart-pie text-primary"></i> Distribución de Sellos</h5>
                 <canvas id="chartDistribucion"></canvas>
             </div>
         </div>
 
-        <!-- Acciones Rápidas -->
-        <div class="col-lg-6 mb-3">
+        <div class="col-lg-7 mb-3">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0"><i class="fas fa-filter"></i> Filtros y Acciones</h5>
@@ -245,12 +232,13 @@
                                 <input type="text" name="FiltroBusqueda" class="form-control"
                                        value="@Model.FiltroBusqueda" placeholder="Número de sello...">
                             </div>
+
                             <div class="col-md-6">
                                 <label class="form-label small">Filtrar por Estado</label>
                                 <select name="FiltroEstado" class="form-select">
                                     <option value="">Todos los estados</option>
                                     <option value="1" selected="@(Model.FiltroEstado == "1")">Disponibles</option>
-                                    <option value="14" selected="@(Model.FiltroEstado == "14")">Asignados a Supervisor</option>
+                                    <option value="14" selected="@(Model.FiltroEstado == "14")">Asignados a Cuenta</option>
                                     <option value="4" selected="@(Model.FiltroEstado == "4")">En Trámite</option>
                                     <option value="3" selected="@(Model.FiltroEstado == "3")">En Uso</option>
                                     <option value="12" selected="@(Model.FiltroEstado == "12")">Utilizados</option>
@@ -259,9 +247,25 @@
                                     <option value="8" selected="@(Model.FiltroEstado == "8")">Extraviados</option>
                                 </select>
                             </div>
-                            <div class="col-12">
+
+                            <div class="col-md-6">
+                                <label class="form-label small">Filtrar por Supervisor</label>
+                                <select asp-for="FiltroSupervisor" id="FiltroSupervisor" name="FiltroSupervisor" class="form-select" asp-items="Model.ListaSupervisores">
+                                    <option value="">Todos los supervisores</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small">Filtrar por Cuenta</label>
+                                <select asp-for="FiltroCuenta" id="FiltroCuenta" name="FiltroCuenta" class="form-select" asp-items="Model.ListaCuentas">
+                                    <option value="">Todas las cuentas</option>
+                                </select>
+                                <small class="text-muted d-block mt-1" style="font-size: 0.7rem;">Si dejas "Todas las cuentas", descargarás todas las del supervisor.</small>
+                            </div>
+
+                            <div class="col-12 mt-3">
                                 <button type="submit" class="btn btn-primary w-100">
-                                    <i class="fas fa-search"></i> Buscar
+                                    <i class="fas fa-search"></i> Filtrar Tablero
                                 </button>
                             </div>
                         </div>
@@ -276,19 +280,25 @@
                         <a href="/Sellos/InventarioCoordinador" class="btn btn-outline-success">
                             <i class="fas fa-box"></i> Inventario Coordinador
                         </a>
-                        <a href="/Sellos/HistorialSellos" class="btn btn-outline-info">
-                            <i class="fas fa-history"></i> Historial Completo
-                        </a>
-                        <button class="btn btn-outline-secondary" onclick="exportarExcel()">
-                            <i class="fas fa-file-excel"></i> Exportar a Excel
-                        </button>
+
+                        <form method="get" class="d-inline w-100">
+                            <input type="hidden" name="handler" value="GenerarReporte" />
+                            <input type="hidden" name="FiltroEstado" value="@Model.FiltroEstado" />
+                            <input type="hidden" name="FiltroBusqueda" value="@Model.FiltroBusqueda" />
+                            <input type="hidden" name="FiltroSupervisor" value="@Model.FiltroSupervisor" id="pdfSupInput" />
+                            <input type="hidden" name="FiltroCuenta" value="@Model.FiltroCuenta" id="pdfCuentaInput" />
+
+                            <button type="submit" class="btn btn-outline-danger w-100" onclick="sincronizarFiltrosPdf()">
+                                <i class="fas fa-file-pdf"></i> Generar Reporte PDF
+                            </button>
+                        </form>
+
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- TABLA DE SELLOS -->
     <div class="card shadow">
         <div class="card-header bg-dark text-white">
             <h5 class="mb-0"><i class="fas fa-table"></i> Listado Completo de Sellos</h5>
@@ -301,6 +311,7 @@
                         <th>Sello</th>
                         <th>Estado</th>
                         <th>Supervisor</th>
+                        <th>Cuenta</th>
                         <th>Operador</th>
                         <th>Unidad</th>
                         <th>QR</th>
@@ -332,14 +343,10 @@
                                 <span class="badge @badgeClass">@sello.StatusTexto</span>
                             </td>
                             <td>
-                                @if (!string.IsNullOrEmpty(sello.SupervisorNombre))
-                                {
-                                    <small>@sello.SupervisorNombre</small>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">-</span>
-                                }
+                                <small>@(sello.SupervisorNombre ?? "-")</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border">@(sello.CuentaNombre ?? "Sin asignar")</span>
                             </td>
                             <td>
                                 @if (!string.IsNullOrEmpty(sello.OperadorNombre))
@@ -400,7 +407,6 @@
     </div>
 </div>
 
-<!-- MODAL: DETALLE DE SELLO -->
 <div class="modal fade" id="modalDetalleSello" tabindex="-1">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
@@ -429,6 +435,58 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
+        // ==========================================
+        // LÓGICA DE FILTRADO DINÁMICO DE CUENTAS
+        // ==========================================
+        const supervisorCuentas = @Html.Raw(Model.SupervisorCuentasJSON);
+
+        // Almacenar las opciones originales de cuentas al cargar la página
+        let opcionesOriginalesCuentas = [];
+        $('#FiltroCuenta option').each(function() {
+            if($(this).val() !== "") {
+                opcionesOriginalesCuentas.push({ value: $(this).val(), text: $(this).text() });
+            }
+        });
+
+        // ✅ Atrapamos el valor que el servidor manda como seleccionado
+        const cuentaSeleccionadaServer = '@Model.FiltroCuenta';
+
+        $('#FiltroSupervisor').on('change', function() {
+            var supId = $(this).val();
+            var $selectCuenta = $('#FiltroCuenta');
+            var cuentaActual = $selectCuenta.val() || cuentaSeleccionadaServer;
+
+            $selectCuenta.empty();
+            $selectCuenta.append(new Option('Todas las cuentas', ''));
+
+            if (!supId) {
+                // Si no hay supervisor, mostramos todas
+                opcionesOriginalesCuentas.forEach(op => $selectCuenta.append(new Option(op.text, op.value)));
+            } else {
+                // Si hay supervisor, filtramos por sus cuentas
+                var cuentasPermitidas = supervisorCuentas[supId] || [];
+                opcionesOriginalesCuentas.forEach(op => {
+                    if (cuentasPermitidas.includes(parseInt(op.value))) {
+                        $selectCuenta.append(new Option(op.text, op.value));
+                    }
+                });
+            }
+
+            // Intentar mantener la selección si sigue siendo válida en la nueva lista
+            if ($selectCuenta.find(`option[value="${cuentaActual}"]`).length > 0) {
+                $selectCuenta.val(cuentaActual);
+            }
+        });
+
+        // ✅ IMPORTANTE: Disparar el evento en cuanto carga la página para que aplique el filtro
+        $('#FiltroSupervisor').trigger('change');
+
+        // Asegurarse de que el PDF atrape los filtros actuales de los selects
+        function sincronizarFiltrosPdf() {
+            document.getElementById('pdfSupInput').value = document.getElementById('FiltroSupervisor').value;
+            document.getElementById('pdfCuentaInput').value = document.getElementById('FiltroCuenta').value;
+        }
+
         // ==========================================
         // INICIALIZAR DATATABLES
         // ==========================================
@@ -464,13 +522,7 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 15,
-                            font: { size: 11 }
-                        }
-                    },
+                    legend: { position: 'bottom', labels: { padding: 15, font: { size: 11 } } },
                     tooltip: {
                         callbacks: {
                             label: function(context) {
@@ -506,7 +558,6 @@
 
                 let html = `
                     <div class="row">
-                        <!-- INFORMACIÓN DEL SELLO -->
                         <div class="col-md-4">
                             <div class="card mb-3">
                                 <div class="card-header bg-primary text-white">
@@ -514,15 +565,12 @@
                                 </div>
                                 <div class="card-body">
                                     <p><strong>Número:</strong> <span class="badge bg-primary fs-5">${sello.sello || 'N/A'}</span></p>
-                                    <p><strong>ID:</strong> ${sello.id || 'N/A'}</p>
                                     <p><strong>Estado:</strong> <span class="badge bg-info">${sello.statusTexto || 'N/A'}</span></p>
-                                    <p><strong>Supervisor:</strong> ${sello.supervisor || '-'}</p>
-                                    <p><strong>Fecha Alta:</strong> ${sello.alta ? new Date(sello.alta).toLocaleDateString('es-MX') : '-'}</p>
+                                    <p><strong>Cuenta:</strong> <span class="badge bg-light text-dark border">${sello.cuenta || '-'}</span></p>
                                     <p><strong>Última Asignación:</strong> ${sello.fechaAsignacion ? new Date(sello.fechaAsignacion).toLocaleDateString('es-MX') : '-'}</p>
                                 </div>
                             </div>
 
-                            <!-- EVIDENCIAS -->
                             <div class="card">
                                 <div class="card-header bg-info text-white">
                                     <h6 class="mb-0"><i class="fas fa-images"></i> Evidencias (${evidencias.length})</h6>
@@ -544,41 +592,22 @@
                                                                     <div class="text-center">
                                                                         <i class="fas fa-file-pdf fa-4x text-danger mb-2"></i>
                                                                         <br/>
-                                                                        <a href="data:application/pdf;base64,${e.imagen}"
-                                                                           target="_blank"
-                                                                           download="evidencia_${e.id}.pdf"
-                                                                           class="btn btn-sm btn-danger">
-                                                                            <i class="fas fa-download"></i> Descargar PDF
-                                                                        </a>
+                                                                        <a href="data:application/pdf;base64,${e.imagen}" target="_blank" download="evidencia_${e.id}.pdf" class="btn btn-sm btn-danger"><i class="fas fa-download"></i> Descargar PDF</a>
                                                                     </div>
                                                                 ` : esRutaAntigua ? `
                                                                     <div class="text-center">
-                                                                        <img src="${e.imagen}"
-                                                                             class="img-fluid rounded"
-                                                                             style="max-height: 150px; cursor: pointer;"
-                                                                             onclick="verImagenCompleta('${e.imagen}', ${e.id}, true)"
-                                                                             alt="Evidencia" />
+                                                                        <img src="${e.imagen}" class="img-fluid rounded" style="max-height: 150px; cursor: pointer;" onclick="verImagenCompleta('${e.imagen}', ${e.id}, true)" />
                                                                     </div>
                                                                 ` : `
                                                                     <div class="text-center">
-                                                                        <img src="data:image/jpeg;base64,${e.imagenThumbnail || e.imagen}"
-                                                                             class="img-fluid rounded shadow-sm"
-                                                                             style="max-height: 150px; width: 100%; object-fit: cover; cursor: pointer;"
-                                                                             onclick='verImagenCompleta(\`${e.imagen}\`, ${e.id}, false)'
-                                                                             alt="Evidencia"
-                                                                             title="Click para ver en tamaño completo" />
+                                                                        <img src="data:image/jpeg;base64,${e.imagenThumbnail || e.imagen}" class="img-fluid rounded shadow-sm" style="max-height: 150px; width: 100%; object-fit: cover; cursor: pointer;" onclick='verImagenCompleta(\`${e.imagen}\`, ${e.id}, false)' />
                                                                     </div>
                                                                 `}
                                                                 <hr class="my-2"/>
                                                                 <div class="d-flex justify-content-between align-items-center">
-                                                                    <small class="text-muted">
-                                                                        <i class="fas fa-clock"></i> ${fecha}
-                                                                    </small>
-                                                                    <small class="text-success">
-                                                                        ${tamaño} KB
-                                                                    </small>
+                                                                    <small class="text-muted"><i class="fas fa-clock"></i> ${fecha}</small>
+                                                                    <small class="text-success">${tamaño} KB</small>
                                                                 </div>
-                                                                ${e.tipoArchivo ? `<span class="badge bg-secondary mt-1">${e.tipoArchivo}</span>` : ''}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -590,7 +619,6 @@
                             </div>
                         </div>
 
-                        <!-- HISTORIAL -->
                         <div class="col-md-4">
                             <div class="card">
                                 <div class="card-header bg-warning">
@@ -611,7 +639,6 @@
                             </div>
                         </div>
 
-                        <!-- ASIGNACIONES -->
                         <div class="col-md-4">
                             <div class="card">
                                 <div class="card-header bg-success text-white">
@@ -620,15 +647,7 @@
                                 <div class="card-body" style="max-height: 500px; overflow-y: auto;">
                                     ${asignaciones.length > 0 ? asignaciones.map(a => `
                                         <div class="border-bottom mb-3 pb-2">
-                                            <strong>Estado:</strong> <span class="badge ${
-                                                a.status === 3 ? 'bg-primary' :
-                                                a.status === 4 ? 'bg-warning text-dark' :
-                                                'bg-secondary'
-                                            }">${
-                                                a.status === 3 ? 'En Uso' :
-                                                a.status === 4 ? 'En Trámite' :
-                                                'Finalizado'
-                                            }</span>
+                                            <strong>Estado:</strong> <span class="badge ${a.status === 3 ? 'bg-primary' : a.status === 4 ? 'bg-warning text-dark' : 'bg-secondary'}">${a.status === 3 ? 'En Uso' : a.status === 4 ? 'En Trámite' : 'Finalizado'}</span>
                                             <br/><strong>Operador:</strong> ${a.operador || '-'}
                                             ${a.operador2 ? `<br/><small class="text-muted">+ ${a.operador2}</small>` : ''}
                                             <br/><strong>Unidad:</strong> ${a.unidad || '-'}
@@ -636,18 +655,6 @@
                                             <br/><small class="text-muted">Asignado: ${a.fentrega ? new Date(a.fentrega).toLocaleString('es-MX') : '-'}</small>
                                             ${a.fechaEntrega ? `<br/><small class="text-success">Entregado: ${new Date(a.fechaEntrega).toLocaleString('es-MX')}</small>` : ''}
                                             ${a.fechaDevolucion ? `<br/><small class="text-info">Devuelto: ${new Date(a.fechaDevolucion).toLocaleString('es-MX')}</small>` : ''}
-                                            ${a.usuarioDevolucionNombre ? `
-                                                <br/><small class="text-secondary">
-                                                    <i class="fas fa-user-check"></i> Devolvió: <strong>${a.usuarioDevolucionNombre}</strong>
-                                                    ${a.fechaDevolucionRegistro ? `<span class="ms-1">(${new Date(a.fechaDevolucionRegistro).toLocaleString('es-MX')})</span>` : ''}
-                                                </small>` : ''}
-                                            ${a.usuarioEvidenciaNombre ? `
-                                                <br/><small class="text-secondary">
-                                                    <i class="fas fa-camera"></i> Evidencia: <strong>${a.usuarioEvidenciaNombre}</strong>
-                                                    ${a.fechaEvidenciaRegistro ? `<span class="ms-1">(${new Date(a.fechaEvidenciaRegistro).toLocaleString('es-MX')})</span>` : ''}
-                                                </small>` : ''}
-                                            ${a.qR_Code ? `<br/><span class="badge bg-primary mt-1"><i class="fas fa-qrcode"></i> QR Generado</span>` : ''}
-                                            ${a.statusEvidencia ? `<br/><span class="badge bg-warning mt-1">${a.statusEvidencia}</span>` : ''}
                                         </div>
                                     `).join('') : '<p class="text-muted text-center">Sin asignaciones</p>'}
                                 </div>
@@ -655,14 +662,11 @@
                         </div>
                     </div>
 
-                    <!-- MODAL PARA VER IMAGEN COMPLETA -->
                     <div class="modal fade" id="modalImagenCompleta" tabindex="-1">
                         <div class="modal-dialog modal-xl modal-dialog-centered">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title">
-                                        <i class="fas fa-image me-2"></i>Evidencia Completa
-                                    </h5>
+                                    <h5 class="modal-title">Evidencia Completa</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body text-center bg-dark p-4">
@@ -670,9 +674,7 @@
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                                    <a id="btnDescargarImagenDetalle" href="#" download="evidencia.jpg" class="btn btn-primary">
-                                        <i class="fas fa-download"></i> Descargar
-                                    </a>
+                                    <a id="btnDescargarImagenDetalle" href="#" download="evidencia.jpg" class="btn btn-primary">Descargar</a>
                                 </div>
                             </div>
                         </div>
@@ -684,69 +686,24 @@
 
             } catch (error) {
                 Swal.fire('Error', 'No se pudo cargar el detalle: ' + error.message, 'error');
-                console.error('Error completo:', error);
             }
         }
 
-        // ==========================================
-        // VER IMAGEN COMPLETA
-        // ==========================================
         function verImagenCompleta(imagenBase64OrUrl, id, esRutaAntigua) {
             const imgElement = document.getElementById('imagenCompletaDetalle');
             const downloadBtn = document.getElementById('btnDescargarImagenDetalle');
-
             if (esRutaAntigua) {
-                imgElement.src = imagenBase64OrUrl;
-                downloadBtn.href = imagenBase64OrUrl;
-                downloadBtn.download = `evidencia_${id}.jpg`;
+                imgElement.src = imagenBase64OrUrl; downloadBtn.href = imagenBase64OrUrl; downloadBtn.download = `evidencia_${id}.jpg`;
             } else {
-                const dataUrl = 'data:image/jpeg;base64,' + imagenBase64OrUrl;
-                imgElement.src = dataUrl;
-                downloadBtn.href = dataUrl;
-                downloadBtn.download = `evidencia_${id}.jpg`;
+                const dataUrl = 'data:image/jpeg;base64,' + imagenBase64OrUrl; imgElement.src = dataUrl; downloadBtn.href = dataUrl; downloadBtn.download = `evidencia_${id}.jpg`;
             }
-
             new bootstrap.Modal(document.getElementById('modalImagenCompleta')).show();
         }
 
-        // ==========================================
-        // VER QR DEL SELLO
-        // ==========================================
         function verQRSello(qrCode, numeroSello) {
-            // Construir URL de Google Charts para renderizar el QR
             const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrCode)}`;
-
-            const html = `
-                <div class="text-center">
-                    <p class="text-muted mb-2"><strong>Código:</strong> <code>${qrCode}</code></p>
-                    <img src="${qrUrl}" alt="QR Sello ${numeroSello}" class="img-fluid border rounded p-2" style="max-width:300px;" />
-                    <div class="mt-3">
-                        <a href="${qrUrl}" download="QR_Sello_${numeroSello}.png" class="btn btn-sm btn-primary">
-                            <i class="fas fa-download"></i> Descargar QR
-                        </a>
-                    </div>
-                </div>
-            `;
-
-            Swal.fire({
-                title: `<i class="fas fa-qrcode me-2"></i>QR - Sello ${numeroSello}`,
-                html: html,
-                showConfirmButton: false,
-                showCloseButton: true,
-                width: 420
-            });
-        }
-
-        // ==========================================
-        // EXPORTAR A EXCEL
-        // ==========================================
-        function exportarExcel() {
-            Swal.fire({
-                icon: 'info',
-                title: 'Exportar a Excel',
-                text: 'Esta funcionalidad estará disponible próximamente',
-                confirmButtonText: 'Entendido'
-            });
+            const html = `<div class="text-center"><p class="text-muted mb-2"><strong>Código:</strong> <code>${qrCode}</code></p><img src="${qrUrl}" alt="QR Sello ${numeroSello}" class="img-fluid border rounded p-2" style="max-width:300px;" /><div class="mt-3"><a href="${qrUrl}" download="QR_Sello_${numeroSello}.png" class="btn btn-sm btn-primary"><i class="fas fa-download"></i> Descargar QR</a></div></div>`;
+            Swal.fire({ title: `<i class="fas fa-qrcode me-2"></i>QR - Sello ${numeroSello}`, html: html, showConfirmButton: false, showCloseButton: true, width: 420 });
         }
     </script>
 }

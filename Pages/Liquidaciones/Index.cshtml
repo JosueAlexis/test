@@ -25,7 +25,6 @@
         margin-bottom: 20px;
     }
 
-    /* NUEVO: Estilos para selección masiva */
     .selection-toolbar {
         background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
         color: white;
@@ -202,6 +201,7 @@
                     </div>
 
                     <form method="get" class="row g-3">
+                        <!-- Fila 1 de Filtros -->
                         <div class="col-lg-3">
                             <label class="form-label">
                                 <i class="fas fa-keyboard me-1"></i>Búsqueda General
@@ -220,7 +220,7 @@
                             <input type="text"
                                    name="Remolque"
                                    class="form-control"
-                                   placeholder="Ej: S631, R123..."
+                                   placeholder="Ej: S631..."
                                    value="@Model.Remolque">
                         </div>
 
@@ -259,6 +259,30 @@
                                 </a>
                             </div>
                         </div>
+
+                        <!-- Fila 2 de Filtros (Rangos de Reloj) -->
+                        <div class="col-lg-2">
+                            <label class="form-label">
+                                <i class="fas fa-clock me-1"></i>No. Reloj (Desde)
+                            </label>
+                            <input type="number"
+                                   name="RelojInicio"
+                                   class="form-control"
+                                   placeholder="Ej: 1024"
+                                   value="@Model.RelojInicio">
+                        </div>
+
+                        <div class="col-lg-2">
+                            <label class="form-label">
+                                <i class="fas fa-clock me-1"></i>No. Reloj (Hasta)
+                            </label>
+                            <input type="number"
+                                   name="RelojFin"
+                                   class="form-control"
+                                   placeholder="Ej: 1030"
+                                   value="@Model.RelojFin">
+                        </div>
+
                     </form>
 
                     <div class="row mt-3">
@@ -334,8 +358,11 @@
                         </h5>
 
                         <form method="post" asp-page-handler="GenerarPDFsPorFiltro" class="m-0">
+                            <!-- Conservamos todos los filtros ocultos, INCLUYENDO EL RELOJ -->
                             <input type="hidden" name="searchStringFiltro" value="@Model.SearchString" />
                             <input type="hidden" name="remolqueFiltro" value="@Model.Remolque" />
+                            <input type="hidden" name="relojInicioFiltro" value="@Model.RelojInicio" />
+                            <input type="hidden" name="relojFinFiltro" value="@Model.RelojFin" />
                             <input type="hidden" name="fechaInicioFiltro" value="@Model.FechaInicio?.ToString("yyyy-MM-dd")" />
                             <input type="hidden" name="fechaFinFiltro" value="@Model.FechaFin?.ToString("yyyy-MM-dd")" />
                             <input type="hidden" name="todosLosRegistrosFiltro" value="@Model.TodosLosRegistros.ToString().ToLower()" />
@@ -547,17 +574,14 @@
                 }
             });
 
-            // NUEVO: Delegación de eventos para que DataTables no bloquee los clics en otras páginas
             $('#tablaLiquidaciones tbody').on('change', '.liquidacion-checkbox', function() {
                 window.actualizarContadorSeleccionados();
             });
 
-            // Escuchar el clic de la casilla principal
             $('#selectAll').on('change', function() {
                 window.toggleTodos();
             });
 
-            // Funciones para checkboxes
             window.toggleTodos = function() {
                 const selectAll = document.getElementById('selectAll');
                 const checkboxes = document.querySelectorAll('.liquidacion-checkbox:visible');
@@ -611,7 +635,6 @@
                 }
             }
 
-            // Antes de enviar el formulario de casillas manuales
             $('#formSeleccionMasiva').on('submit', function(e) {
                 const checkboxes = document.querySelectorAll('.liquidacion-checkbox:checked');
                 if (checkboxes.length === 0) {
@@ -627,7 +650,6 @@
                     }
                 }
 
-                // Clonar los checkboxes seleccionados al contenedor oculto
                 const container = document.getElementById('hiddenInputsContainer');
                 container.innerHTML = '';
                 checkboxes.forEach(cb => {

@@ -46,6 +46,10 @@ builder.Services.AddRazorPages(options =>
 {
     // Regla de Microsoft para permitir acceso anónimo
     options.Conventions.AllowAnonymousToPage("/Cartelera/Display");
+
+    // ▼▼▼ NUEVO: Permitir acceso anónimo a la recuperación ▼▼▼
+    options.Conventions.AllowAnonymousToPage("/RecuperarPassword");
+    options.Conventions.AllowAnonymousToPage("/EstablecerPassword");
 });
 
 builder.Services.AddControllers();
@@ -187,13 +191,13 @@ app.Use(async (context, next) =>
     bool esRutaPublica = path.Equals("/", StringComparison.OrdinalIgnoreCase) ||
                          path.StartsWith("/Login", StringComparison.OrdinalIgnoreCase) ||
                          path.StartsWith("/RecuperarPassword", StringComparison.OrdinalIgnoreCase) ||
+                         path.StartsWith("/EstablecerPassword", StringComparison.OrdinalIgnoreCase) || // <-- NUEVO: Para que funcione el enlace del correo
                          path.StartsWith("/descargas_masivas", StringComparison.OrdinalIgnoreCase) ||
                          path.StartsWith("/css", StringComparison.OrdinalIgnoreCase) ||
                          path.StartsWith("/js", StringComparison.OrdinalIgnoreCase) ||
                          path.StartsWith("/lib", StringComparison.OrdinalIgnoreCase) ||
                          path.StartsWith("/img", StringComparison.OrdinalIgnoreCase) ||
                          path.StartsWith("/health", StringComparison.OrdinalIgnoreCase) ||
-                         // 🔥 NUEVAS EXCEPCIONES PARA LA CARTELERA DE TV 🔥
                          path.StartsWith("/Cartelera/Display", StringComparison.OrdinalIgnoreCase) ||
                          path.StartsWith("/api/Cartelera/GetActive", StringComparison.OrdinalIgnoreCase) ||
                          path.StartsWith("/api/Cartelera/GetImage", StringComparison.OrdinalIgnoreCase);

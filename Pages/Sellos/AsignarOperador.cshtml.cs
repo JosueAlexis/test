@@ -19,9 +19,11 @@ namespace ProyectoRH2025.Pages.Sellos
             _context = context;
         }
 
-        public List<SelectListItem> Sellos { get; set; } = new();
+        // ✅ Nuevas listas estructuradas para enviar el IdCuenta a la vista
+        public List<SelloOptionDTO> SellosList { get; set; } = new();
+        public List<UnidadDTO> UnidadesList { get; set; } = new();
+
         public List<SelectListItem> Operadores { get; set; } = new();
-        public List<SelectListItem> Unidades { get; set; } = new();
         public List<SelectListItem> TiposAsignacion { get; set; } = new();
 
         [BindProperty, Required(ErrorMessage = "Debe seleccionar un sello")]
@@ -87,18 +89,31 @@ namespace ProyectoRH2025.Pages.Sellos
                 return Page();
             }
 
-            // ✅ Validar que el sello pertenezca al usuario (supervisor) logueado
-            var sello = await _context.TblSellos
-                .FirstOrDefaultAsync(s => s.Id == IdSello && s.Status == 14 && s.SupervisorId == idUsuario);
+            // Obtener permisos del usuario
+            var misCuentasIds = await _context.TblUsuariosCuentas
+                .Where(uc => uc.IdUsuario == idUsuario.Value && uc.EsActivo)
+                .Select(uc => uc.IdCuenta)
+                .ToListAsync();
+
+            bool esSuperUsuario = misCuentasIds.Contains(7);
+
+            var sello = await _context.TblSellos.FirstOrDefaultAsync(s => s.Id == IdSello && s.Status == 14);
 
             if (sello == null)
             {
-                Mensaje = "❌ El sello no está disponible o no está asignado a usted.";
+                Mensaje = "❌ El sello no está disponible o no existe.";
                 await CargarDatosAsync();
                 return Page();
             }
 
-            // ✅ Validación de comboy: no puede ser el mismo operador
+            // ✅ Validar que el sello pertenezca a las cuentas del usuario (si no es maestro)
+            if (!esSuperUsuario && (!sello.IdCuenta.HasValue || !misCuentasIds.Contains(sello.IdCuenta.Value)))
+            {
+                Mensaje = "❌ No tienes permisos sobre la cuenta de este sello.";
+                await CargarDatosAsync();
+                return Page();
+            }
+
             if (TipoAsignacion == 1 && IdOperador2.HasValue && IdOperador == IdOperador2.Value)
             {
                 Mensaje = "❌ No puedes seleccionar el mismo operador dos veces en Comboy.";
@@ -106,7 +121,6 @@ namespace ProyectoRH2025.Pages.Sellos
                 return Page();
             }
 
-            // ✅ VALIDAR QUE LA UNIDAD PERTENEZCA A LAS CUENTAS DEL SUPERVISOR (CON SP)
             var unidadValida = await ValidarUnidadPerteneceAUsuario(idUsuario.Value, IdUnidad);
 
             if (!unidadValida)
@@ -116,7 +130,7 @@ namespace ProyectoRH2025.Pages.Sellos
                 return Page();
             }
 
-            // ✅ Crear la asignación
+            // Crear la asignación
             var asignacion = new TblAsigSellos
             {
                 idSello = IdSello,
@@ -129,16 +143,13 @@ namespace ProyectoRH2025.Pages.Sellos
                 Ruta = Ruta.Trim(),
                 Caja = Caja.Trim(),
                 Comentarios = Comentarios?.Trim(),
-                Status = 4, // Estado Trámite
+                Status = 4,
                 idSeAsigno = idUsuario.Value,
                 FechaStatus4 = DateTime.Now
             };
 
             _context.TblAsigSellos.Add(asignacion);
-
-            // ✅ Cambiar status del sello a 4 (Trámite)
             sello.Status = 4;
-
             await _context.SaveChangesAsync();
 
             Mensaje = "✅ Sello asignado correctamente al operador.";
@@ -154,148 +165,80 @@ namespace ProyectoRH2025.Pages.Sellos
         private async Task CargarDatosAsync()
         {
             var idUsuario = HttpContext.Session.GetInt32("idUsuario");
+            if (idUsuario == null) return;
 
-            // ✅ SELLOS: Solo mostrar los asignados al usuario logueado
-            Sellos = await _context.TblSellos
-                .Where(s => s.Status == 14 && s.SupervisorId == idUsuario)
-                .Select(s => new SelectListItem
-                {
-                    Value = s.Id.ToString(),
-                    Text = s.Sello
-                })
-                .OrderBy(s => s.Text)
+            var misCuentasIds = await _context.TblUsuariosCuentas
+                .Where(uc => uc.IdUsuario == idUsuario.Value && uc.EsActivo)
+                .Select(uc => uc.IdCuenta)
                 .ToListAsync();
 
-            if (!Sellos.Any())
+            bool esSuperUsuario = misCuentasIds.Contains(7);
+
+            // 1. ✅ CARGAR SELLOS MOSTRANDO LA CUENTA
+            string sqlSellos = @"
+                SELECT 
+                    s.Id, 
+                    s.Sello, 
+                    s.IdCuenta, 
+                    ISNULL(c.NombreCuenta, 'Sin Cuenta Asignada') AS NombreCuenta
+                FROM tblSellos s
+                LEFT JOIN tblCuentas c ON s.IdCuenta = c.Id
+                WHERE s.Status = 14";
+
+            var sellosData = await _context.Database.SqlQueryRaw<SelloOptionDTO>(sqlSellos).ToListAsync();
+
+            // Filtrar por permisos si no es cuenta maestra
+            if (!esSuperUsuario)
             {
-                Sellos.Add(new SelectListItem
-                {
-                    Value = "",
-                    Text = "-- No tienes sellos asignados --",
-                    Disabled = true,
-                    Selected = true
-                });
-            }
-            else
-            {
-                Sellos.Insert(0, new SelectListItem
-                {
-                    Value = "",
-                    Text = "-- Seleccionar Sello --"
-                });
+                sellosData = sellosData.Where(s => s.IdCuenta.HasValue && misCuentasIds.Contains(s.IdCuenta.Value)).ToList();
             }
 
-            // ✅ OPERADORES
+            SellosList = sellosData.OrderBy(s => s.Sello).ToList();
+
+            // 2. OPERADORES
             var operadoresData = await _context.Empleados
                 .Where(e => e.Puesto == 1 && e.Status == 1 && e.CodClientes == "1")
-                .Select(e => new
-                {
-                    e.Id,
-                    e.Reloj,
-                    e.Names,
-                    e.Apellido,
-                    e.Apellido2
-                })
+                .Select(e => new { e.Id, e.Reloj, e.Names, e.Apellido, e.Apellido2 })
                 .ToListAsync();
 
             Operadores = operadoresData
-                .Select(e => new SelectListItem
-                {
-                    Value = e.Id.ToString(),
-                    Text = $"{e.Reloj} - {e.Names} {e.Apellido} {e.Apellido2}"
-                })
+                .Select(e => new SelectListItem { Value = e.Id.ToString(), Text = $"{e.Reloj} - {e.Names} {e.Apellido} {e.Apellido2}" })
                 .OrderBy(e => e.Text)
                 .ToList();
 
-            Operadores.Insert(0, new SelectListItem
-            {
-                Value = "",
-                Text = "-- Seleccionar Operador --"
-            });
+            Operadores.Insert(0, new SelectListItem { Value = "", Text = "-- Seleccionar Operador --" });
 
-            // ✅ UNIDADES USANDO STORED PROCEDURE
-            if (idUsuario.HasValue)
-            {
-                var unidadesData = await ObtenerUnidadesPorUsuarioSP(idUsuario.Value);
+            // 3. ✅ CARGAR TODAS LAS UNIDADES PERMITIDAS
+            UnidadesList = await ObtenerUnidadesPorUsuarioSP(idUsuario.Value);
 
-                if (unidadesData.Any())
-                {
-                    Unidades = unidadesData
-                        .Select(u => new SelectListItem
-                        {
-                            Value = u.Id.ToString(),
-                            Text = string.IsNullOrEmpty(u.Placas)
-                                ? $"Unidad {u.NumUnidad}"
-                                : $"Unidad {u.NumUnidad} - {u.Placas}"
-                        })
-                        .ToList();
-
-                    Unidades.Insert(0, new SelectListItem
-                    {
-                        Value = "",
-                        Text = "-- Seleccionar Unidad --"
-                    });
-                }
-                else
-                {
-                    Unidades.Add(new SelectListItem
-                    {
-                        Value = "",
-                        Text = "-- No tienes unidades asignadas --",
-                        Disabled = true,
-                        Selected = true
-                    });
-                }
-            }
-
-            // ✅ TIPOS DE ASIGNACIÓN
+            // 4. TIPOS DE ASIGNACIÓN
             TiposAsignacion = await _context.TblTipoAsignacion
-                .Select(t => new SelectListItem
-                {
-                    Value = t.Id.ToString(),
-                    Text = t.Nombre
-                })
+                .Select(t => new SelectListItem { Value = t.Id.ToString(), Text = t.Nombre })
                 .ToListAsync();
 
-            TiposAsignacion.Insert(0, new SelectListItem
-            {
-                Value = "",
-                Text = "-- Seleccionar Tipo --"
-            });
+            TiposAsignacion.Insert(0, new SelectListItem { Value = "", Text = "-- Seleccionar Tipo --" });
         }
 
-        // ==========================================
-        // 🔥 MÉTODO PRIVADO: OBTENER UNIDADES POR USUARIO (STORED PROCEDURE)
-        // ==========================================
         private async Task<List<UnidadDTO>> ObtenerUnidadesPorUsuarioSP(int idUsuario)
         {
-            var unidades = new List<UnidadDTO>();
-
             try
             {
                 var idUsuarioParam = new SqlParameter("@IdUsuario", idUsuario);
 
-                // Ejecutar SP usando FromSqlRaw
-                var resultado = await _context.Database
+                return await _context.Database
                     .SqlQueryRaw<UnidadDTO>(
                         "EXEC sp_ObtenerUnidadesPorUsuario @IdUsuario",
                         idUsuarioParam
                     )
                     .ToListAsync();
-
-                return resultado;
             }
             catch (Exception ex)
             {
-                // Log del error
                 Console.WriteLine($"Error al ejecutar SP: {ex.Message}");
                 return new List<UnidadDTO>();
             }
         }
 
-        // ==========================================
-        // 🔥 MÉTODO PRIVADO: VALIDAR UNIDAD PERTENECE A USUARIO
-        // ==========================================
         private async Task<bool> ValidarUnidadPerteneceAUsuario(int idUsuario, int idUnidad)
         {
             try
@@ -310,7 +253,7 @@ namespace ProyectoRH2025.Pages.Sellos
         }
 
         // ==========================================
-        // DTO PARA UNIDADES
+        // DTOs PARA VISTA
         // ==========================================
         public class UnidadDTO
         {
@@ -319,6 +262,14 @@ namespace ProyectoRH2025.Pages.Sellos
             public string? Placas { get; set; }
             public int IdCuenta { get; set; }
             public string? NombreCuenta { get; set; }
+        }
+
+        public class SelloOptionDTO
+        {
+            public int Id { get; set; }
+            public string Sello { get; set; }
+            public int? IdCuenta { get; set; }
+            public string NombreCuenta { get; set; }
         }
     }
 }

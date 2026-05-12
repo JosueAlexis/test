@@ -42,7 +42,12 @@ namespace ProyectoRH2025.Data
         public DbSet<ReferenciaPersEmpleado> ReferenciasPersonalesEmpleados { get; set; }
         public DbSet<tblDocumentosEmpleado> tblDocumentosEmpleado { get; set; }
         public DbSet<Beneficiario> Beneficiarios { get; set; }
-
+        public DbSet<TblInventarioCel> TblInventarioCel { get; set; }
+        public DbSet<TblMarcasCel> TblMarcasCel { get; set; }
+        public DbSet<TblModelosCel> TblModelosCel { get; set; }
+        public DbSet<TblPreciosCel> TblPreciosCel { get; set; }
+        public DbSet<TblInventarioAccesorios> TblInventarioAccesorios { get; set; }
+        public DbSet<TblEstatusCelular> TblEstatusCelular { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

@@ -105,14 +105,15 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                     {
                         if (podRecord.PodEvidenciasImagenes == null) podRecord.PodEvidenciasImagenes = new List<PodEvidenciaImagen>();
 
-                        foreach (var imagen in imagenes)
+                        // ▼▼▼ DESCARGA EN PARALELO (MUCHO MÁS RÁPIDO) ▼▼▼
+                        var tareasDeDescarga = imagenes.Select(async imagen =>
                         {
                             try
                             {
                                 var imageBytes = await _sharePointService.GetFileBytesAsync(rutaCarpetaPod, imagen.Name);
                                 if (imageBytes != null && imageBytes.Length > 0)
                                 {
-                                    podRecord.PodEvidenciasImagenes.Add(new PodEvidenciaImagen
+                                    return new PodEvidenciaImagen
                                     {
                                         EvidenciaID = 0,
                                         POD_ID_FK = podRecord.POD_ID,
@@ -120,11 +121,25 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                                         ImageData = imageBytes,
                                         CaptureDate = imagen.Modified,
                                         MimeType = GetMimeType(imagen.Name)
-                                    });
+                                    };
                                 }
                             }
-                            catch (Exception ex) { _logger.LogError(ex, "Error descargando imagen"); }
+                            catch (Exception ex) { _logger.LogError(ex, $"Error descargando imagen {imagen.Name}"); }
+                            return (PodEvidenciaImagen)null;
+                        });
+
+                        var imagenesDescargadas = await Task.WhenAll(tareasDeDescarga);
+                        var imagenesValidas = imagenesDescargadas.Where(img => img != null).ToList();
+
+                        if (imagenesValidas.Any())
+                        {
+                            // Solución al error CS1061: Se usa foreach con .Add en lugar de .AddRange
+                            foreach (var img in imagenesValidas)
+                            {
+                                podRecord.PodEvidenciasImagenes.Add(img);
+                            }
                         }
+                        // ▲▲▲ FIN DESCARGA EN PARALELO ▲▲▲
                     }
                 }
                 else
@@ -151,22 +166,42 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                     if (imagenes.Any())
                     {
                         if (podRecord.PodEvidenciasImagenes == null) podRecord.PodEvidenciasImagenes = new List<PodEvidenciaImagen>();
-                        foreach (var imagen in imagenes)
+
+                        // ▼▼▼ DESCARGA EN PARALELO PARA BÚSQUEDA EXACTA ▼▼▼
+                        var tareasDeDescarga = imagenes.Select(async imagen =>
                         {
-                            var imageBytes = await _sharePointService.GetFileBytesAsync(rutaCarpetaPod, imagen.Name);
-                            if (imageBytes != null && imageBytes.Length > 0)
+                            try
                             {
-                                podRecord.PodEvidenciasImagenes.Add(new PodEvidenciaImagen
+                                var imageBytes = await _sharePointService.GetFileBytesAsync(rutaCarpetaPod, imagen.Name);
+                                if (imageBytes != null && imageBytes.Length > 0)
                                 {
-                                    EvidenciaID = 0,
-                                    POD_ID_FK = podRecord.POD_ID,
-                                    FileName = imagen.Name,
-                                    ImageData = imageBytes,
-                                    CaptureDate = imagen.Modified,
-                                    MimeType = GetMimeType(imagen.Name)
-                                });
+                                    return new PodEvidenciaImagen
+                                    {
+                                        EvidenciaID = 0,
+                                        POD_ID_FK = podRecord.POD_ID,
+                                        FileName = imagen.Name,
+                                        ImageData = imageBytes,
+                                        CaptureDate = imagen.Modified,
+                                        MimeType = GetMimeType(imagen.Name)
+                                    };
+                                }
+                            }
+                            catch (Exception ex) { _logger.LogError(ex, $"Error descargando imagen exacta {imagen.Name}"); }
+                            return (PodEvidenciaImagen)null;
+                        });
+
+                        var imagenesDescargadas = await Task.WhenAll(tareasDeDescarga);
+                        var imagenesValidas = imagenesDescargadas.Where(img => img != null).ToList();
+
+                        if (imagenesValidas.Any())
+                        {
+                            // Solución al error CS1061: Se usa foreach con .Add en lugar de .AddRange
+                            foreach (var img in imagenesValidas)
+                            {
+                                podRecord.PodEvidenciasImagenes.Add(img);
                             }
                         }
+                        // ▲▲▲ FIN DESCARGA EN PARALELO ▲▲▲
                     }
                 }
             }

@@ -36,7 +36,7 @@ namespace ProyectoRH2025.Pages.Sellos
         public IList<TblSellos> ListaSellos { get; set; } = default!;
 
         [BindProperty]
-        public int SupervisorSeleccionadoId { get; set; }
+        public int CuentaSeleccionadaId { get; set; } // ✅ Ahora usamos Cuenta
 
         [BindProperty]
         public int CantidadAsignar { get; set; }
@@ -44,17 +44,17 @@ namespace ProyectoRH2025.Pages.Sellos
         [BindProperty]
         public List<int> SellosSeleccionados { get; set; } = new List<int>();
 
-        public SelectList ListaSupervisores { get; set; }
+        public SelectList ListaCuentas { get; set; } // ✅ Lista de Cuentas
 
         [BindProperty]
         public IFormFile ArchivoExcel { get; set; }
 
         [BindProperty]
-        public int SupervisorADesasignar { get; set; }
+        public int CuentaADesasignar { get; set; } // ✅ Para vaciar una cuenta
 
-        // --- Nuevas Propiedades para Agregar Manualmente ---
+        // --- Propiedades para Agregar Manualmente ---
         [BindProperty(SupportsGet = true)]
-        public string NumeroSelloCheck { get; set; }  // Para validación AJAX
+        public string NumeroSelloCheck { get; set; }
 
         [BindProperty]
         public string NumeroSello { get; set; }
@@ -82,29 +82,28 @@ namespace ProyectoRH2025.Pages.Sellos
 
         private async Task CargarDatosIniciales()
         {
-            // 1. Cargar TODO el Inventario
+            // ✅ Cargar inventario incluyendo la relación a la Cuenta
             ListaSellos = await _context.TblSellos
-                .Include(s => s.Supervisor)
+                .Include(s => s.Cuenta)
                 .OrderBy(s => s.Sello)
                 .ToListAsync();
 
-            // 2. Cargar Supervisores
-            var supervisores = await _context.TblUsuarios
-                .Where(u => u.idRol == 2 && u.Status == 1)
+            // ✅ Cargar solo cuentas activas
+            var cuentas = await _context.TblCuentas
+                .Where(c => c.EsActiva)
+                .OrderBy(c => c.OrdenVisualizacion)
                 .ToListAsync();
 
-            ListaSupervisores = new SelectList(supervisores, "idUsuario", "UsuarioNombre");
+            ListaCuentas = new SelectList(cuentas, "Id", "NombreCuenta");
         }
 
         // ==========================================
-        // NUEVO: VALIDACIÓN EN VIVO (AJAX)
+        // VALIDACIÓN EN VIVO (AJAX)
         // ==========================================
         public async Task<IActionResult> OnGetCheckSelloAsync(string numeroSelloCheck)
         {
             if (string.IsNullOrWhiteSpace(numeroSelloCheck))
-            {
                 return new JsonResult(new { existe = false, mensaje = "" });
-            }
 
             bool existe = await _context.TblSellos
                 .AnyAsync(s => s.Sello.Trim().ToLower() == numeroSelloCheck.Trim().ToLower());
@@ -117,7 +116,7 @@ namespace ProyectoRH2025.Pages.Sellos
         }
 
         // ==========================================
-        // NUEVO: AGREGAR SELLO MANUAL (CORREGIDO)
+        // AGREGAR SELLO MANUAL
         // ==========================================
         public async Task<IActionResult> OnPostAgregarSelloManualAsync()
         {
@@ -128,7 +127,6 @@ namespace ProyectoRH2025.Pages.Sellos
                 return Page();
             }
 
-            // Validación final (por seguridad)
             if (await _context.TblSellos.AnyAsync(s => s.Sello.Trim().ToLower() == NumeroSello.Trim().ToLower()))
             {
                 MensajeError = $"El sello {NumeroSello} ya existe en el sistema.";
@@ -136,99 +134,58 @@ namespace ProyectoRH2025.Pages.Sellos
                 return Page();
             }
 
-            // ✅ Obtener datos de sesión PRIMERO y validar
             var usuarioId = HttpContext.Session.GetInt32("idUsuario");
             var usuarioNombre = HttpContext.Session.GetString("UsuarioNombre");
             var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
 
-            if (!usuarioId.HasValue)
-            {
-                MensajeError = "Sesión expirada. Por favor inicia sesión nuevamente.";
-                return RedirectToPage("/Login");
-            }
+            if (!usuarioId.HasValue) return RedirectToPage("/Login");
 
             try
             {
                 var nuevoSello = new TblSellos
                 {
                     Sello = NumeroSello.Trim(),
-                    Status = 1,  // Disponible
+                    Status = 1,
                     Fentrega = FechaEntregaManual ?? DateTime.Now,
                     Recibio = string.IsNullOrWhiteSpace(RecibioManual) ? null : RecibioManual.Trim(),
-                    Alta = usuarioId.Value, // ✅ Usar .Value para obtener el int
-                    SupervisorId = null,
+                    Alta = usuarioId.Value,
+                    IdCuenta = null, // Nace en Central (sin cuenta)
                     FechaAsignacion = null
                 };
 
                 _context.TblSellos.Add(nuevoSello);
-                await _context.SaveChangesAsync(); // ✅ Guardar PRIMERO para obtener el ID del sello
+                await _context.SaveChangesAsync();
 
-                // ✅ LUEGO registrar auditoría (el sello ya tiene ID)
                 await _auditoriaService.RegistrarImportacion(
-                    nuevoSello,
-                    usuarioId,
-                    usuarioNombre,
-                    ip,
-                    "Alta manual individual vía interfaz web"
+                    nuevoSello, usuarioId, usuarioNombre, ip, "Alta manual web"
                 );
-
-                await _context.SaveChangesAsync(); // Guardar la auditoría
+                await _context.SaveChangesAsync();
 
                 MensajeExito = $"✅ Sello {NumeroSello} agregado correctamente como disponible.";
                 return RedirectToPage();
             }
-            catch (DbUpdateException dbEx)
-            {
-                // Error específico de base de datos
-                var innerMessage = dbEx.InnerException?.Message ?? dbEx.Message;
-                MensajeError = $"Error de base de datos al agregar el sello: {innerMessage}";
-                await CargarDatosIniciales();
-                return Page();
-            }
             catch (Exception ex)
             {
                 MensajeError = $"Error al agregar el sello: {ex.Message}";
-
-                // Log adicional para debugging
-                if (ex.InnerException != null)
-                {
-                    MensajeError += $" | Detalle: {ex.InnerException.Message}";
-                }
-
                 await CargarDatosIniciales();
                 return Page();
             }
         }
 
         // ==========================================
-        // HANDLER: ASIGNAR SUPERVISOR CON AUDITORÍA
+        // HANDLER: ASIGNAR A CUENTA (AUTOMÁTICO / RANDOM)
         // ==========================================
         public async Task<IActionResult> OnPostAsignarAsync()
         {
-            if (SupervisorSeleccionadoId <= 0 || CantidadAsignar <= 0)
+            if (CuentaSeleccionadaId <= 0 || CantidadAsignar <= 0)
             {
-                MensajeError = "Selecciona un supervisor y una cantidad válida.";
+                MensajeError = "Selecciona una cuenta y una cantidad válida.";
                 await CargarDatosIniciales();
                 return Page();
             }
 
-            // 1. Validar sellos pendientes
-            var sellosPendientes = await _context.TblSellos
-                .Where(s => s.SupervisorId == SupervisorSeleccionadoId &&
-                            s.Status == 4 &&
-                            s.FechaAsignacion <= DateTime.Now.AddDays(-4))
-                .ToListAsync();
-
-            if (sellosPendientes.Any())
-            {
-                MensajeError = "Este supervisor tiene sellos pendientes hace más de 4 días.";
-                await CargarDatosIniciales();
-                return Page();
-            }
-
-            // 2. Obtener disponibles
             var disponibles = await _context.TblSellos
-                .Where(s => s.Status == 1) // Status 1 = Activo
+                .Where(s => s.Status == 1)
                 .OrderBy(x => Guid.NewGuid())
                 .ToListAsync();
 
@@ -239,11 +196,7 @@ namespace ProyectoRH2025.Pages.Sellos
                 return Page();
             }
 
-            // 3. Selección aleatoria permitiendo hasta 2 consecutivos seguidos
-            var disponiblesRandom = disponibles
-                .OrderBy(x => Guid.NewGuid())   // ← mezcla aleatoria
-                .ToList();
-
+            var disponiblesRandom = disponibles.OrderBy(x => Guid.NewGuid()).ToList();
             var asignados = new List<TblSellos>();
             const int maxConsecutivosPermitidos = 2;
 
@@ -252,100 +205,72 @@ namespace ProyectoRH2025.Pages.Sellos
                 if (asignados.Count >= CantidadAsignar) break;
 
                 bool puedeAgregar = true;
-
-                // Si ya tenemos suficientes al final, revisamos cuántos consecutivos hay
                 if (asignados.Count >= maxConsecutivosPermitidos)
                 {
-                    // Tomamos los últimos maxConsecutivosPermitidos sellos asignados
                     var ultimos = asignados.TakeLast(maxConsecutivosPermitidos).ToList();
                     var ultimoNumero = Convert.ToInt32(ultimos.Last().Sello);
                     var nuevoNumero = Convert.ToInt32(sello.Sello);
 
                     if (Math.Abs(nuevoNumero - ultimoNumero) == 1)
                     {
-                        // Contamos cuántos consecutivos hay al final
-                        int contadorConsecutivos = 1; // ya contamos el último
+                        int contadorConsecutivos = 1;
                         for (int i = ultimos.Count - 2; i >= 0; i--)
                         {
                             var anterior = Convert.ToInt32(ultimos[i].Sello);
                             if (Math.Abs(anterior - ultimoNumero) == 1)
                             {
                                 contadorConsecutivos++;
-                                ultimoNumero = anterior; // seguimos la cadena
+                                ultimoNumero = anterior;
                             }
-                            else
-                            {
-                                break;
-                            }
+                            else break;
                         }
-
-                        if (contadorConsecutivos >= maxConsecutivosPermitidos)
-                        {
-                            puedeAgregar = false;
-                        }
+                        if (contadorConsecutivos >= maxConsecutivosPermitidos) puedeAgregar = false;
                     }
                 }
-
-                if (puedeAgregar)
-                {
-                    asignados.Add(sello);
-                }
+                if (puedeAgregar) asignados.Add(sello);
             }
 
             if (asignados.Count < CantidadAsignar)
             {
-                MensajeError = $"No se pudieron seleccionar {CantidadAsignar} sellos con la regla actual (máx {maxConsecutivosPermitidos} consecutivos). Intenta con una cantidad menor o relaja la regla.";
+                MensajeError = $"No se pudieron seleccionar los sellos. Intenta con menos cantidad.";
                 await CargarDatosIniciales();
                 return Page();
             }
 
-            // 4. Obtener datos de sesión para auditoría
             var usuarioId = HttpContext.Session.GetInt32("idUsuario");
             var usuarioNombre = HttpContext.Session.GetString("UsuarioNombre");
             var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
 
-            // 5. Guardar cambios CON AUDITORÍA
+            var cuentaDb = await _context.TblCuentas.FindAsync(CuentaSeleccionadaId);
+            string nombreCuenta = cuentaDb?.NombreCuenta ?? "Cuenta Desconocida";
+
             foreach (var sello in asignados)
             {
                 var statusAnterior = sello.Status;
-                var supervisorAnterior = sello.SupervisorId;
-                var supervisorNombreAnterior = sello.Supervisor?.NombreCompleto ?? sello.Supervisor?.UsuarioNombre;
 
-                // Status 14 = Asignado a Supervisor
                 sello.Status = 14;
-                sello.SupervisorId = SupervisorSeleccionadoId;
+                sello.IdCuenta = CuentaSeleccionadaId; // ✅ SE ASIGNA A LA CUENTA
                 sello.FechaAsignacion = DateTime.Now;
 
-                // Cargar supervisor nuevo para obtener nombre
-                await _context.Entry(sello).Reference(s => s.Supervisor).LoadAsync();
-
-                // REGISTRAR EN AUDITORÍA
                 await _auditoriaService.RegistrarAsignacion(
-                    sello,
-                    statusAnterior,
-                    supervisorAnterior,
-                    supervisorNombreAnterior,
-                    usuarioId,
-                    usuarioNombre,
-                    ip,
-                    $"Asignación automática de {asignados.Count} sellos no consecutivos"
+                    sello, statusAnterior, null, nombreCuenta, usuarioId, usuarioNombre, ip,
+                    $"Asignación automática a la cuenta {nombreCuenta}"
                 );
             }
 
             await _context.SaveChangesAsync();
-            MensajeExito = $"Se asignaron correctamente {asignados.Count} sellos.";
-
+            MensajeExito = $"Se asignaron correctamente {asignados.Count} sellos a {nombreCuenta}.";
             return RedirectToPage();
         }
 
         // ==========================================
-        // HANDLER: ASIGNAR SELLOS SELECCIONADOS CON AUDITORÍA
+        // HANDLER: ASIGNAR SELLOS SELECCIONADOS
         // ==========================================
         public async Task<IActionResult> OnPostAsignarSeleccionadosAsync()
         {
-            if (SupervisorSeleccionadoId <= 0)
+            if (CuentaSeleccionadaId <= 0)
             {
-                MensajeError = "Debes seleccionar un supervisor.";
+                MensajeError = "Debes seleccionar una cuenta destino.";
                 await CargarDatosIniciales();
                 return Page();
             }
@@ -372,93 +297,75 @@ namespace ProyectoRH2025.Pages.Sellos
             var usuarioNombre = HttpContext.Session.GetString("UsuarioNombre");
             var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
 
+            var cuentaDb = await _context.TblCuentas.FindAsync(CuentaSeleccionadaId);
+            string nombreCuenta = cuentaDb?.NombreCuenta ?? "Cuenta Desconocida";
+
             foreach (var sello in sellos)
             {
                 var statusAnterior = sello.Status;
-                var supervisorAnterior = sello.SupervisorId;
-                var supervisorNombreAnterior = sello.Supervisor?.NombreCompleto ?? sello.Supervisor?.UsuarioNombre;
 
-                sello.Status = 14; // Asignado
-                sello.SupervisorId = SupervisorSeleccionadoId;
+                sello.Status = 14;
+                sello.IdCuenta = CuentaSeleccionadaId; // ✅ SE ASIGNA A LA CUENTA
                 sello.FechaAsignacion = DateTime.Now;
 
-                await _context.Entry(sello).Reference(s => s.Supervisor).LoadAsync();
-
                 await _auditoriaService.RegistrarAsignacion(
-                    sello,
-                    statusAnterior,
-                    supervisorAnterior,
-                    supervisorNombreAnterior,
-                    usuarioId,
-                    usuarioNombre,
-                    ip,
-                    "Asignación manual/selectiva individual"
+                    sello, statusAnterior, null, nombreCuenta, usuarioId, usuarioNombre, ip,
+                    $"Asignación manual selectiva a {nombreCuenta}"
                 );
             }
 
             await _context.SaveChangesAsync();
-
-            MensajeExito = $"Se asignaron correctamente {sellos.Count} sello(s) seleccionados.";
+            MensajeExito = $"Se asignaron correctamente {sellos.Count} sello(s) a {nombreCuenta}.";
             return RedirectToPage();
         }
 
         // ==========================================
-        // HANDLER: DESASIGNAR POR SUPERVISOR CON AUDITORÍA
+        // HANDLER: DESASIGNAR POR CUENTA (MASIVO)
         // ==========================================
-        public async Task<IActionResult> OnPostDesasignarPorSupervisorAsync()
+        public async Task<IActionResult> OnPostDesasignarPorCuentaAsync()
         {
-            if (SupervisorADesasignar <= 0)
+            if (CuentaADesasignar <= 0)
             {
-                MensajeError = "Selecciona un supervisor válido.";
+                MensajeError = "Selecciona una cuenta válida.";
                 return RedirectToPage();
             }
 
             try
             {
                 var sellos = await _context.TblSellos
-                    .Include(s => s.Supervisor)
-                    .Where(s => s.SupervisorId == SupervisorADesasignar && s.Status == 14)
+                    .Where(s => s.IdCuenta == CuentaADesasignar && s.Status == 14)
                     .ToListAsync();
 
                 if (!sellos.Any())
                 {
-                    MensajeError = "Este supervisor no tiene sellos asignados.";
+                    MensajeError = "Esta cuenta no tiene sellos en su inventario local.";
                     return RedirectToPage();
                 }
 
-                // Obtener datos de sesión
                 var usuarioId = HttpContext.Session.GetInt32("idUsuario");
                 var usuarioNombre = HttpContext.Session.GetString("UsuarioNombre");
                 var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
 
+                var cuentaDb = await _context.TblCuentas.FindAsync(CuentaADesasignar);
+                string nombreCuenta = cuentaDb?.NombreCuenta ?? "Cuenta";
+
                 foreach (var sello in sellos)
                 {
                     var statusAnterior = sello.Status;
-                    var supervisorAnterior = sello.SupervisorId;
-                    var supervisorNombreAnterior = sello.Supervisor?.NombreCompleto ?? sello.Supervisor?.UsuarioNombre;
                     var fechaAsignacionAnterior = sello.FechaAsignacion;
 
-                    // Volver a Status 1 (Activo)
-                    sello.Status = 1;
-                    sello.SupervisorId = null;
+                    sello.Status = 1; // Vuelve a Central
+                    sello.IdCuenta = null; // ✅ SE DESVINCULA DE LA CUENTA
                     sello.FechaAsignacion = null;
 
-                    // REGISTRAR EN AUDITORÍA
                     await _auditoriaService.RegistrarDesasignacion(
-                        sello,
-                        statusAnterior,
-                        supervisorAnterior,
-                        supervisorNombreAnterior,
-                        fechaAsignacionAnterior,
-                        usuarioId,
-                        usuarioNombre,
-                        ip,
-                        $"Desasignación masiva - Total: {sellos.Count} sellos"
+                        sello, statusAnterior, null, nombreCuenta, fechaAsignacionAnterior, usuarioId, usuarioNombre, ip,
+                        $"Desasignación masiva de la cuenta {nombreCuenta}"
                     );
                 }
 
                 await _context.SaveChangesAsync();
-                MensajeExito = $"Se desasignaron {sellos.Count} sellos del supervisor correctamente.";
+                MensajeExito = $"Se devolvieron {sellos.Count} sellos de {nombreCuenta} al almacén central.";
             }
             catch (Exception ex)
             {
@@ -469,7 +376,7 @@ namespace ProyectoRH2025.Pages.Sellos
         }
 
         // ==========================================
-        // HANDLER: DESASIGNAR SELLOS SELECCIONADOS CON AUDITORÍA
+        // HANDLER: DESASIGNAR SELLOS SELECCIONADOS
         // ==========================================
         public async Task<IActionResult> OnPostDesasignarSeleccionadosAsync()
         {
@@ -482,17 +389,16 @@ namespace ProyectoRH2025.Pages.Sellos
             try
             {
                 var sellos = await _context.TblSellos
-                    .Include(s => s.Supervisor)
+                    .Include(s => s.Cuenta) // ✅ Incluimos la cuenta para leer el nombre en la auditoría
                     .Where(s => SellosSeleccionados.Contains(s.Id) && s.Status == 14)
                     .ToListAsync();
 
                 if (!sellos.Any())
                 {
-                    MensajeError = "Los sellos seleccionados no están asignados o no existen.";
+                    MensajeError = "Los sellos seleccionados no están asignados a ninguna cuenta.";
                     return RedirectToPage();
                 }
 
-                // Obtener datos de sesión
                 var usuarioId = HttpContext.Session.GetInt32("idUsuario");
                 var usuarioNombre = HttpContext.Session.GetString("UsuarioNombre");
                 var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
@@ -500,31 +406,21 @@ namespace ProyectoRH2025.Pages.Sellos
                 foreach (var sello in sellos)
                 {
                     var statusAnterior = sello.Status;
-                    var supervisorAnterior = sello.SupervisorId;
-                    var supervisorNombreAnterior = sello.Supervisor?.NombreCompleto ?? sello.Supervisor?.UsuarioNombre;
                     var fechaAsignacionAnterior = sello.FechaAsignacion;
+                    string nombreCuentaAnterior = sello.Cuenta?.NombreCuenta ?? "Cuenta Desconocida";
 
-                    // Volver a Status 1 (Activo)
                     sello.Status = 1;
-                    sello.SupervisorId = null;
+                    sello.IdCuenta = null; // ✅ SE DESVINCULA
                     sello.FechaAsignacion = null;
 
-                    // REGISTRAR EN AUDITORÍA
                     await _auditoriaService.RegistrarDesasignacion(
-                        sello,
-                        statusAnterior,
-                        supervisorAnterior,
-                        supervisorNombreAnterior,
-                        fechaAsignacionAnterior,
-                        usuarioId,
-                        usuarioNombre,
-                        ip,
-                        "Desasignación selectiva individual"
+                        sello, statusAnterior, null, nombreCuentaAnterior, fechaAsignacionAnterior, usuarioId, usuarioNombre, ip,
+                        "Devolución selectiva individual a central"
                     );
                 }
 
                 await _context.SaveChangesAsync();
-                MensajeExito = $"Se desasignaron {sellos.Count} sello(s) correctamente.";
+                MensajeExito = $"Se devolvieron {sellos.Count} sello(s) seleccionados a central.";
             }
             catch (Exception ex)
             {
@@ -535,7 +431,7 @@ namespace ProyectoRH2025.Pages.Sellos
         }
 
         // ==========================================
-        // HANDLER: IMPORTAR EXCEL CON AUDITORÍA
+        // IMPORTAR EXCEL
         // ==========================================
         public async Task<IActionResult> OnPostImportarAsync()
         {
@@ -552,7 +448,6 @@ namespace ProyectoRH2025.Pages.Sellos
                 using (var stream = new MemoryStream())
                 {
                     await ArchivoExcel.CopyToAsync(stream);
-
                     using var workbook = new XLWorkbook(stream);
                     var hoja = workbook.Worksheet(1);
 
@@ -563,7 +458,6 @@ namespace ProyectoRH2025.Pages.Sellos
                         var recibidoPor = fila.Cell(3).GetString().Trim();
 
                         if (string.IsNullOrWhiteSpace(numeroSello)) continue;
-
                         if (_context.TblSellos.Any(s => s.Sello == numeroSello)) continue;
 
                         if (!DateTime.TryParse(fechaTexto, out DateTime fechaEntrega))
@@ -574,8 +468,8 @@ namespace ProyectoRH2025.Pages.Sellos
                             Sello = numeroSello,
                             Fentrega = fechaEntrega,
                             Recibio = recibidoPor,
-                            Status = 1, // Activo/Disponible
-                            SupervisorId = null,
+                            Status = 1,
+                            IdCuenta = null, // Nace sin cuenta
                             FechaAsignacion = null,
                             Alta = HttpContext.Session.GetInt32("idUsuario")
                         });
@@ -586,30 +480,19 @@ namespace ProyectoRH2025.Pages.Sellos
                         _context.TblSellos.AddRange(sellosNuevos);
                         await _context.SaveChangesAsync();
 
-                        // Obtener datos de sesión
                         var usuarioId = HttpContext.Session.GetInt32("idUsuario");
                         var usuarioNombre = HttpContext.Session.GetString("UsuarioNombre");
                         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
 
-                        // REGISTRAR AUDITORÍA DE CADA SELLO IMPORTADO
                         foreach (var sello in sellosNuevos)
                         {
-                            await _auditoriaService.RegistrarImportacion(
-                                sello,
-                                usuarioId,
-                                usuarioNombre,
-                                ip,
-                                $"Importado desde Excel - Recibido por: {sello.Recibio}"
-                            );
+                            await _auditoriaService.RegistrarImportacion(sello, usuarioId, usuarioNombre, ip, $"Importado desde Excel");
                         }
 
                         await _context.SaveChangesAsync();
                         MensajeExito = $"Se importaron {sellosNuevos.Count} sellos correctamente.";
                     }
-                    else
-                    {
-                        MensajeError = "No se importaron sellos (puede que ya existan o el archivo esté vacío).";
-                    }
+                    else MensajeError = "No se importaron sellos (puede que ya existan o el archivo esté vacío).";
                 }
             }
             catch (Exception ex)

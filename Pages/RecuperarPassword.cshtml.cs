@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization; // <-- 1. Agregar esta librería
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -7,6 +8,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ProyectoRH2025.Pages
 {
+    [AllowAnonymous]
     public class RecuperarPasswordModel : PageModel
     {
         private readonly ApplicationDbContext _context;

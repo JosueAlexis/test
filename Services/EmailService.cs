@@ -1,12 +1,13 @@
 ﻿using System.Net;
 using System.Net.Mail;
+using Microsoft.AspNetCore.Http;
 
 namespace ProyectoRH2025.Services
 {
     // 1. Definimos la interfaz para poder inyectarla en cualquier parte del proyecto
     public interface IEmailService
     {
-        Task EnviarCorreoAsync(string destinatario, string asunto, string mensajeHtml);
+        Task EnviarCorreoAsync(string destinatario, string asunto, string mensajeHtml, List<IFormFile>? adjuntos = null);
     }
 
     // 2. Implementamos el servicio
@@ -21,7 +22,7 @@ namespace ProyectoRH2025.Services
             _logger = logger;
         }
 
-        public async Task EnviarCorreoAsync(string destinatario, string asunto, string mensajeHtml)
+        public async Task EnviarCorreoAsync(string destinatario, string asunto, string mensajeHtml, List<IFormFile>? adjuntos = null)
         {
             try
             {
@@ -58,11 +59,21 @@ namespace ProyectoRH2025.Services
 
                 var mailMessage = new MailMessage
                 {
-                    From = new MailAddress(user, "Sistema de Liquidaciones"),
+                    From = new MailAddress(user, "ITMS"),
                     Subject = asunto,
                     Body = mensajeHtml,
                     IsBodyHtml = true
                 };
+
+                // ▼▼▼ AGREGAR LOS ADJUNTOS SI EXISTEN ▼▼▼
+                if (adjuntos != null && adjuntos.Any())
+                {
+                    foreach (var archivo in adjuntos)
+                    {
+                        mailMessage.Attachments.Add(new Attachment(archivo.OpenReadStream(), archivo.FileName, archivo.ContentType));
+                    }
+                }
+                // ▲▲▲ FIN AGREGAR ADJUNTOS ▲▲▲
 
                 mailMessage.To.Add(destinatario);
 

@@ -17,19 +17,25 @@ namespace ProyectoRH2025.Pages.Sellos
         private readonly IWebHostEnvironment _environment;
         private readonly IAntiforgery _antiforgery;
         private readonly ImagenService _imagenService;
+        private readonly ILogger<InventarioCoordinadorModel> _logger;
+        private readonly IEmailService _emailService;
 
         public InventarioCoordinadorModel(
             ApplicationDbContext context,
             QRCodeService qrService,
             IWebHostEnvironment environment,
             IAntiforgery antiforgery,
-            ImagenService imagenService)
+            ImagenService imagenService,
+            ILogger<InventarioCoordinadorModel> logger,
+            IEmailService emailService)
         {
             _context = context;
             _qrService = qrService;
             _environment = environment;
             _antiforgery = antiforgery;
             _imagenService = imagenService;
+            _logger = logger;
+            _emailService = emailService;
         }
 
         public List<TblAsigSellos> SellosEnTramite { get; set; } = new();
@@ -66,10 +72,34 @@ namespace ProyectoRH2025.Pages.Sellos
         [BindProperty]
         public string Comentarios { get; set; }
 
+        // Nuevos campos para el reporte de Sello Utilizado
+        [BindProperty]
+        public string RemolqueEvento { get; set; }
+        [BindProperty]
+        public string UbicacionEvento { get; set; }
+        [BindProperty]
+        public string RutaEvento { get; set; }
+
+        // CAMPOS PARA SELECCIONAR LA LISTA DE DISTRIBUCIÓN
+        [BindProperty]
+        public int? IdCuentaDestino { get; set; }
+
+        public List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> ListasDistribucion { get; set; } = new();
+
         public async Task<IActionResult> OnGetAsync()
         {
             var idUsuario = HttpContext.Session.GetInt32("idUsuario");
             if (idUsuario == null) return RedirectToPage("/Login");
+
+            // ✅ CORRECCIÓN: Se eliminó "Cuenta General" de las opciones
+            ListasDistribucion = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>
+            {
+                new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "1", Text = "Toyota TMMTX-MCD (sellostoyota_mcd_tx@stil.mx)" },
+                new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "2", Text = "Toyota MTMUS (sellostoyotamtmus@stil.mx)" },
+                new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "3", Text = "Toyota SCD (sellostoyotascd@stil.mx)" },
+                new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "4", Text = "Proyecto Q (sellosproyectoq@stil.mx)" },
+                new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "5", Text = "Daltile (sellosdaltaile@stil.mx)" }
+            };
 
             var misCuentasIds = await _context.TblUsuariosCuentas
                 .Where(uc => uc.IdUsuario == idUsuario && uc.EsActivo)
@@ -108,7 +138,6 @@ namespace ProyectoRH2025.Pages.Sellos
             SellosEnTramite = await queryTramite.OrderBy(a => a.Fentrega).ToListAsync();
             SellosEnUso = await queryUso.OrderByDescending(a => a.FechaEntrega).ToListAsync();
 
-            // ✅ CALCULAR SELLOS PRIORITARIOS (3+ días en el mismo estado)
             var fechaLimite = DateTime.Now.AddDays(-3);
 
             var prioritariosTramite = SellosEnTramite.Where(s => s.Fentrega <= fechaLimite).ToList();
@@ -116,7 +145,7 @@ namespace ProyectoRH2025.Pages.Sellos
 
             SellosPrioritarios = prioritariosTramite
                 .Concat(prioritariosUso)
-                .OrderBy(s => s.Fentrega) // Los más antiguos primero
+                .OrderBy(s => s.Fentrega)
                 .ToList();
 
             return Page();
@@ -253,7 +282,6 @@ namespace ProyectoRH2025.Pages.Sellos
             if (!await UsuarioTienePermiso(asignacion.idSeAsigno))
                 return Content("<div class='alert alert-danger'>⛔ Sin permisos.</div>");
 
-            // ✅ VALIDAR QUE EL QR NO TENGA MÁS DE 1 HORA
             if (asignacion.QR_FechaGeneracion.HasValue)
             {
                 var tiempoTranscurrido = DateTime.Now - asignacion.QR_FechaGeneracion.Value;
@@ -277,8 +305,6 @@ namespace ProyectoRH2025.Pages.Sellos
             }
 
             var qrBase64 = _qrService.GenerarQRBase64(asignacion.QR_Code);
-
-            // Calcular tiempo restante
             var tiempoRestante = asignacion.QR_FechaGeneracion.HasValue
                 ? TimeSpan.FromHours(1) - (DateTime.Now - asignacion.QR_FechaGeneracion.Value)
                 : TimeSpan.Zero;
@@ -404,11 +430,12 @@ namespace ProyectoRH2025.Pages.Sellos
             if (asignacion.QR_Code != CodigoQR) { MensajeError = "El código QR no coincide con esta asignación"; return RedirectToPage(); }
             if (asignacion.idOperador != idOperadorQR) { MensajeError = "El código QR no pertenece al operador de esta asignación"; return RedirectToPage(); }
             if (asignacion.Sello?.Sello != numeroSello) { MensajeError = "El código QR no coincide con el sello de esta asignación"; return RedirectToPage(); }
+
             asignacion.FechaDevolucion = DateTime.Now;
             asignacion.Status = 14;
-            asignacion.editor = idUsuario; // Mantener para compatibilidad
-            asignacion.UsuarioDevolucionId = idUsuario; // ✅ NUEVO: Coordinador que devolvió
-            asignacion.FechaDevolucionRegistro = DateTime.Now; // ✅ NUEVO: Fecha de registro
+            asignacion.editor = idUsuario;
+            asignacion.UsuarioDevolucionId = idUsuario;
+            asignacion.FechaDevolucionRegistro = DateTime.Now;
 
             if (asignacion.Sello != null) asignacion.Sello.Status = 14;
 
@@ -429,7 +456,13 @@ namespace ProyectoRH2025.Pages.Sellos
                 if (archivo.Length > 10 * 1024 * 1024) { MensajeError = $"El archivo {archivo.FileName} supera el límite de 10 MB"; return RedirectToPage(); }
             }
 
-            var asignacion = await _context.TblAsigSellos.Include(a => a.Sello).FirstOrDefaultAsync(a => a.id == IdAsignacion && a.Status == 3);
+            var asignacion = await _context.TblAsigSellos
+                .Include(a => a.Sello)
+                .Include(a => a.Operador)
+                .Include(a => a.Operador2)
+                .Include(a => a.Unidad)
+                .FirstOrDefaultAsync(a => a.id == IdAsignacion && a.Status == 3);
+
             if (asignacion == null) { MensajeError = "Asignación no encontrada"; return RedirectToPage(); }
             if (!await UsuarioTienePermiso(asignacion.idSeAsigno)) { MensajeError = "⛔ No tienes permiso para subir evidencia a este sello."; return RedirectToPage(); }
 
@@ -454,16 +487,25 @@ namespace ProyectoRH2025.Pages.Sellos
                     }
                 }
 
-                // ✅ NUEVO: Registrar quién subió la evidencia
                 asignacion.UsuarioEvidenciaId = idUsuario.Value;
                 asignacion.FechaEvidenciaRegistro = DateTime.Now;
-                asignacion.editor = idUsuario.Value; // Mantener para compatibilidad
+                asignacion.editor = idUsuario.Value;
 
                 await _context.SaveChangesAsync();
 
+                if (TipoEvidencia == "Utilizado")
+                {
+                    var usuarioDb = await _context.TblUsuarios.FindAsync(idUsuario.Value);
+                    var nombreReportador = usuarioDb?.UsuarioNombre ?? "Coordinador / Supervisor";
+
+                    int idCuentaSeleccionada = IdCuentaDestino ?? 0;
+
+                    await EnviarCorreoAlertaSelloUtilizado(asignacion, nombreReportador, ArchivosEvidencia, idCuentaSeleccionada);
+                }
+
                 Mensaje = TipoEvidencia switch
                 {
-                    "Utilizado" => $"✅ Sello marcado como UTILIZADO y archivado con {ArchivosEvidencia.Count} imagen(es).",
+                    "Utilizado" => $"✅ Sello marcado como UTILIZADO, archivado con {ArchivosEvidencia.Count} imagen(es) y Reporte Enviado.",
                     "Defectuoso" => $"⚠️ Sello marcado como DEFECTUOSO y archivado con {ArchivosEvidencia.Count} imagen(es).",
                     "Planta" => $"⚠️ Sello marcado como EN PLANTA y archivado con {ArchivosEvidencia.Count} imagen(es).",
                     "Extraviado" => $"❌ Sello marcado como EXTRAVIADO y archivado con {ArchivosEvidencia.Count} imagen(es).",
@@ -474,6 +516,82 @@ namespace ProyectoRH2025.Pages.Sellos
             catch (Exception ex) { MensajeError = $"Error al subir evidencia: {ex.Message}"; }
 
             return RedirectToPage();
+        }
+
+        private async Task EnviarCorreoAlertaSelloUtilizado(TblAsigSellos asignacion, string nombreReportador, List<IFormFile> archivos, int idCuentaUsr)
+        {
+            try
+            {
+                string destinatario = "";
+                string clienteStr = "";
+
+                switch (idCuentaUsr)
+                {
+                    case 1:
+                        destinatario = "sellostoyota_mcd_tx@stil.mx";
+                        clienteStr = "Toyota TMMTX-MCD";
+                        break;
+                    case 2:
+                        destinatario = "sellostoyotamtmus@stil.mx";
+                        clienteStr = "Toyota MTMUS";
+                        break;
+                    case 3:
+                        destinatario = "sellostoyotascd@stil.mx";
+                        clienteStr = "Toyota SCD";
+                        break;
+                    case 4:
+                        destinatario = "sellosproyectoq@stil.mx";
+                        clienteStr = "Proyecto Q";
+                        break;
+                    case 5:
+                        destinatario = "sellosdaltaile@stil.mx";
+                        clienteStr = "Daltile";
+                        break;
+                    default:
+                        // Fallback seguro por si de alguna forma llega un valor que no esté en la lista
+                        destinatario = "alertas_sellos@stil.mx";
+                        clienteStr = "Cuenta General / No especificada";
+                        break;
+                }
+
+                var remolqueStr = !string.IsNullOrEmpty(RemolqueEvento) ? RemolqueEvento : "No especificado";
+                var ubicacionStr = !string.IsNullOrEmpty(UbicacionEvento) ? UbicacionEvento : "No especificada";
+                var rutaStr = !string.IsNullOrEmpty(RutaEvento) ? RutaEvento : (asignacion.Ruta ?? "No especificada");
+                var comentarioStr = !string.IsNullOrEmpty(Comentarios) ? Comentarios : "Sin comentarios adicionales";
+
+                var operador1 = $"{asignacion.Operador?.Names} {asignacion.Operador?.Apellido}";
+                var operadores = asignacion.TipoAsignacion == 1 && asignacion.Operador2 != null
+                    ? $"{operador1} / {asignacion.Operador2.Names} {asignacion.Operador2.Apellido}"
+                    : operador1;
+
+                var body = $@"
+                    <h2 style='color: #d9534f; border-bottom: 2px solid #d9534f; padding-bottom: 5px;'>ALERTA DE SELLO UTILIZADO</h2>
+                    
+                    <p>Sello Ryder <strong>""{asignacion.Sello?.Sello}""</strong>, ""Utilizado en planta"", ""{comentarioStr}""</p>
+                    
+                    <ul>
+                        <li><strong>Operador/es:</strong> {operadores}</li>
+                        <li><strong>Unidad:</strong> {asignacion.Unidad?.NumUnidad}</li>
+                        <li><strong>Cliente:</strong> {clienteStr}</li>
+                        <li><strong>Numero de Remolque:</strong> {remolqueStr}</li>
+                        <li><strong>Ubicación del evento:</strong> ""{ubicacionStr}""</li>
+                        <li><strong>Ruta:</strong> ""{rutaStr}""</li>
+                        <li><strong>Fecha del evento:</strong> {DateTime.Now:dd/MM/yyyy HH:mm}</li>
+                    </ul>
+                    
+                    <p><strong>Reportado por:</strong> {nombreReportador}</p>
+                    
+                    <p><em>(Las fotos de evidencia se encuentran adjuntas a este correo)</em></p>
+                ";
+
+                string asunto = $"ALERTA: Sello Utilizado - {asignacion.Sello?.Sello} - {clienteStr}";
+
+                await _emailService.EnviarCorreoAsync(destinatario, asunto, body, archivos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al enviar correo de alerta de sello utilizado");
+            }
         }
 
         private async Task<(bool Success, string Message)> ProcesarMultiplesEvidencias(int idAsignacion, int idUsuario, List<IFormFile> archivos)

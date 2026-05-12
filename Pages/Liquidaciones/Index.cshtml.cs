@@ -29,6 +29,13 @@ namespace ProyectoRH2025.Pages.Liquidaciones
         [BindProperty(SupportsGet = true)]
         public string? Remolque { get; set; }
 
+        // NUEVOS CAMPOS DE RANGO DE RELOJ
+        [BindProperty(SupportsGet = true)]
+        public int? RelojInicio { get; set; }
+
+        [BindProperty(SupportsGet = true)]
+        public int? RelojFin { get; set; }
+
         [BindProperty(SupportsGet = true)]
         public bool TodosLosRegistros { get; set; } = false;
 
@@ -236,6 +243,17 @@ namespace ProyectoRH2025.Pages.Liquidaciones
             {
                 Value = FechaFin ?? (object)DBNull.Value
             });
+
+            // AÑADIMOS LOS PARAMETROS DEL RELOJ AL STORED PROCEDURE
+            command.Parameters.Add(new SqlParameter("@RelojInicio", SqlDbType.Int)
+            {
+                Value = RelojInicio.HasValue ? RelojInicio.Value : DBNull.Value
+            });
+            command.Parameters.Add(new SqlParameter("@RelojFin", SqlDbType.Int)
+            {
+                Value = RelojFin.HasValue ? RelojFin.Value : DBNull.Value
+            });
+
             command.Parameters.Add(new SqlParameter("@MaxRecords", SqlDbType.Int) { Value = maxRecords });
 
             command.Parameters.Add(new SqlParameter("@TodosLosRegistros", SqlDbType.Bit) { Value = TodosLosRegistros });
@@ -325,7 +343,6 @@ namespace ProyectoRH2025.Pages.Liquidaciones
         // MÉTODOS DE GENERACIÓN DE PDF
         // ====================================================================
 
-        // 1. Método para las CASILLAS MANUALES
         public async Task<IActionResult> OnPostGenerarPDFsMasivosAsync(int[] selectedIds)
         {
             if (selectedIds == null || selectedIds.Length == 0)
@@ -336,7 +353,6 @@ namespace ProyectoRH2025.Pages.Liquidaciones
 
             if (selectedIds.Length > 10)
             {
-                // ---- OBTENER CORREO DINÁMICO DESDE tblUsuarios ----
                 var idUsuario = HttpContext.Session.GetInt32("idUsuario");
                 if (idUsuario == null || idUsuario == 0) return RedirectToPage("/Login");
 
@@ -354,12 +370,10 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                     TempData["Error"] = "Tu cuenta de usuario no tiene un Correo Electrónico registrado en el sistema para recibir el archivo PDF.";
                     return RedirectToPage();
                 }
-                // ---------------------------------------------------
 
                 string scheme = Request.Scheme;
                 string host = Request.Host.Value;
 
-                // AHORA LLAMA AL NUEVO MÉTODO DE PDF MASIVO
                 BackgroundJob.Enqueue<ProyectoRH2025.BackgroundJobs.IReporteMasivoJob>(job =>
                     job.GenerarPdfMasivoAsync(selectedIds, emailUsuario, scheme, host));
 
@@ -371,10 +385,12 @@ namespace ProyectoRH2025.Pages.Liquidaciones
             return RedirectToPage("./GenerarPDF", new { ids = idsString });
         }
 
-        // 2. MÉTODO CORREGIDO: Llama al mismo Stored Procedure de la tabla
+        // MÉTODO CORREGIDO para incluir los filtros de reloj
         public async Task<IActionResult> OnPostGenerarPDFsPorFiltroAsync(
             string? searchStringFiltro,
             string? remolqueFiltro,
+            int? relojInicioFiltro,
+            int? relojFinFiltro,
             DateTime? fechaInicioFiltro,
             DateTime? fechaFinFiltro,
             bool todosLosRegistrosFiltro,
@@ -386,6 +402,8 @@ namespace ProyectoRH2025.Pages.Liquidaciones
             {
                 SearchString = searchStringFiltro;
                 Remolque = remolqueFiltro;
+                RelojInicio = relojInicioFiltro; // ASIGNAMOS EL FILTRO
+                RelojFin = relojFinFiltro;       // ASIGNAMOS EL FILTRO
                 FechaInicio = fechaInicioFiltro;
                 FechaFin = fechaFinFiltro;
                 TodosLosRegistros = todosLosRegistrosFiltro;
@@ -404,7 +422,6 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                     return RedirectToPage();
                 }
 
-                // ---- OBTENER CORREO DINÁMICO DESDE tblUsuarios ----
                 var idUsuario = HttpContext.Session.GetInt32("idUsuario");
                 if (idUsuario == null || idUsuario == 0) return RedirectToPage("/Login");
 
@@ -422,12 +439,10 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                     TempData["Error"] = "Tu cuenta de usuario no tiene un Correo Electrónico registrado en el sistema para recibir el archivo PDF.";
                     return RedirectToPage();
                 }
-                // ---------------------------------------------------
 
                 string scheme = Request.Scheme;
                 string host = Request.Host.Value;
 
-                // AHORA LLAMA AL NUEVO MÉTODO DE PDF MASIVO
                 BackgroundJob.Enqueue<ProyectoRH2025.BackgroundJobs.IReporteMasivoJob>(job =>
                     job.GenerarPdfMasivoAsync(selectedIds, emailUsuario, scheme, host));
 
@@ -441,8 +456,6 @@ namespace ProyectoRH2025.Pages.Liquidaciones
                 return RedirectToPage("./Index");
             }
         }
-
-        // ====================================================================
 
         private void PrepararFiltrosActivos()
         {

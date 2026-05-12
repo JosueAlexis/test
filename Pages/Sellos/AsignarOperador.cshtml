@@ -15,7 +15,17 @@
             <form method="post" id="formAsignar">
                 <div class="mb-3">
                     <label class="form-label">Sello disponible <span class="text-danger">*</span></label>
-                    <select asp-for="IdSello" asp-items="Model.Sellos" class="form-select" required></select>
+                    <select asp-for="IdSello" class="form-select sello-select" required>
+                        <option value="" data-idcuenta="">-- Seleccionar Sello --</option>
+                        @if (!Model.SellosList.Any())
+                        {
+                            <option value="" disabled>-- No tienes sellos en inventario --</option>
+                        }
+                        @foreach (var s in Model.SellosList)
+                        {
+                            <option value="@s.Id" data-idcuenta="@s.IdCuenta">@s.Sello (Cuenta: @s.NombreCuenta)</option>
+                        }
+                    </select>
                     <span asp-validation-for="IdSello" class="text-danger"></span>
                 </div>
 
@@ -38,8 +48,22 @@
 
                 <div class="mb-3">
                     <label class="form-label">Unidad <span class="text-danger">*</span></label>
-                    <select asp-for="IdUnidad" asp-items="Model.Unidades" class="form-select unidad-select" required></select>
+                    <select asp-for="IdUnidad" class="form-select unidad-select" required>
+                        <option value="">-- Seleccionar Unidad --</option>
+                        @if (!Model.UnidadesList.Any())
+                        {
+                            <option value="" disabled>-- No tienes unidades asignadas --</option>
+                        }
+                        @foreach (var u in Model.UnidadesList)
+                        {
+                            var textoUnidad = string.IsNullOrEmpty(u.Placas) ? $"Unidad {u.NumUnidad}" : $"Unidad {u.NumUnidad} - {u.Placas}";
+                            <option value="@u.Id" data-idcuenta="@u.IdCuenta">@textoUnidad</option>
+                        }
+                    </select>
                     <span asp-validation-for="IdUnidad" class="text-danger"></span>
+                    <small class="form-text text-muted text-info" id="infoFiltroUnidad">
+                        <i class="fas fa-info-circle"></i> Las unidades se filtrarán automáticamente al seleccionar un sello.
+                    </small>
                 </div>
 
                 <div class="mb-3">
@@ -81,21 +105,65 @@
 
     <script>
         $(document).ready(function () {
-            // ✅ Limpiar formulario si hubo éxito
+
+            // ✅ 1. Almacenamos TODAS las unidades enviadas desde el backend en una variable de JS
+            var todasLasUnidades = [
+                @foreach (var u in Model.UnidadesList)
+                {
+                        var texto = string.IsNullOrEmpty(u.Placas) ? $"Unidad {u.NumUnidad}" : $"Unidad {u.NumUnidad} - {u.Placas}";
+                        <text>{ id: '@u.Id', idCuenta: '@u.IdCuenta', texto: '@texto' },</text>
+                }
+            ];
+
+            // Limpiar formulario si hubo éxito
             var mensajeExito = '@Html.Raw(Model.MensajeExito ?? "")';
             if (mensajeExito === 'true') {
                 limpiarFormulario();
             }
 
-            // Activar Select2 en operador y unidad
-            $('.operador-select, .unidad-select').select2({
+            // Activar Select2
+            $('.sello-select, .operador-select, .unidad-select').select2({
                 width: '100%',
-                placeholder: "Buscar...",
-                matcher: function (params, data) {
-                    if ($.trim(params.term) === '') return data;
-                    if (typeof data.text === 'undefined') return null;
-                    if (data.text.toLowerCase().includes(params.term.toLowerCase())) return data;
-                    return null;
+                placeholder: "Buscar..."
+            });
+
+            // ✅ 2. LÓGICA DE FILTRADO DINÁMICO
+            $('#IdSello').on('change', function() {
+                var selectedOption = $(this).find('option:selected');
+                var idCuentaSello = selectedOption.data('idcuenta');
+
+                var selectUnidad = $('#IdUnidad');
+                var currentVal = selectUnidad.val(); // Guardar la unidad actual seleccionada (si la hay)
+
+                // Vaciamos el dropdown de unidades
+                selectUnidad.empty();
+                selectUnidad.append(new Option('-- Seleccionar Unidad --', ''));
+
+                let unidadesEncontradas = 0;
+
+                // Lo volvemos a llenar solo con las que coinciden en IdCuenta
+                todasLasUnidades.forEach(function(u) {
+                    if (!idCuentaSello || u.idCuenta === idCuentaSello.toString()) {
+                        selectUnidad.append(new Option(u.texto, u.id));
+                        unidadesEncontradas++;
+                    }
+                });
+
+                // Si la unidad que tenía seleccionada sigue siendo válida, la recuperamos
+                if (selectUnidad.find("option[value='" + currentVal + "']").length > 0) {
+                    selectUnidad.val(currentVal);
+                }
+
+                // Refrescar Select2
+                selectUnidad.trigger('change.select2');
+
+                // Actualizar mensaje de interfaz
+                if(idCuentaSello) {
+                    $('#infoFiltroUnidad').html(`<i class="fas fa-check-circle"></i> Filtrado: <strong>${unidadesEncontradas}</strong> unidades vinculadas a esta cuenta.`);
+                    $('#infoFiltroUnidad').removeClass('text-info text-danger').addClass(unidadesEncontradas > 0 ? 'text-success' : 'text-danger');
+                } else {
+                    $('#infoFiltroUnidad').html(`<i class="fas fa-info-circle"></i> Las unidades se filtrarán automáticamente al seleccionar un sello.`);
+                    $('#infoFiltroUnidad').removeClass('text-success text-danger').addClass('text-info');
                 }
             });
 
@@ -105,7 +173,7 @@
                 $('#segundo-operador-container').toggle(tipo === 1);
             }).trigger('change');
 
-            // 🔒 Validar que no se seleccione el mismo operador dos veces en comboy
+            // Validar form submit
             $('#formAsignar').on('submit', function (e) {
                 const tipo = parseInt($('#TipoAsignacion').val());
                 const op1 = $('#IdOperador').val();
@@ -117,8 +185,6 @@
                     return false;
                 }
 
-                // Validar campos obligatorios (por si el navegador no lo hace)
-                // Se eliminó la validación de idCoordinador
                 if (!$('#IdSello').val() || !$('#TipoAsignacion').val() ||
                     !$('#IdOperador').val() || !$('#IdUnidad').val() ||
                     !$('#Ruta').val().trim() || !$('#Caja').val().trim()) {
@@ -127,7 +193,6 @@
                 }
             });
 
-            // Función para limpiar el formulario
             function limpiarFormulario() {
                 $('#IdSello').val('').trigger('change');
                 $('#TipoAsignacion').val('').trigger('change');
@@ -137,17 +202,7 @@
                 $('#Ruta').val('');
                 $('#Caja').val('');
                 $('#Comentarios').val('');
-
-                // Se eliminó la limpieza de idCoordinador
-
-                // Ocultar segundo operador
                 $('#segundo-operador-container').hide();
-
-                // Reiniciar Select2
-                $('.operador-select, .unidad-select').select2({
-                    width: '100%',
-                    placeholder: "Buscar..."
-                });
             }
         });
     </script>

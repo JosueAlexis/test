@@ -63,3 +63,6 @@ wwwroot\lib\jquery\dist\jquery.min.js
 wwwroot\lib\jquery\dist\jquery.min.map
 wwwroot\lib\jquery\LICENSE.txt
 wwwroot\uploads\evidencias\EV_5176_20260114131229.png
+wwwroot\descargas_masivas\Reporte_Masivo_Liquidaciones_20260323_1232.pdf
+wwwroot\descargas_masivas\Reporte_Masivo_Liquidaciones_20260323_1457.pdf
+wwwroot\descargas_masivas\Reporte_Masivo_Liquidaciones_20260323_1530.pdf
